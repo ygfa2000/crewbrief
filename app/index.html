@@ -93,6 +93,7 @@
   .setrow input { width:18px; height:18px; margin:0; }
   .setbtns { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:12px; }
   .setbtns button { font:600 14px -apple-system,system-ui,sans-serif; padding:8px 14px; border:1px solid var(--line); border-radius:9px; background:var(--card); color:var(--ink); cursor:pointer; }
+  .setbtns .wdl { font:600 14px -apple-system,system-ui,sans-serif; padding:8px 14px; border:1px solid var(--acc); border-radius:9px; color:var(--acc); text-decoration:none; }
   .setbtns button.on { background:var(--acc); border-color:var(--acc); color:#fff; }
   .tabs button.on { background:var(--acc); border-color:var(--acc); color:#fff; }
   .sec { margin-top:8px; }
@@ -486,8 +487,9 @@ function settingsView() {
     const [v, sub] = f ? f(r) : id === 'seproc' ? [esc((r.acarsRwys || []).filter(x => !x.ix).map(x => `${x.rwy} ${x.efp}`).join(' · ') || '—')] : [esc(id === 'route' ? r.route || '—' : ((id === 'remarks' ? r.remarks : r.mel)[0] || '없음').slice(0, 40))];
     return `<label class="setrow"><input type="checkbox" data-f="${id}"${relShow.includes(id) ? ' checked' : ''}><span class="k">${k}</span><span class="v">${v}${sub ? ` <small>${sub}</small>` : ''}</span></label>`;
   }).join('');
-  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release 항목</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>업데이트${scriptOld() ? ' ●' : ''}</button></div>`;
+  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release 항목</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>업데이트${scriptOld() ? ' ●' : ''}</button>${doorKey ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}</div>`;
   if (setTab === 'upd') return seg + scriptBox();
+  if (setTab === 'watch' && doorKey) return seg + watchBox();
   return `${seg}<div class="card box"><b>Release 항목</b>
     <p class="sub" style="margin:4px 0 10px">체크한 항목만 Release 칸에 보입니다. 값은 ${src}.</p>
     <div class="setlist">${rows}</div>
@@ -993,6 +995,25 @@ document.addEventListener('click', e => {
     doorSave(apt, codes);
   }
 });
+const watchUrl = () => `${RELAY}?f=watch&dk=${encodeURIComponent(doorKey)}`;
+function watchBox() {
+  return `<div class="card box"><b>Apple Watch 도어 코드</b>
+    <p class="sub" style="margin:4px 0 10px">워치에서 그날 가는 공항들의 도어 코드를 바로 봅니다.</p>
+    <div class="setbtns"><button id="wCopy" class="on">① 내 워치 URL 복사</button><a class="wdl" href="${PAGES}DoorCode.shortcut">② 단축어 받기</a><span class="sub" id="wMsg"></span></div>
+    <div class="sub" style="margin-top:10px;line-height:1.6">
+    1. <b>① 내 워치 URL 복사</b>를 누릅니다 (나만 쓰는 주소 — 남에게 주지 마세요)<br>
+    2. <b>② 단축어 받기</b> → 단축어 앱에서 <b>단축어 추가</b> → 질문 칸에 복사한 URL을 붙여 넣습니다<br>
+    3. 단축어 앱에서 Door Code를 길게 누름 › <b>세부사항</b> › <b>Apple Watch에서 보기</b> 켜기<br>
+    4. iPhone <b>Watch</b> 앱 › 나의 시계 › 페이스 선택 › <b>컴플리케이션</b> › 원하는 자리 › Shortcuts › <b>Door Code</b><br>
+    5. 워치에서 컴플리케이션을 누르고 <b>Run</b> (이 확인 화면은 Apple 규칙이라 끌 수 없음 · Siri에 "Door Code"도 됨)<br>
+    공항 목록은 이 앱을 열 때 서버로 보내집니다 — 스케줄이 바뀌면 앱을 한 번 열어 주세요.</div></div>`;
+}
+document.addEventListener('click', e => {
+  if (e.target.id !== 'wCopy') return;
+  const done = t => { const m = document.getElementById('wMsg'); if (m) m.textContent = t; };
+  navigator.clipboard.writeText(watchUrl()).then(() => done('✓ 복사됨'), () => { prompt('복사하세요', watchUrl()); });
+});
+
 render();
 </script>
 </body>

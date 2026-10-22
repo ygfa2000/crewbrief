@@ -93,6 +93,7 @@
   .setrow input { width:18px; height:18px; margin:0; }
   .setbtns { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:12px; }
   .setbtns button { font:600 14px -apple-system,system-ui,sans-serif; padding:8px 14px; border:1px solid var(--line); border-radius:9px; background:var(--card); color:var(--ink); cursor:pointer; }
+  .setbtns .wdl { font:600 14px -apple-system,system-ui,sans-serif; padding:8px 14px; border:1px solid var(--acc); border-radius:9px; color:var(--acc); text-decoration:none; }
   .setbtns button.on { background:var(--acc); border-color:var(--acc); color:#fff; }
   .tabs button.on { background:var(--acc); border-color:var(--acc); color:#fff; }
   .sec { margin-top:8px; }
@@ -486,8 +487,9 @@ function settingsView() {
     const [v, sub] = f ? f(r) : id === 'seproc' ? [esc((r.acarsRwys || []).filter(x => !x.ix).map(x => `${x.rwy} ${x.efp}`).join(' · ') || '—')] : [esc(id === 'route' ? r.route || '—' : ((id === 'remarks' ? r.remarks : r.mel)[0] || 'None').slice(0, 40))];
     return `<label class="setrow"><input type="checkbox" data-f="${id}"${relShow.includes(id) ? ' checked' : ''}><span class="k">${k}</span><span class="v">${v}${sub ? ` <small>${sub}</small>` : ''}</span></label>`;
   }).join('');
-  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release items</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>Update${scriptOld() ? ' ●' : ''}</button></div>`;
+  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release items</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>Update${scriptOld() ? ' ●' : ''}</button>${doorKey ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}</div>`;
   if (setTab === 'upd') return seg + scriptBox();
+  if (setTab === 'watch' && doorKey) return seg + watchBox();
   return `${seg}<div class="card box"><b>Release items</b>
     <p class="sub" style="margin:4px 0 10px">Only checked items are shown in the release box. Values are from ${src}.</p>
     <div class="setlist">${rows}</div>
@@ -993,6 +995,25 @@ document.addEventListener('click', e => {
     doorSave(apt, codes);
   }
 });
+const watchUrl = () => `${RELAY}?f=watch&dk=${encodeURIComponent(doorKey)}`;
+function watchBox() {
+  return `<div class="card box"><b>Apple Watch door codes</b>
+    <p class="sub" style="margin:4px 0 10px">See the door codes for the day's airports right on your watch.</p>
+    <div class="setbtns"><button id="wCopy" class="on">① Copy my watch URL</button><a class="wdl" href="${PAGES}DoorCode.shortcut">② Get the shortcut</a><span class="sub" id="wMsg"></span></div>
+    <div class="sub" style="margin-top:10px;line-height:1.6">
+    1. Tap <b>① Copy my watch URL</b> (your personal address — don't share it)<br>
+    2. <b>② Get the shortcut</b> → in Shortcuts tap <b>Add Shortcut</b> → paste the copied URL into the question box<br>
+    3. In Shortcuts, long-press Door Code › <b>Details</b> › turn on <b>Show on Apple Watch</b><br>
+    4. iPhone <b>Watch</b> app › My Watch › pick a face › <b>Complications</b> › a slot › Shortcuts › <b>Door Code</b><br>
+    5. On the watch tap the complication, then <b>Run</b> (Apple always asks this; you can also say "Door Code" to Siri)<br>
+    The airport list is sent when you open this app — open it once after your schedule changes.</div></div>`;
+}
+document.addEventListener('click', e => {
+  if (e.target.id !== 'wCopy') return;
+  const done = t => { const m = document.getElementById('wMsg'); if (m) m.textContent = t; };
+  navigator.clipboard.writeText(watchUrl()).then(() => done('✓ Copied'), () => { prompt('Copy this', watchUrl()); });
+});
+
 render();
 </script>
 </body>
