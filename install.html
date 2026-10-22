@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Crew Brief Install</title>
+<style>body{margin:0;background:#0f1115;color:#e8eaed;font:16px -apple-system,sans-serif;padding:40px 16px;text-align:center}a{color:#8ab4f8}</style>
+</head><body>
+<p id="msg">Opening the sync script…</p>
+<script>
+// Update link from the app: open the script for Userscripts, and when the user comes back (← Back)
+// after installing, return straight to the app, which then shows "Installed successfully".
+const BASE = 'https://ygfa2000.github.io/crewbrief/';
+const ret = new URLSearchParams(location.search).get('ret') || '';
+const app = ret.startsWith(BASE) || ret.startsWith('https://script.google.com/') ? ret : BASE + 'app/';
+function go() {
+  let back = false;
+  try { back = sessionStorage.cbInst === '1'; } catch (e) {}
+  if (back) {
+    try { sessionStorage.removeItem('cbInst'); } catch (e) {}
+    document.getElementById('msg').textContent = 'Returning to Crew Brief…';
+    location.replace(app);
+  } else {
+    try { sessionStorage.cbInst = '1'; } catch (e) {}
+    location.href = 'https://gist.githubusercontent.com/ygfa2000/66609878012f76472d34391ba0f808ec/raw/CrewBrief.user.js';
+  }
+}
+addEventListener('pageshow', go);
+</script>
+</body></html>

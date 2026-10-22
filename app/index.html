@@ -1,0 +1,999 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Crew Brief</title>
+<style>
+  :root { --bg:#f4f5f7; --card:#fff; --ink:#1b1f24; --mute:#6b7380; --line:#e3e6ea; --acc:#1f6feb; --warn:#b54708; --soft:#eef3fb; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0f1115; --card:#181b21; --ink:#e7e9ec; --mute:#9aa3ae; --line:#2a2f37; --acc:#5b9dff; --warn:#f0a35e; --soft:#1c2533; }
+  }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 -apple-system,system-ui,sans-serif; padding:16px 16px calc(16px + env(safe-area-inset-bottom)); max-width:760px; margin-inline:auto; }
+  h1 { font-size:20px; margin:4px 0 2px; }
+  h2 { font-size:14px; color:var(--mute); font-weight:600; margin:22px 0 6px; letter-spacing:.04em; }
+  .sub { color:var(--mute); font-size:13px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; margin-top:10px; overflow:hidden; }
+  details > summary { list-style:none; cursor:pointer; }
+  details > summary::-webkit-details-marker { display:none; }
+  .trip > summary { padding:12px 14px; display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; align-items:baseline; }
+  .trip > summary b { font-size:17px; }
+  .day { border-top:1px solid var(--line); padding:10px 14px; }
+  .logten { display:inline-block; margin:6px 0 2px; padding:4px 12px; border-radius:999px; border:1px solid var(--acc); color:var(--acc); font-size:13px; font-weight:600; text-decoration:none; }
+  .dayhead { display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; font-weight:600; }
+  .leg > summary { display:grid; grid-template-columns:4.2em 1fr auto; gap:8px; padding:7px 0; border-bottom:1px dashed var(--line); font-variant-numeric:tabular-nums; }
+  .leg > summary .r { text-align:right; color:var(--mute); font-size:13px; }
+  .tag { font-size:11px; border:1px solid var(--acc); color:var(--acc); border-radius:6px; padding:0 5px; margin-left:4px; }
+  .legbody { background:var(--soft); border-radius:10px; padding:10px; margin:6px 0 10px; font-size:13px; }
+  .hotel { color:var(--mute); font-size:13px; margin-top:6px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:6px; margin-top:8px; }
+  .kv { background:var(--card); border:1px solid var(--line); border-radius:9px; padding:6px 9px; }
+  .kv .k { color:var(--mute); font-size:11px; letter-spacing:.04em; }
+  .kv .v { font-weight:600; font-variant-numeric:tabular-nums; font-size:14px; }
+  .kv .v small { font-weight:400; color:var(--mute); }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-top:10px; }
+  .panel h4 { margin:0 0 4px; font-size:11px; color:var(--mute); letter-spacing:.06em; font-weight:600; }
+  .panel .part + .part { border-top:1px solid var(--line); margin-top:9px; padding-top:9px; }
+  .panel pre { font-size:12.5px; }
+  .frow { display:grid; grid-template-columns:1.2em 1fr auto; gap:6px; padding:5px 0; border-bottom:1px dashed var(--line); font-size:13px; font-variant-numeric:tabular-nums; }
+  .frow:last-child { border-bottom:0; }
+  .frow.mine { background:var(--soft); border-radius:6px; }
+  .frow .r { color:var(--mute); font-size:12px; text-align:right; }
+  .info { display:grid; grid-template-columns:3em 1fr; gap:3px 8px; font-size:13px; }
+  .info .lbl { color:var(--mute); font-size:11px; letter-spacing:.04em; padding-top:2px; }
+  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:8px; font-variant-numeric:tabular-nums; }
+  .stats .lbl { display:block; color:var(--mute); font-size:11px; letter-spacing:.04em; }
+  .stats b { font-size:14px; }
+  .apt { font-weight:700; font-size:13px; margin-bottom:2px; }
+  .head { display:flex; justify-content:space-between; align-items:baseline; }
+  .zulu { font:700 20px ui-monospace,monospace; font-variant-numeric:tabular-nums; color:var(--acc); }
+  .topbar { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .upd { flex:none; background:var(--acc); color:#fff; text-decoration:none; font-weight:600; font-size:14px; padding:6px 12px; border-radius:9px; }
+  .tabs { position:sticky; top:0; z-index:5; display:flex; gap:4px; background:var(--bg); padding:10px 0 6px; margin-top:6px; }
+  .tabs button { flex:1; font:600 14px -apple-system,system-ui,sans-serif; padding:8px 4px; border:1px solid var(--line); border-radius:10px; background:var(--card); color:var(--mute); cursor:pointer; }
+  .tabs button[data-tab="set"] { flex:0 0 44px; }
+  .script-warn { display:block; width:100%; margin-top:8px; text-align:left; font:600 13px -apple-system,system-ui,sans-serif; padding:8px 10px; border:1px solid var(--warn); border-radius:9px; background:var(--card); color:var(--warn); cursor:pointer; }
+  .pmhelp { margin-top:6px; }
+  .pmhelp img { display:block; width:100%; max-width:420px; margin-top:6px; border-radius:10px; border:1px solid var(--line); }
+  .ver { display:grid; grid-template-columns:auto 1fr; gap:2px 10px; margin-top:8px; font-variant-numeric:tabular-nums; }
+  .ver span { color:var(--mute); font-size:12px; }
+  .ok-tag, .need-tag { font-size:12px; font-weight:600; padding:2px 8px; border-radius:999px; margin-left:6px; }
+  .ok-tag { background:var(--soft); color:var(--acc); }
+  .need-tag { background:var(--warn); color:#fff; }
+  .toast { position:fixed; left:16px; right:16px; top:16px; z-index:50; background:#1e8e3e; color:#fff; font-weight:600; padding:12px 14px; border-radius:10px; text-align:center; box-shadow:0 4px 16px #0005; }
+  .seg.leg-seg { grid-template-columns:repeat(3,1fr); margin-top:10px; }
+  .lt pre.raw { margin-top:10px !important; font:11px/1.35 ui-monospace,Menlo,monospace; white-space:pre; overflow-x:auto; background:var(--soft); border-radius:8px; padding:8px; margin:0; }
+  .se { font:13px/1.5 ui-monospace,Menlo,monospace; margin-top:3px; }
+  .se b { display:inline-block; min-width:3.2em; }
+  .door-top { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .door-top input { flex:1 1 140px; min-width:0; font:600 16px ui-monospace,monospace; text-transform:uppercase; padding:8px 10px; border:1px solid var(--line); border-radius:9px; background:var(--card); color:var(--ink); }
+  .door-top button, .door-card button { font:600 13px -apple-system,system-ui,sans-serif; padding:7px 12px; border:1px solid var(--line); border-radius:9px; background:var(--card); color:var(--ink); cursor:pointer; }
+  .door-top button.on, .door-card button.on { background:var(--acc); border-color:var(--acc); color:#fff; }
+  .door-card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-top:10px; }
+  .door-card.mine { border-color:var(--acc); }
+  .door-card .hd { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .door-card .apt { font:700 18px ui-monospace,monospace; }
+  .door-codes { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; margin-top:8px; }
+  .door-codes div { border:1px solid var(--line); border-radius:9px; padding:5px 7px; min-width:0; }
+  .door-codes .c { color:var(--mute); font-size:11px; letter-spacing:.06em; }
+  .door-codes .v { font:700 16px ui-monospace,monospace; overflow-wrap:anywhere; }
+  .door-edit label { display:grid; grid-template-columns:36px 1fr; gap:8px; align-items:start; margin-top:8px; }
+  .door-edit .c { color:var(--mute); font:700 14px ui-monospace,monospace; padding-top:10px; }
+  .door-edit textarea { margin-top:0; font:600 17px ui-monospace,monospace; padding:8px 10px; }
+  .door-note { margin-top:6px; font-size:13px; white-space:pre-wrap; }
+  .door-card textarea { width:100%; box-sizing:border-box; margin-top:6px; font:14px -apple-system,system-ui,sans-serif; padding:6px 8px; border:1px solid var(--line); border-radius:7px; background:var(--bg); color:var(--ink); }
+  .door-btns { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:8px; }
+  .setlist { display:grid; gap:2px; }
+  .setrow { display:grid; grid-template-columns:22px 92px 1fr; align-items:center; gap:6px; padding:6px 2px; border-bottom:1px solid var(--line); cursor:pointer; }
+  .setrow .k { color:var(--mute); font-size:12px; letter-spacing:.04em; }
+  .setrow .v { font-weight:600; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+  .setrow .v small { font-weight:400; color:var(--mute); }
+  .setrow input { width:18px; height:18px; margin:0; }
+  .setbtns { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:12px; }
+  .setbtns button { font:600 14px -apple-system,system-ui,sans-serif; padding:8px 14px; border:1px solid var(--line); border-radius:9px; background:var(--card); color:var(--ink); cursor:pointer; }
+  .setbtns button.on { background:var(--acc); border-color:var(--acc); color:#fff; }
+  .tabs button.on { background:var(--acc); border-color:var(--acc); color:#fff; }
+  .sec { margin-top:8px; }
+  .sec .k { color:var(--mute); font-size:11px; letter-spacing:.04em; }
+  pre { margin:2px 0 0; white-space:pre-wrap; font:12px/1.4 ui-monospace,Menlo,monospace; }
+  .warn { color:var(--warn); font-size:12px; margin-top:6px; }
+  .box { padding:12px 14px; font-size:14px; }
+  .bm { display:inline-block; background:var(--acc); color:#fff; border-radius:8px; padding:6px 12px; text-decoration:none; font-weight:600; }
+  .drop { display:block; border:2px dashed var(--line); border-radius:12px; padding:14px; text-align:center; color:var(--mute); cursor:pointer; margin-top:10px; }
+  .drop input { display:none; }
+  .empty { color:var(--mute); padding:14px; }
+  .seg { display:grid; grid-template-columns:1fr 1fr; gap:4px; }
+  .seg button { font:600 13px -apple-system,system-ui,sans-serif; padding:8px 4px; border:1px solid var(--line); border-radius:9px; background:var(--bg); color:var(--mute); cursor:pointer; }
+  .set-seg, .trip-seg { margin-bottom:10px; }
+  .seg button.on { background:var(--ink); border-color:var(--ink); color:var(--bg); }
+  #calc label { display:block; color:var(--mute); font-size:11px; letter-spacing:.04em; font-weight:600; margin-top:12px; }
+  #calc label small { font-weight:400; letter-spacing:0; }
+  #calc input { display:block; width:100%; box-sizing:border-box; margin-top:4px; font:500 20px ui-monospace,monospace; padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font-variant-numeric:tabular-nums; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+  .chips button { font:13px ui-monospace,monospace; border:1px solid var(--line); background:transparent; color:var(--ink); border-radius:20px; padding:5px 10px; cursor:pointer; }
+  .atis-in { display:flex; gap:6px; }
+  .atis-in input { flex:1; min-width:0; font:600 16px ui-monospace,monospace; text-transform:uppercase; padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); }
+  .atis-in button, .atis-apt { font:600 14px -apple-system,system-ui,sans-serif; border:1px solid var(--acc); background:var(--acc); color:#fff; border-radius:8px; padding:8px 12px; cursor:pointer; }
+  .atis-apt { background:transparent; color:var(--acc); padding:5px 10px; font-size:13px; }
+  .atis-msg { white-space:pre-wrap; font:13px/1.5 ui-monospace,monospace; margin-top:4px; }
+  .atis-msg mark { background:#ffd84d; color:#000; font-weight:700; border-radius:3px; padding:0 2px; }
+  .atis-code { display:inline-block; min-width:1.6em; text-align:center; background:var(--acc); color:#fff; border-radius:6px; font-weight:700; margin-right:6px; }
+  .readout { background:#0f1a26; border-radius:12px; padding:14px; margin-top:12px; }
+  .readout .k { font-size:11px; letter-spacing:.1em; color:#8c9aab; }
+  .readout .v { font:700 40px ui-monospace,monospace; color:#ffb547; font-variant-numeric:tabular-nums; }
+  .readout .n { font:13px ui-monospace,monospace; color:#c9d2dc; min-height:1.2em; }
+</style>
+</head>
+<body>
+<h1 class="head"><a id="home" target="_top" style="color:inherit;text-decoration:none">Crew Brief</a> <span class="zulu" id="zulu"></span></h1>
+<div class="topbar"><span class="sub" id="synced"></span>
+  <a class="upd" target="_top" href="#cbsync" data-u="aHR0cHM6Ly93d3cuc2t5d2VzdG9ubGluZS5jb20vU0tZVy9Ta2VkUGx1cy9NeVNjaGVkdWxlLmFzcHg=">↻ 업데이트</a></div>
+<button class="script-warn" id="scriptWarn" hidden></button>
+<nav class="tabs"><button data-tab="today">오늘</button><button data-tab="up">내 트립</button><button data-tab="atis">D-ATIS</button><button data-tab="door" id="doorTab" hidden>Door</button><button data-tab="calc">계산기</button><button data-tab="set" aria-label="설정">⚙</button></nav>
+
+
+
+<div id="view"></div>
+
+<div id="atis" hidden>
+  <div class="card box">
+    <div class="atis-in"><input id="aIn" placeholder="SFO, DEN …" autocomplete="off" autocapitalize="characters"><button id="aGo">조회</button></div>
+    <div class="chips" id="aChips"></div>
+    <p class="sub" style="margin:8px 0 0">미국: FAA D-ATIS(atis.info) · 캐나다 등: 항공기가 ACARS로 받은 ATIS 모음(atis.guru) — 발행 시각을 꼭 확인하세요.</p>
+  </div>
+  <div id="aOut"></div>
+</div>
+
+<div id="calc" class="card box" hidden>
+  <div class="seg"><button data-m="end" class="on">종료 시각 구하기</button><button data-m="dur">비행 시간 구하기</button></div>
+  <label>시작 시각 (OUT) <small>예: 0745 또는 07:45</small><input id="cStart" inputmode="numeric" autocomplete="off" value="0745"></label>
+  <div id="cDurBox"><label>비행 시간 <small>예: 2:35 · 235 · 2.6</small><input id="cDur" inputmode="decimal" autocomplete="off" value="2:35"></label>
+    <div class="chips"><button data-d="1:00">1:00</button><button data-d="1:30">1:30</button><button data-d="2:00">2:00</button><button data-d="3:00">3:00</button><button data-d="5:00">5:00</button></div></div>
+  <label id="cEndBox" hidden>종료 시각 (IN) <small>시작보다 이르면 다음 날로 계산</small><input id="cEnd" inputmode="numeric" autocomplete="off" value="1020"></label>
+  <label>시차 (도착지 − 출발지, 시간) <small>현지시각으로 넣을 때만. UTC면 0</small><input id="cTz" inputmode="decimal" autocomplete="off" value="0"></label>
+  <div class="readout" aria-live="polite"><div class="k" id="cK">종료 시각</div><div class="v" id="cV">--:--</div><div class="n" id="cN"></div></div>
+  <p class="sub">24시간제, 자정 넘김 자동 처리. 시차 예: SFO → DEN 은 +1, DEN → SFO 는 −1.</p>
+</div>
+
+<details class="card" id="howto" style="margin-top:28px"><summary class="box"><b>동기화 방법</b> <span class="sub">(처음 한 번 설정)</span></summary>
+  <div class="box" style="padding-top:0">
+    1. 아래 버튼을 브라우저 <b>즐겨찾기 막대로 끌어다 놓습니다</b>.<br>
+    &nbsp;&nbsp;&nbsp;<a class="bm" id="bm">CB 동기화</a><br>
+    2. 크루 포털에 로그인한 화면에서 그 즐겨찾기를 누릅니다.<br>
+    3. 스케줄과 어제·오늘 Release를 읽어 저장한 뒤 이 화면으로 돌아옵니다.<br><br>
+    <b>평소 사용</b>: 위의 <b>↻ 업데이트</b> → 스케줄 화면이 열리면 즐겨찾기 <b>CB 동기화</b>를 누릅니다. 끝나면 자동으로 이 화면으로 돌아옵니다.<br><br>
+    iPhone Safari 즐겨찾기 만들기: 아무 페이지나 즐겨찾기에 추가한 뒤, 편집해서 주소를 아래 내용으로 바꿉니다.
+    <textarea id="bmtext" readonly style="width:100%;height:70px;margin-top:6px;font:11px ui-monospace,monospace" onclick="this.select()"></textarea>
+  </div>
+</details>
+
+<script>
+
+async function pdfTextLines(pdfjsLib, data) {
+  const doc = await pdfjsLib.getDocument({ data }).promise;
+  const lines = [];
+  for (let p = 1; p <= doc.numPages; p++) {
+    const page = await doc.getPage(p);
+    const { items } = await page.getTextContent();
+    const rows = new Map();
+    for (const it of items) {
+      if (!it.str) continue;
+      const y = Math.round(it.transform[5]);
+      const key = [...rows.keys()].find(k => Math.abs(k - y) <= 2) ?? y;
+      if (!rows.has(key)) rows.set(key, []);
+      rows.get(key).push({ x: it.transform[4], s: it.str });
+    }
+    [...rows.entries()]
+      .sort((a, b) => b[0] - a[0])
+      .forEach(([, r]) => {
+        const text = r.sort((a, b) => a.x - b.x).map(c => c.s).join(' ').replace(/\s+/g, ' ').trim();
+        if (text) lines.push(text);
+      });
+  }
+  return lines.filter(l => !/^\d+\/\d+\/\d+, \d+:\d+ [AP]M/.test(l) && !/^https?:\/\//.test(l) && l !== 'Flight Release');
+}
+
+function releaseTextLines(text) {
+  return text.replace(/\r/g, '').split('\n').map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
+}
+
+const num = s => (s == null ? null : Number(String(s).replace(/,/g, '')));
+
+const hm = s => {
+  const m = /^(\d+)\.(\d{2})$/.exec(s || '');
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+};
+const fmtHM = min => (min == null ? '' : `${Math.floor(min / 60)}:${String(min % 60).padStart(2, '0')}`);
+
+function block(lines, title) {
+  const i = lines.findIndex(l => l.trim() === title);
+  if (i < 0) return [];
+  const out = [];
+  for (let j = i + 1; j < lines.length; j++) {
+    const l = lines[j];
+    if (/^-+$/.test(l)) { if (out.length) break; continue; }
+    out.push(l);
+  }
+  return out;
+}
+
+function fuelRow(lines, label) {
+  const re = new RegExp(`^${label.replace('/', '\\/')}\\s*-\\s*(?:([A-Z]{3,4})\\s*)?(?:-\\s*)?(\\d{2}\\.\\d{2})?\\s*(\\d+)`);
+  for (const l of lines) {
+    const m = re.exec(l);
+    if (m) return { apt: m[1] || null, time: hm(m[2]), fuel: num(m[3]) };
+  }
+  return null;
+}
+
+function acarsRunways(lines) {
+  const h = lines.findIndex((l, i) => /ACARS RUNWAYS/.test(lines[i - 1] || '') && /\bPMTOW\b/.test(l) && /\bEFP\b/.test(l));
+  if (h < 0) return [];
+  const out = [];
+  for (const l of lines.slice(h + 1)) {
+    if (/^-{3,}/.test(l)) break;
+    const m = /^(\d{2}[LRC]?)(?:\/(\S+))?\s+(?:\S+\s+)?(\d{4,5})\s+(\d{4})\s+(.*?)(?:\s+NOTAMS\b.*)?$/.exec(l);
+    if (m) out.push({ rwy: m[1], ix: m[2] || null, len: num(m[3]), pmtow: num(m[4]), efp: m[5].trim() });
+  }
+  return out;
+}
+
+function specialProcs(lines, raw) {
+  const out = {};
+  const src = raw ? raw.replace(/\r/g, '').split('\n') : lines;
+  const t = src.findIndex(l => /SPECIAL ENG FAIL TAKEOFF PROCEDURES/.test(l));
+  if (t < 0) return out;
+  const head = src[t + 1] || '';
+  const cols = raw ? [...head.matchAll(/\S+/g)].map(m => ({ name: m[0], at: m.index })) : [];
+  let last = null;
+  for (const line of src.slice(t + 2)) {
+    if (/^\s*-{3,}/.test(line)) break;
+    const l = line.replace(/\s+$/, '');
+    if (!l.trim()) continue;
+    const m = /^\s*(\d{2}[LRC]?)\b/.exec(l);
+    if (!m) { if (last) out[last] = `${out[last]} ${l.trim()}`.trim(); continue; }
+    last = m[1];
+    if (/SEE COMPLEX/.test(l) || !cols.length) { out[last] = l.slice(m[0].length).replace(/\s+/g, ' ').trim(); continue; }
+    const parts = cols.slice(1).map((c, i) => [c.name, l.slice(c.at, cols[i + 2] ? cols[i + 2].at : undefined).trim()]).filter(([, v]) => v);
+    out[last] = parts.map(([k, v]) => `${k} ${v}`).join(' · ');
+  }
+  return out;
+}
+
+function parseRelease(lines, raw) {
+  const text = lines.join('\n');
+  const r = { warnings: [] };
+
+  const head = /SKW(\d+)\/(\d{2}[A-Z]{3}\d{2})\/([A-Z]{3})\/([A-Z]{3})\/(N\w+)/.exec(text);
+  if (head) Object.assign(r, { flight: head[1], date: head[2], from: head[3], to: head[4], tail: head[5] });
+  else r.warnings.push('헤더(SKW편명/날짜/구간) 못 찾음');
+
+  r.adsb = (/ADSB-\s*(\S+)/.exec(text) || [])[1] || null;
+
+  const tas = /-N(\d{4})[FAMS]\d{3,4}\b/.exec(text);
+  r.tas = tas ? Number(tas[1]) : null;
+  const route = /-N\d{4}[FAMS]\d{3,4}\s+([\s\S]*?)\n-[A-Z]{4}\d{4}/.exec(text);
+  r.route = route ? route[1].replace(/\s+/g, ' ').trim() : null;
+
+  const hi = lines.findIndex(l => /^FLT TAIL FRM TO/.test(l));
+  if (hi >= 0) {
+    const row = lines.slice(hi + 1).find(l => !/^[-\s]+$/.test(l));
+    const m = /^(\d+)\s+(N\w+)\s+([A-Z]{3})\s+([A-Z]{3})\s+(.*?)\s*(\S+)\s+(FL\d+)\s+(\d+)\s+(\d+)$/.exec(row || '');
+    if (m) {
+      const alts = m[5].trim().split(/\s+/).filter(Boolean); // TOA/AL1/AL2 중 채워진 것
+      r.cruise = m[6]; r.fltlv = m[7]; r.minto = num(m[8]); r.rlsf = num(m[9]);
+      r.altsFromTable = alts;
+    } else r.warnings.push('FLT/TAIL 표 줄 해석 실패');
+  }
+
+  const idL = lines.find(l => /^ID\s*-/.test(l));
+  const distL = lines.find(l => /^DIST\s*-/.test(l));
+  const eteL = lines.find(l => /^ETE\s*-/.test(l));
+  const vals = l => (l ? l.replace(/^\w+\s*-\s*/, '').trim().split(/\s+/) : []);
+  const ids = vals(idL), dists = vals(distL), etes = vals(eteL);
+  r.dest = { id: ids[0] || r.to, dist: num(dists[0]), ete: hm(etes[0]) };
+  r.alt1 = ids[1] ? { id: ids[1], dist: num(dists[1]), ete: hm(etes[1]) } : null;
+  r.alt2 = ids[2] ? { id: ids[2], dist: num(dists[2]), ete: hm(etes[2]) } : null;
+
+  const mintoRow = fuelRow(lines, 'MINTO');
+  r.mintoTime = mintoRow?.time ?? null;
+  if (r.minto == null && mintoRow) r.minto = mintoRow.fuel;
+  r.rlsFuel = fuelRow(lines, 'RLS FUEL')?.fuel ?? null;
+  r.reserve = fuelRow(lines, 'RESERVE');
+  r.hold = fuelRow(lines, 'HOLD');
+  r.gaAlt = fuelRow(lines, 'GA/ALT');
+  r.ldg = fuelRow(lines, 'LDG');
+  r.taxiOut = fuelRow(lines, 'TAXI OUT');
+  r.burnoff = fuelRow(lines, 'BURNOFF');
+  r.contin = fuelRow(lines, 'CONTIN');
+  r.taxiIn = fuelRow(lines, 'TAXI IN');
+  r.gateFuel = fuelRow(lines, 'GATE')?.fuel ?? null;
+
+  const w = re => (re.exec(text) || []).slice(1);
+  const wt = label => num(w(new RegExp(`\\b${label}\\s*-\\s*(\\d+)`))[0]);
+  r.weights = { payload: wt('PLN PAYLD'), pax: wt('BKD PAX'), maxPayload: wt('MAX PAYLD'), zfw: wt('PLN ZFW'), tow: wt('PLN TOW'), ldw: wt('PLN LDW') };
+  const bow = w(/\bBOW\s*-\s*(-?[\d.]+)\s+(\d+)/);
+  r.weights.bow = bow.length ? { index: bow[0], wt: num(bow[1]) } : null;
+  const cargo = w(/MAX CARGO\s*-\s*(\d+)\/(\d+)/);
+  r.weights.maxCargo = cargo.length ? { fwd: num(cargo[0]), aft: num(cargo[1]) } : null;
+  r.weights.seats = num(w(/SEAT CNFG\s+(\d+)/)[0]);
+
+  const rwy = k => { const m = new RegExp(`^${k}-\\s*([A-Z]{3,4})\\s+RWY\\s+(\\S+)\\s+FLAPS\\s+(\\S+)\\s+TEMP\\s+(\\S+)`, 'm').exec(text); return m ? { apt: m[1], rwy: m[2], flaps: m[3], temp: m[4] } : null; };
+  r.takeoff = rwy('TAKEOFF');
+  r.landing = rwy('LANDING');
+  r.climb = w(/PLANNED CLIMB PROFILE-\s*(\S+)/)[0] || null;
+  r.descent = w(/PLANNED DESCENT PROFILE-\s*(\S+)/)[0] || null;
+  const wd = w(/AVG CRZ WIND DIR\s*-\s*(\d+)/)[0], ws = w(/AVG CRZ WIND SPD\s*-\s*(\d+)/)[0];
+  r.crzWind = wd && ws ? { dir: wd, spd: Number(ws) } : null;
+  const isa = w(/^ISADEV\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)/m);
+  r.isaDev = isa.length ? { clb: isa[0], crz: isa[1], dsc: isa[2] } : null;
+
+  const disp = w(/DISPATCHER-\s*(.+?)\s+PHONE-\s*(\S+)/);
+  r.dispatcher = disp.length ? { name: disp[0], phone: disp[1] } : null;
+  r.pic = w(/^PIC-\s*(.+?)(?:\s+\d{6})?$/m)[0] || null;
+  r.sic = w(/^SIC-\s*(.+?)(?:\s+\d{6})?$/m)[0] || null;
+
+  const ti = lines.findIndex(l => /^TOC\s+\d{3}\s/.test(l));
+  if (ti >= 0) {
+    const fl = /^TOC\s+(\d{3})/.exec(lines[ti])[1];
+    const nxt = /^(\d+)\s+(\d{2}\.\d{2})\s+(\d+)$/.exec(lines[ti + 1] || '');
+    if (nxt && r.dest.dist != null && r.dest.ete != null) {
+      const disR = num(nxt[1]), etr = hm(nxt[2]);
+      r.toc = { fl: `FL${fl}`, distFromOrigin: r.dest.dist - disR, timeFromOrigin: r.dest.ete - etr, fuelRemain: num(nxt[3]) };
+    } else r.warnings.push('TOC 다음 줄 해석 실패');
+  } else r.warnings.push('TOC 못 찾음');
+
+  const fi = lines.findIndex(l => /^A\/C \S+ TURNS TO FLT/.test(l));
+  if (fi >= 0) {
+    const m = /TURNS TO FLT (\d+) ([A-Z]{3})-([A-Z]{3})/.exec(lines[fi]);
+    const t = /STD (\d{4}) LOCAL/.exec(lines[fi + 1] || '');
+    if (m) r.next = { flight: m[1], from: m[2], to: m[3], std: t ? t[1] : null };
+  }
+
+  r.acarsRwys = acarsRunways(lines);
+  r.seProc = specialProcs(lines, raw);
+
+  r.remarks = block(lines, 'REMARKS').filter(l => !/^\*+$/.test(l));
+  r.mel = block(lines, 'MEL / CDL');
+  return r;
+}
+
+const APP = 'https://ygfa2000.github.io/crewbrief/app/';
+const SYNC_JS = 'https://ygfa2000.github.io/crewbrief/sync.js';
+const RELAY = 'https://script.google.com/macros/s/AKfycbz8uCeKdYFBjVW8HQh8tD55JFDkTQ1PNQcmtlITo76RG3Wrtn48hrcEbhpl8labYZ5Z/exec', DK_PARAM = '';
+document.getElementById('home').href = APP;
+const UPD = document.querySelector('.upd');
+UPD.href = atob(UPD.dataset.u);
+UPD.hash = 'cbsync=web&ret=' + encodeURIComponent(APP);
+const STORE = 'cbState';
+let state = { trips: [], releases: {} };
+try { state = JSON.parse(localStorage.getItem(STORE)) || state; } catch (e) {}
+const BOOKMARKLET = `javascript:(function(){window.CB_RET='${APP}';var s=document.createElement('script');s.src='${SYNC_JS}?v='+Date.now();document.body.appendChild(s)})()`;
+document.getElementById('bm').href = BOOKMARKLET;
+document.getElementById('bmtext').value = BOOKMARKLET;
+const rawGet = key => { try { return Promise.resolve(localStorage.getItem('cbRaw:' + key) || ''); } catch (e) { return Promise.resolve(''); } };
+const api = (fn, arg) => fetch(`${RELAY}?f=atis&ids=${arg.join(',')}`)
+  .then(r => r.json()).then(r => { if (r.error) throw new Error(r.error); return r; });
+(async () => {
+  const m = /^#d=([A-Za-z0-9_-]+)$/.exec(location.hash);
+  if (!m) return;
+  history.replaceState(null, '', APP);
+  try {
+    const b64 = m[1].replace(/-/g, '+').replace(/_/g, '/');
+    const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const p = JSON.parse(await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
+    const d = new Date(Date.now() - 14 * 864e5), pad = n => String(n).padStart(2, '0');
+    const cutoff = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const keep = (a, b) => { const o = Object.assign({}, a, b); Object.keys(o).forEach(k => { if (k.slice(0, 10) < cutoff) delete o[k]; }); return o; };
+    let rk = state.rawKeys || [];
+    Object.keys(p.raws || {}).forEach(k => { try { localStorage.setItem('cbRaw:' + k, p.raws[k]); if (!rk.includes(k)) rk.push(k); } catch (e) {} });
+    rk.sort();
+    while (rk.length > 8) { try { localStorage.removeItem('cbRaw:' + rk.shift()); } catch (e) { rk.shift(); } }
+    state = { rawKeys: rk, syncedAt: p.syncedAt, script: p.script || '', trips: p.trips, releases: keep(state.releases, p.releases), flows: keep(state.flows, p.flows) };
+    try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {}
+    render();
+  } catch (e) { alert('Crew Brief: ' + e.message); }
+})();
+
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+const n = v => (v == null ? '—' : Number(v).toLocaleString('en-US'));
+const DOW = ['일','월','화','수','목','금','토'];
+const md = iso => { const [y, m, d] = iso.split('-').map(Number); return `${m}/${d} (${DOW[new Date(y, m - 1, d).getDay()]})`; };
+const today = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
+const kv = (k, v, sub) => `<div class="kv"><div class="k">${k}</div><div class="v">${v}${sub ? ` <small>${sub}</small>` : ''}</div></div>`;
+const fuel = f => (f ? n(f.fuel) : '—');
+const t = f => (f ? fmtHM(f.time) : '');
+const name = s => esc(String(s || '').replace(/^\d+\s+/, ''));
+
+const wtv = v => (v == null ? '—' : `${n(v)}lb`);
+const rwyv = x => (x ? [`${esc(x.rwy)}`, `${esc(x.apt)} · F${esc(x.flaps)} · ${esc(x.temp)}`] : ['—']);
+const REL_FIELDS = [
+  ['adsb', 'ADSB', r => [esc(r.adsb)]],
+  ['route', 'ROUTE', null],
+  ['alt1', 'ALT1', r => [esc(r.alt1?.id ?? '없음'), r.alt1 ? `${n(r.alt1.dist)}nm · ${fmtHM(r.alt1.ete)}` : '']],
+  ['reserve', 'RESERVE', r => [fuel(r.reserve), t(r.reserve)]],
+  ['taxiOut', 'TAXI OUT', r => [fuel(r.taxiOut), t(r.taxiOut)]],
+  ['fltlv', 'FLTLV', r => [esc(r.fltlv)]],
+  ['crzWind', 'CRZ WIND', r => r.crzWind ? [`${esc(r.crzWind.dir)}°/${r.crzWind.spd}kt`] : ['—']],
+  ['isaDev', 'ISA DEV', r => r.isaDev ? [`${esc(r.isaDev.crz)}`, `CLB ${esc(r.isaDev.clb)} · DSC ${esc(r.isaDev.dsc)}`] : ['—']],
+  ['toc', 'TOC', r => r.toc ? [`${n(r.toc.fuelRemain)}lb`, `${esc(r.toc.fl)} · ${fmtHM(r.toc.timeFromOrigin)}`] : ['—']],
+  ['tas', 'TrueAS', r => r.tas ? [`${r.tas}kt`, `N${String(r.tas).padStart(4, '0')}`] : ['—']],
+  ['ldg', 'LDG', r => [fuel(r.ldg), t(r.ldg)]],
+  ['hold', 'HOLD', r => [fuel(r.hold), t(r.hold)]],
+  ['gaAlt', 'GA/ALT', r => [fuel(r.gaAlt), r.gaAlt ? `${esc(r.gaAlt.apt ?? '')} ${t(r.gaAlt)}` : '']],
+  ['rlsf', 'RLSF', r => [n(r.rlsf)]],
+  ['minto', 'MINTO', r => [n(r.minto), fmtHM(r.mintoTime)]],
+  ['ete', 'ETE', r => [fmtHM(r.dest?.ete)]],
+  ['dist', 'DIST', r => [`${n(r.dest?.dist)}nm`]],
+  ['alt2', 'ALT2', r => [esc(r.alt2?.id ?? '없음'), r.alt2 ? `${n(r.alt2.dist)}nm · ${fmtHM(r.alt2.ete)}` : '']],
+  ['cruise', 'CRUISE', r => [esc(r.cruise ?? '—')]],
+  ['rlsFuel', 'RLS FUEL', r => [n(r.rlsFuel)]],
+  ['burnoff', 'BURNOFF', r => [fuel(r.burnoff), t(r.burnoff)]],
+  ['contin', 'CONTIN', r => [fuel(r.contin), t(r.contin)]],
+  ['taxiIn', 'TAXI IN', r => [fuel(r.taxiIn), t(r.taxiIn)]],
+  ['gateFuel', 'GATE FUEL', r => [n(r.gateFuel)]],
+  ['zfw', 'ZFW', r => [wtv(r.weights?.zfw)]],
+  ['tow', 'TOW', r => [wtv(r.weights?.tow)]],
+  ['ldw', 'LDW', r => [wtv(r.weights?.ldw)]],
+  ['payload', 'PAYLOAD', r => [wtv(r.weights?.payload), r.weights?.maxPayload ? `max ${n(r.weights.maxPayload)}` : '']],
+  ['pax', 'BKD PAX', r => [n(r.weights?.pax), r.weights?.seats ? `/ ${r.weights.seats}` : '']],
+  ['bow', 'BOW', r => r.weights?.bow ? [wtv(r.weights.bow.wt), `idx ${esc(r.weights.bow.index)}`] : ['—']],
+  ['maxCargo', 'MAX CARGO', r => r.weights?.maxCargo ? [`${n(r.weights.maxCargo.fwd)}/${n(r.weights.maxCargo.aft)}`, 'FWD/AFT'] : ['—']],
+  ['takeoff', 'T/O RWY', r => rwyv(r.takeoff)],
+  ['landing', 'LDG RWY', r => rwyv(r.landing)],
+  ['climb', 'CLIMB', r => [esc(r.climb ?? '—')]],
+  ['descent', 'DESCENT', r => [esc(r.descent ?? '—')]],
+  ['dispatcher', 'DISPATCH', r => r.dispatcher ? [esc(r.dispatcher.name), `<a href="tel:${esc(r.dispatcher.phone)}">${esc(r.dispatcher.phone)}</a>`] : ['—']],
+  ['pic', 'PIC', r => [esc(r.pic ?? '—')]],
+  ['sic', 'SIC', r => [esc(r.sic ?? '—')]],
+  ['seproc', 'SE PROC', null],
+  ['remarks', 'REMARKS', null],
+  ['mel', 'MEL / CDL', null],
+];
+const REL_DEF = ['adsb', 'reserve', 'toc', 'tas', 'ldg', 'hold', 'gaAlt', 'fltlv', 'rlsf', 'minto', 'ete', 'dist', 'alt1', 'seproc', 'route', 'remarks', 'mel'];
+let relShow = REL_DEF;
+try {
+  const a = JSON.parse(localStorage.getItem('cbRelFields')), known = JSON.parse(localStorage.getItem('cbRelKnown') || 'null') || REL_FIELDS.map(f => f[0]).filter(id => id !== 'route' && id !== 'seproc');
+  if (Array.isArray(a)) relShow = a.concat(REL_DEF.filter(id => !known.includes(id) && !a.includes(id)));
+} catch (e) {}
+
+function releaseCard(r) {
+  const on = id => relShow.includes(id);
+  const cells = REL_FIELDS.filter(([id, , f]) => f && id !== 'adsb' && on(id)).map(([, k, f]) => kv(k, ...f(r))).join('');
+  const top = [on('adsb') && `<div class="part"><h4>ADSB</h4><b>${esc(r.adsb)}</b></div>`,
+    on('route') && `<div class="part"><h4>ROUTE</h4><pre>${esc(r.route || '—')}</pre></div>`].filter(Boolean).join('');
+  const parts = [on('seproc') && `<div class="part"><h4>SE PROC</h4><div class="seproc" data-apt="${esc(r.from || '')}" data-rel="${esc(JSON.stringify({ a: r.acarsRwys || [], p: r.seProc || {} }))}"><span class="sub">D-ATIS 확인 중…</span></div></div>`,
+    on('remarks') && `<div class="part"><h4>REMARKS</h4><pre>${esc(r.remarks.join('\n') || '없음')}</pre></div>`,
+    on('mel') && `<div class="part"><h4>MEL / CDL</h4><pre>${esc(r.mel.join('\n') || '없음')}</pre></div>`].filter(Boolean).join('');
+  return `
+    ${top ? `<div class="panel">${top}</div>` : ''}
+    ${cells ? `<div class="grid">${cells}</div>` : ''}
+    ${parts ? `<div class="panel">${parts}</div>` : ''}
+    ${r.warnings.length ? `<div class="warn">⚠ ${esc(r.warnings.join(' · '))}</div>` : ''}`;
+}
+
+const SAMPLE_REL = {"warnings":[],"flight":"3054","date":"16OCT26","from":"SNA","to":"SFO","tail":"N412SY","adsb":"SKW3054","tas":457,"route":"HHERO3 IKAYE DCT RIZIN DCT SPLNT DCT STOKD DCT SERFR SERFR4","cruise":"CSTID030","fltlv":"FL340","minto":7665,"rlsf":8900,"altsFromTable":[],"dest":{"id":"SFO","dist":358,"ete":56},"alt1":null,"alt2":null,"mintoTime":121,"rlsFuel":8886,"reserve":{"apt":null,"time":45,"fuel":2762},"hold":{"apt":null,"time":20,"fuel":982},"gaAlt":{"apt":null,"time":0,"fuel":0},"ldg":{"apt":null,"time":80,"fuel":4465},"taxiOut":{"apt":null,"time":20,"fuel":500},"burnoff":{"apt":null,"time":56,"fuel":3921},"contin":{"apt":null,"time":15,"fuel":721},"taxiIn":{"apt":null,"time":8,"fuel":200},"gateFuel":4265,"weights":{"payload":15912,"pax":68,"maxPayload":19327,"zfw":66471,"tow":74857,"ldw":70936,"bow":{"index":"69.1","wt":50559},"maxCargo":{"fwd":3306,"aft":2535},"seats":76},"takeoff":{"apt":"SNA","rwy":"02L","flaps":"04","temp":"P28"},"landing":{"apt":"SFO","rwy":"28R","flaps":"05","temp":"P22"},"climb":"270M73C1","descent":"290M78","crzWind":{"dir":"039","spd":57},"isaDev":{"clb":"8","crz":"10","dsc":"12"},"dispatcher":{"name":"J DOE","phone":"435-000-0000"},"pic":"SMITH","sic":"JONES","toc":{"fl":"FL340","distFromOrigin":111,"timeFromOrigin":19,"fuelRemain":6354},"next":{"flight":"3490","from":"SFO","to":"SAN","std":"1140"},"acarsRwys":[{"rwy":"02L","ix":null,"len":5700,"pmtow":7887,"efp":"SPECIAL"},{"rwy":"02L","ix":"E","len":4600,"pmtow":7397,"efp":"SPECIAL"},{"rwy":"20R","ix":null,"len":5700,"pmtow":7887,"efp":"DT H196"},{"rwy":"20R","ix":"K","len":5360,"pmtow":7887,"efp":"DT H196"}],"seProc":{"02L":"900 LT H210 1056"},"remarks":["-GOV TURB SIGMET ... (example)"],"mel":[]};
+let setTab = 'rel';
+function settingsView() {
+  const keys = Object.keys(state.releases || {}).sort();
+  const last = keys.length ? state.releases[keys[keys.length - 1]] : null;
+  const mine = last && last.weights ? last : null; // 새 항목이 생기기 전에 받은 Release 는 예시로 대신
+  const r = mine || SAMPLE_REL;
+  const src = mine ? `내 최근 Release (${esc(mine.flight)} ${esc(mine.from)}→${esc(mine.to)})` : '예시 Release';
+  const rows = REL_FIELDS.map(([id, k, f]) => {
+    const [v, sub] = f ? f(r) : id === 'seproc' ? [esc((r.acarsRwys || []).filter(x => !x.ix).map(x => `${x.rwy} ${x.efp}`).join(' · ') || '—')] : [esc(id === 'route' ? r.route || '—' : ((id === 'remarks' ? r.remarks : r.mel)[0] || '없음').slice(0, 40))];
+    return `<label class="setrow"><input type="checkbox" data-f="${id}"${relShow.includes(id) ? ' checked' : ''}><span class="k">${k}</span><span class="v">${v}${sub ? ` <small>${sub}</small>` : ''}</span></label>`;
+  }).join('');
+  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release 항목</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>업데이트${scriptOld() ? ' ●' : ''}</button></div>`;
+  if (setTab === 'upd') return seg + scriptBox();
+  return `${seg}<div class="card box"><b>Release 항목</b>
+    <p class="sub" style="margin:4px 0 10px">체크한 항목만 Release 칸에 보입니다. 값은 ${src}.</p>
+    <div class="setlist">${rows}</div>
+    <div class="setbtns"><button id="sSave" class="on">저장</button><button id="sAll">모두 선택</button><button id="sDef">기본값</button><span class="sub" id="sMsg"></span></div></div>`;
+}
+document.addEventListener('click', e => {
+  const id = e.target.id, boxes = () => [...document.querySelectorAll('.setrow input')];
+  if (id === 'sAll') boxes().forEach(b => { b.checked = true; });
+  if (id === 'sDef') boxes().forEach(b => { b.checked = REL_DEF.includes(b.dataset.f); });
+  if (id === 'sSave') {
+    relShow = boxes().filter(b => b.checked).map(b => b.dataset.f);
+    try { localStorage.setItem('cbRelFields', JSON.stringify(relShow)); localStorage.setItem('cbRelKnown', JSON.stringify(REL_FIELDS.map(f => f[0]))); } catch (err) {}
+    document.getElementById('sMsg').textContent = '저장했습니다';
+  }
+});
+
+const relOpen = dep => { const [h, m] = dep.split(':').map(Number); const t = (h * 60 + m - 60 + 1440) % 1440; return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`; };
+
+const mins = t => { const [h, m] = (t || '').split(':').map(Number); return h * 60 + m; };
+function flowPanel(leg, fl) {
+  const mine = fl.flights.findIndex(f => f.flight === leg.flight && f.from === leg.from);
+  const rows = fl.flights.map((f, i) => {
+    const late = f.etd && f.std ? ((mins(f.etd) - mins(f.std) + 1440 + 720) % 1440) - 720 : 0;
+    const state = f.in ? '✓' : f.out ? '✈' : '·';
+    const times = f.in ? `OUT ${esc(f.out)} · IN ${esc(f.in)}` : f.out ? `OUT ${esc(f.out)} · ETA ${esc(f.eta)}` : `STD ${esc(f.std)}${late >= 5 ? ` → ETD ${esc(f.etd)}` : ''}`;
+    return `<div class="frow${i === mine ? ' mine' : ''}">
+      <span>${i === mine ? '▶' : state}</span>
+      <span><b>${esc(f.flight)}</b> ${esc(f.from)}→${esc(f.to)}${i === mine - 1 ? ' <span class="tag">인바운드</span>' : ''}
+        <span class="sub">${times}${late >= 5 ? ` <b style="color:var(--warn)">+${fmtHM(late)}</b>` : ''}</span>
+        ${f.delayReason && late >= 5 ? `<div class="sub" style="color:var(--warn)">${esc(f.delayReason)}</div>` : ''}</span>
+      <span class="r">${esc(f.depGate || '—')}→${esc(f.arrGate || '—')}</span></div>`;
+  }).join('');
+  const at = new Date(fl.at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+  return `<div class="panel"><h4>FLOW · ${esc(leg.tail)} <span style="font-weight:400">(${at} 기준 · 현지시각 · 게이트)</span></h4>${rows || '<span class="sub">편 정보 없음</span>'}</div>`;
+}
+
+function flow(leg, allLegs, rel) {
+  if (rel?.next) return `${esc(leg.tail || rel.tail)} → ${esc(rel.next.flight)} ${esc(rel.next.from)}→${esc(rel.next.to)} ${esc(rel.next.std || '')}L`;
+  if (!leg.tail) return '기체 미배정';
+  const i = allLegs.indexOf(leg);
+  const nx = allLegs.slice(i + 1).find(l => l.tail === leg.tail && l.date === leg.date);
+  return nx ? `${esc(leg.tail)} → (내 다음 편) ${esc(nx.flight)} ${esc(nx.from)}→${esc(nx.to)} ${esc(nx.dep)}` : `${esc(leg.tail)} · 다음 편 정보 없음`;
+}
+
+const icao = a => /^[A-Z]{4}$/.test(a) ? a : ({ HNL: 'PHNL', OGG: 'PHOG', KOA: 'PHKO', LIH: 'PHLI', ITO: 'PHTO', ANC: 'PANC', FAI: 'PAFA', JNU: 'PAJN', KTN: 'PAKT', SIT: 'PASI' })[a] || (/^Y/.test(a) ? 'C' + a : 'K' + a);
+function logtenUrl(d) {
+  const mdy = date => `${date.slice(5, 7)}/${date.slice(8, 10)}/${date.slice(0, 4)}`;
+  const at = (date, hm, after) => {
+    if (!/^\d{1,2}:\d{2}$/.test(hm || '')) return undefined;
+    const t = new Date(`${date}T00:00:00Z`);
+    if (after && mins(hm) < mins(after)) t.setUTCDate(t.getUTCDate() + 1);
+    return `${mdy(t.toISOString().slice(0, 10))} ${hm.padStart(5, '0')}`;
+  };
+  const flown = d.legs.filter(l => /\d/.test(l.flight) && l.from !== l.to && !l.dhd);
+  const legs = flown.map(l => {
+    const f = ((state.flows || {})[`${l.date}-${l.tail}`]?.flights || []).find(x => x.flight === l.flight && x.from === l.from);
+    if (l.date >= today && !f?.in) return null;
+    const out = f?.out || l.dep, inn = f?.in || l.arr;
+    const e = {
+      entity_name: 'Flight', flight_key: `crewbrief-${l.date}-${l.flight}-${l.from}`,
+      flight_flightDate: mdy(l.date), flight_flightNumber: l.flight.replace(/^[A-Z]{2}(?=\d)/, ''),
+      flight_selectedAircraftID: l.tail || undefined, flight_from: icao(l.from), flight_to: icao(l.to),
+      flight_actualDepartureTime: at(l.date, out), flight_takeoffTime: at(l.date, f?.off, out),
+      flight_landingTime: at(l.date, f?.on, out), flight_actualArrivalTime: at(l.date, inn, out),
+      flight_totalTime: f?.in ? fmtHM((mins(inn) - mins(out) + 1440) % 1440) : l.block,
+      flight_selectedCrewPIC: l.crew?.ca || undefined, flight_selectedCrewSIC: l.crew?.fo || undefined,
+    };
+    if (l === flown[0]) e.flight_onDutyTime = at(l.date, d.report);
+    if (l === flown[flown.length - 1]) e.flight_offDutyTime = at(l.date, d.release, d.report);
+    return e;
+  }).filter(Boolean);
+  if (!legs.length) return '';
+  const pkg = { metadata: { application: 'Crew Brief', version: '1.0', dateFormat: 'MM/dd/yyyy', dateAndTimeFormat: 'MM/dd/yyyy HH:mm',
+    timesAreZulu: false, shouldApplyAutoFillTimes: true }, entities: legs };
+  return 'logten://v2/addEntities?package=' + encodeURIComponent(JSON.stringify(pkg));
+}
+
+function dayBlock(trip, d) {
+  const allLegs = trip.days.flatMap(x => x.legs);
+  return `
+    <div class="day">
+      <div class="dayhead"><span>${md(d.date)}</span><span class="sub">Report ${esc(d.report)} · Release ${esc(d.release)}${d.duty ? ` · Duty ${esc(d.duty)}` : ''}</span></div>
+      ${(u => u ? `<a class="logten" href="${u}">LogTen ↗</a>` : '')(logtenUrl(d))}
+      ${d.legs.map(l => {
+        const rel = state.releases[`${l.date}-${l.flight}-${l.from}`];
+        const dh = l.dhd ? '<span class="tag">DH</span>' : '';
+        return `<details class="leg"><summary>
+            <span>${esc(l.flight)}${dh}${rel ? '<span class="tag">R</span>' : ''}</span>
+            <span>${esc(l.from)}→${esc(l.to)} <span class="sub">${esc(l.dep)}–${esc(l.arr)}</span></span>
+            <span class="r">${esc(l.tail || '')} · ${esc(l.block)}</span>
+          </summary>
+          <div class="legbody">
+            ${legTabs(
+              `<div class="panel"><h4>INFO</h4>
+              <div class="stats">
+                <span><span class="lbl">PAX</span><b>${esc(l.pax || '—')}</b></span>
+                <span><span class="lbl">BLOCK</span><b>${esc(l.block || '—')}</b></span>
+                <span><span class="lbl">CREDIT</span><b>${esc(l.credit || '—')}</b></span>
+                <span><span class="lbl">TURN</span><b>${esc(l.turn || '—')}</b></span>
+              </div>
+              <div class="info">
+                ${l.crew ? `<span class="lbl">FA</span><span>${l.crew.fa.map(name).join(', ')}</span>` : ''}
+              </div></div>` +
+              (rel ? releaseCard(rel) : `<div class="sub" style="margin-top:10px">Release 아직 없음 — 출발 1시간 전(${relOpen(l.dep)} 현지)부터 나옵니다. 그 뒤에 동기화하세요.</div>`),
+              (state.flows || {})[`${l.date}-${l.tail}`] ? flowPanel(l, state.flows[`${l.date}-${l.tail}`]) : `<div class="panel"><h4>FLOW</h4>${flow(l, allLegs, rel)}</div>`,
+              `${l.date}-${l.flight}-${l.from}`)}
+          </div></details>`;
+      }).join('')}
+      ${d.hotel ? `<div class="hotel">🏨 ${esc(d.hotel)} · 레이오버 ${esc(d.layover)}</div>` : ''}
+    </div>`;
+}
+
+const tripTitle = trip => `${esc(trip.pairing)} · ${md(trip.start)}${trip.end !== trip.start ? ` – ${md(trip.end)}` : ''}`;
+
+function tripCard(trip, open) {
+  const days = trip.days.map(d => dayBlock(trip, d)).join('');
+  return `<details class="card trip"${open ? ' open' : ''}>
+    <summary><b>${tripTitle(trip)}</b>
+      <span class="sub">Block ${esc(trip.block)} · Credit ${esc(trip.credit)} · TAFB ${esc(trip.tafb)}</span></summary>
+    ${days}</details>`;
+}
+
+function todayView() {
+  const trip = state.trips.find(t => t.days.some(d => d.date === today));
+  if (!trip) {
+    const next = state.trips.find(t => t.start > today);
+    return `<div class="card box"><b>오늘 비행 없음</b>${next
+      ? `<div class="sub" style="margin-top:4px">다음 트립: ${tripTitle(next)} · Report ${esc(next.days[0].report)}</div>` : ''}</div>`;
+  }
+  const i = trip.days.findIndex(d => d.date === today);
+  return `<div class="card">
+    <div class="box" style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline">
+      <b style="font-size:17px">${esc(trip.pairing)} · Day ${i + 1}/${trip.days.length}</b>
+      <span class="sub">${tripTitle(trip)}</span></div>
+    ${dayBlock(trip, trip.days[i])}</div>`;
+}
+
+let tab = null;
+function render() {
+  document.getElementById('synced').textContent = state.syncedAt
+    ? `마지막 동기화: ${new Date(state.syncedAt).toLocaleString('ko-KR')}` : '아직 동기화 전입니다 — 아래 "동기화 방법"을 보세요.';
+  if (!state.syncedAt) document.getElementById('howto').open = true;
+  scriptWarn();
+  const hasToday = state.trips.some(t => t.days.some(d => d.date === today));
+  tab ||= hasToday ? 'today' : 'up';
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  document.getElementById('view').hidden = tab === 'calc' || tab === 'atis';
+  document.getElementById('calc').hidden = tab !== 'calc';
+  document.getElementById('atis').hidden = tab !== 'atis';
+  if (tab === 'atis') atisChips();
+  if (tab === 'calc' || tab === 'atis') return;
+  document.getElementById('view').innerHTML =
+    tab === 'today' ? todayView()
+    : tab === 'set' ? settingsView()
+    : tab === 'door' ? doorView()
+    : myTripView();
+}
+let tripTab = 'up';
+function myTripView() {
+  const seg = `<div class="seg trip-seg"><button data-tt="up"${tripTab === 'up' ? ' class="on"' : ''}>다가오는 트립</button><button data-tt="past"${tripTab === 'past' ? ' class="on"' : ''}>지난 트립</button></div>`;
+  if (tripTab === 'up') {
+    const next = state.trips.filter(x => x.start > today).sort((a, b) => a.start.localeCompare(b.start))[0];
+    return seg + (next ? tripCard(next, true) : '<div class="empty">다가오는 트립이 없습니다.</div>');
+  }
+  const from = new Date(Date.now() - 28 * 864e5), pad = n => String(n).padStart(2, '0');
+  const since = `${from.getFullYear()}-${pad(from.getMonth() + 1)}-${pad(from.getDate())}`;
+  const past = state.trips.filter(x => x.start < today && x.end >= since).sort((a, b) => b.start.localeCompare(a.start))
+    .map(x => x.end < today ? x : { ...x, days: x.days.filter(d => d.date < today) });
+  return seg + (past.map(x => tripCard(x, false)).join('') || '<div class="empty">지난 4주 동안의 트립이 없습니다.</div>');
+}
+document.addEventListener('click', e => { if (e.target.dataset?.tt) { tripTab = e.target.dataset.tt; render(); } });
+document.querySelector('.tabs').addEventListener('click', e => {
+  if (e.target.dataset.tab) { tab = e.target.dataset.tab; if (tab === 'door' && doorData) doorLoad(); render(); scrollTo(0, 0); }
+});
+
+{
+  const $ = id => document.getElementById(id), pad = n => String(n).padStart(2, '0'), hm = m => `${Math.floor(m / 60)}:${pad(m % 60)}`;
+  let mode = 'end';
+  const clock = s => {
+    s = s.trim().replace(/[hH.]/g, ':');
+    let h, m;
+    if (s.includes(':')) [h, m] = s.split(':').map(Number);
+    else if (/^\d{3,4}$/.test(s)) { h = +s.slice(0, -2); m = +s.slice(-2); }
+    else if (/^\d{1,2}$/.test(s)) { h = +s; m = 0; }
+    else return null;
+    return Number.isInteger(h) && Number.isInteger(m) && h >= 0 && h <= 23 && m >= 0 && m <= 59 ? h * 60 + m : null;
+  };
+  const dur = s => {
+    s = s.trim();
+    if (s.includes(':')) { const [h, m] = s.split(':').map(Number); return Number.isInteger(h) && Number.isInteger(m) && m <= 59 ? h * 60 + m : null; }
+    if (s.includes('.')) { const v = parseFloat(s); return isNaN(v) ? null : Math.round(v * 60); }
+    if (/^\d{3,4}$/.test(s)) { const m = +s.slice(-2); return m > 59 ? null : +s.slice(0, -2) * 60 + m; }
+    if (/^\d{1,2}$/.test(s)) return +s * 60;
+    return null;
+  };
+  const calc = () => {
+    const out = (v, n) => { $('cV').textContent = v; $('cN').textContent = n; };
+    const st = clock($('cStart').value);
+    const tz = Math.round((parseFloat($('cTz').value.replace('−', '-')) || 0) * 60);
+    if (st === null) return out('--:--', '시작 시각을 확인해 주세요');
+    if (mode === 'end') {
+      const d = dur($('cDur').value);
+      if (d === null) return out('--:--', '비행 시간을 확인해 주세요');
+      const raw = st + d + tz, day = Math.floor(raw / 1440), t = ((raw % 1440) + 1440) % 1440;
+      out(`${pad(Math.floor(t / 60))}:${pad(t % 60)}`, `${hm(d)} (${(d / 60).toFixed(2)} h)` + (day > 0 ? ` · 다음 날 +${day}` : day < 0 ? ' · 전날' : ''));
+    } else {
+      const en = clock($('cEnd').value);
+      if (en === null) return out('--:--', '종료 시각을 확인해 주세요');
+      let d = en - tz - st, next = false;
+      while (d < 0) { d += 1440; next = true; }
+      out(hm(d), `${(d / 60).toFixed(2)} h · ${d}분` + (next ? ' · 자정 넘김' : ''));
+    }
+  };
+  document.querySelector('#calc .seg').addEventListener('click', e => {
+    if (!e.target.dataset.m) return;
+    mode = e.target.dataset.m;
+    document.querySelectorAll('#calc .seg button').forEach(b => b.classList.toggle('on', b.dataset.m === mode));
+    $('cDurBox').hidden = mode !== 'end';
+    $('cEndBox').hidden = mode !== 'dur';
+    $('cK').textContent = mode === 'end' ? '종료 시각' : '비행 시간';
+    calc();
+  });
+  document.querySelector('#calc .chips').addEventListener('click', e => { if (e.target.dataset.d) { $('cDur').value = e.target.dataset.d; calc(); } });
+  ['cStart', 'cDur', 'cEnd', 'cTz'].forEach(id => $(id).addEventListener('input', calc));
+  calc();
+}
+
+{
+  const z = () => { const d = new Date(); document.getElementById('zulu').textContent = `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}:${String(d.getUTCSeconds()).padStart(2, '0')}Z`; };
+  z(); setInterval(z, 1000);
+}
+
+function atisChips() {
+  const day = state.trips.flatMap(t => t.days).find(d => d.date >= today);
+  const ids = day ? [...new Set(day.legs.flatMap(l => [l.from, l.to]))] : [];
+  document.getElementById('aChips').innerHTML = ids.map(id => `<button class="atis-apt" data-a="${esc(id)}">${esc(id)}</button>`).join('');
+  const out = document.getElementById('aOut');
+  if (!out.dataset.loaded && ids.length) { out.dataset.loaded = '1'; atisLoad(ids); }
+}
+const atisHl = t => esc(t).replace(/\b(?:ATIS|INFO)\s+[A-Z]\b|\bA\d{4}\b/g, '<mark>$&</mark>');
+let atisLast = null;
+function atisRender() {
+  if (!atisLast) return;
+  const { ids, res } = atisLast, out = document.getElementById('aOut');
+  const issued = x => {
+    if (!/^\d{4}$/.test(x.time || '')) return null;
+    const ref = x.updatedAt ? new Date(x.updatedAt) : new Date();
+    const d = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate(), +x.time.slice(0, 2), +x.time.slice(2)));
+    if (d - ref > 10 * 6e4) d.setUTCDate(d.getUTCDate() - 1);
+    return d;
+  };
+  const ago = x => { const t = issued(x); if (!t) return ''; const m = Math.max(0, Math.round((Date.now() - t) / 6e4)); const s = m < 60 ? `${m}분 전` : m < 2880 ? `${Math.floor(m / 60)}시간 ${m % 60}분 전` : `${Math.round(m / 1440)}일 전`; return m > 90 ? `<b style="color:var(--warn)">${s} — 오래됨</b>` : s; };
+  out.innerHTML = ids.map(id => {
+    const r = res[id] || [];
+    const body = r.length ? r.map(x => `<div class="part"><h4><span class="atis-code">${esc(x.code)}</span>${esc(x.type === 'combined' ? 'ATIS' : x.type === 'arr' ? 'ARRIVAL' : 'DEPARTURE')} · ${esc(x.time)}Z <span class="sub">(${ago(x)})</span></h4>
+      <div class="atis-msg">${atisHl(x.datis)}</div></div>`).join('') : '<span class="sub">D-ATIS 없음</span>';
+    return `<div class="panel"><div class="apt"><b>${esc(id)}</b></div>${body}</div>`;
+  }).join('');
+}
+function atisLoad(ids, quiet) {
+  const out = document.getElementById('aOut');
+  if (!quiet) out.innerHTML = '<div class="empty">불러오는 중…</div>';
+  api('getAtis', ids)
+    .then(res => { atisLast = { ids, res, at: Date.now() }; atisRender(); })
+    .catch(err => { if (!quiet) out.innerHTML = `<div class="warn">D-ATIS 실패: ${esc(err.message)}</div>`; });
+}
+setInterval(() => {
+  if (document.getElementById('atis').hidden || !atisLast) return;
+  if (Date.now() - atisLast.at >= 5 * 6e4) atisLoad(atisLast.ids, true); else atisRender();
+}, 6e4);
+{
+  const go = () => { const ids = document.getElementById('aIn').value.toUpperCase().split(/[\s,]+/).filter(x => /^[A-Z0-9]{3,4}$/.test(x)); if (ids.length) atisLoad(ids); };
+  document.getElementById('aGo').addEventListener('click', go);
+  document.getElementById('aIn').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  document.getElementById('aChips').addEventListener('click', e => { if (e.target.dataset.a) atisLoad([e.target.dataset.a]); });
+}
+
+const SCRIPT_URL = 'https://gist.githubusercontent.com/ygfa2000/66609878012f76472d34391ba0f808ec/raw/CrewBrief.user.js', PAGES = 'https://ygfa2000.github.io/crewbrief/';
+let scriptLatest = null;
+const scriptCur = () => document.documentElement.dataset.cbScript || state.script;
+const scriptOld = () => { const v = scriptCur(); return !!(scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
+const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
+function scriptBox() {
+  const v = scriptCur();
+  const cur = v === 'bookmark' ? '북마크 (CB 동기화)' : v || (state.syncedAt ? '알 수 없음 (예전 스크립트)' : '아직 동기화 전');
+  const st = !v && !state.syncedAt ? '' : v === 'bookmark' ? '<span class="ok-tag">북마크는 늘 최신</span>'
+    : !scriptLatest ? '<span class="sub">최신 번호 확인 중…</span>' : scriptOld() ? '<span class="need-tag">업데이트 필요</span>' : '<span class="ok-tag">최신</span>';
+  return `<div class="card box"><b>동기화 스크립트</b> ${st}
+    <div class="ver"><span>현재</span><b>${esc(cur)}</b><span>최신</span><b>${esc(scriptLatest || '—')}</b></div>
+    <div class="sub" style="margin-top:8px"><b>iPhone (Userscripts)</b><br>
+    1. <a href="${installUrl()}" class="inst">업데이트 링크</a> 를 Safari에서 엽니다<br>
+    2. 페이지 메뉴(주소창 왼쪽 끝 아이콘, 아래 사진 동그라미) › <b>Userscripts</b> › <b>Tap to re-install</b> › <b>Install</b></div>
+    <div class="pmhelp">
+      <img src="${PAGES + 'img/pm-bar.png'}" alt="">
+      <img src="${PAGES + 'img/pm-menu.png'}" alt=""></div>
+    <div class="sub" style="margin-top:6px">"Reader" 메뉴가 나오면 파란 <b>Hide Reader</b>를 누르고 아이콘을 다시 누르세요 (읽기 모드가 켜진 경우)</div>
+    <div class="pmhelp"><img src="${PAGES + 'img/pm-reader.png'}" alt=""></div>
+    <div class="sub" style="margin-top:6px">3. 설치 후 Safari <b>‹ 뒤로</b>를 한 번 누르면 이 앱으로 돌아와 "설치 완료"가 뜹니다</div>
+    <div class="sub" style="margin-top:8px"><b>Android (Tampermonkey)</b>: 자동 업데이트됨</div></div>`;
+}
+function scriptWarn() {
+  const b = document.getElementById('scriptWarn');
+  b.hidden = !scriptOld();
+  if (!b.hidden) b.textContent = `동기화 스크립트 업데이트 필요 (현재 ${scriptCur() || '예전'} → 최신 ${scriptLatest}) · 보기`;
+}
+document.getElementById('scriptWarn').addEventListener('click', () => { tab = 'set'; setTab = 'upd'; render(); scrollTo(0, 0); });
+document.addEventListener('click', e => { if (e.target.dataset?.st) { setTab = e.target.dataset.st; render(); } });
+document.addEventListener('click', e => { if (e.target.classList?.contains('inst')) try { localStorage.cbInstalling = '1'; } catch (er) {} });
+function installDone() {
+  let pending = false;
+  try { pending = localStorage.cbInstalling === '1'; } catch (e) {}
+  const v = document.documentElement.dataset.cbScript;
+  if (!pending || !v || !scriptLatest || v < scriptLatest) return;
+  try { localStorage.removeItem('cbInstalling'); } catch (e) {}
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = `✓ 설치 완료 — 동기화 스크립트 ${v}`;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+new MutationObserver(() => { scriptWarn(); installDone(); if (tab === 'set') render(); })
+  .observe(document.documentElement, { attributes: true, attributeFilter: ['data-cb-script'] });
+fetch(SCRIPT_URL, { cache: 'no-store' }).then(r => r.text()).then(t => {
+  scriptLatest = (/@version\s+(\S+)/.exec(t) || [])[1] || null;
+  scriptWarn();
+  installDone();
+  if (tab === 'set') render();
+}).catch(() => {});
+
+let legTab = 'rel';
+function legTabs(relHtml, flowHtml, key) {
+  const has = (state.rawKeys || []).includes(key);
+  const b = (id, label) => `<button data-lt="${id}"${legTab === id ? ' class="on"' : ''}>${label}</button>`;
+  const pane = (id, html, extra = '') => `<div class="lt" data-lt="${id}"${extra}${legTab === id ? '' : ' hidden'}>${html}</div>`;
+  return `<div class="seg leg-seg">${b('rel', 'Release Items')}${b('flow', 'Flow')}${b('full', 'Full release')}</div>
+    ${pane('rel', relHtml)}${pane('flow', flowHtml)}
+    ${pane('full', has ? '<span class="sub">불러오는 중…</span>' : '<span class="sub">원문 없음 — 새 동기화 스크립트로 동기화한 Release부터 보입니다</span>', has ? ` data-key="${esc(key)}"` : '')}`;
+}
+function fullLoad(pane) {
+  if (!pane.dataset.key || pane.dataset.loaded) return;
+  pane.dataset.loaded = '1';
+  rawGet(pane.dataset.key).catch(() => '').then(t => {
+    pane.innerHTML = t ? `<pre class="raw">${esc(t)}</pre>` : '<span class="sub">원문 없음</span>';
+  });
+}
+document.addEventListener('click', e => {
+  const id = e.target.dataset?.lt;
+  if (!id || !e.target.closest('.leg-seg')) return;
+  legTab = id;
+  const body = e.target.closest('.leg-seg').parentElement;
+  body.querySelectorAll(':scope > .leg-seg button').forEach(x => x.classList.toggle('on', x.dataset.lt === id));
+  body.querySelectorAll(':scope > .lt').forEach(x => { x.hidden = x.dataset.lt !== id; if (!x.hidden && id === 'full') fullLoad(x); });
+});
+document.addEventListener('toggle', e => {
+  if (e.target.open && e.target.classList?.contains('leg') && legTab === 'full') e.target.querySelectorAll('.lt[data-lt="full"]').forEach(fullLoad);
+}, true);
+
+const rwyPad = x => x.replace(/^(\d)(?=[LRC]?$)/, '0$1');
+function depRwys(text) {
+  const out = [];
+  const re = /\b(?:DEPG|DEPTG|DEPARTING|DEPARTURES?|DEPS?)\b([^.]*)/g;
+  let m;
+  while ((m = re.exec(text || ''))) {
+    const k = m[1].search(/\b(?:RWYS?|RYS?|RUNWAYS?)(?=\s*\d)/);
+    if (k < 0) continue;
+    for (const t of m[1].slice(k).replace(/\b(?:RWYS?|RYS?|RUNWAYS?)\s*/g, ' ').split(/[\s,&]+/)) {
+      if (!t || t === 'AND') continue;
+      if (!/^\d{1,2}[LRC]?$/.test(t)) break;
+      const x = rwyPad(t);
+      if (!out.includes(x)) out.push(x);
+    }
+  }
+  return out;
+}
+const rwyHit = (rwy, d) => rwy === d || (!/[LRC]$/.test(d) && rwy.replace(/[LRC]$/, '') === d);
+function seProcHtml(rel, atis) {
+  const rows = rel.a.filter(x => !x.ix);
+  if (!rows.length) return '<span class="sub">ACARS RUNWAYS 없음</span>';
+  const a = atis && (atis.find(x => x.type === 'dep') || atis.find(x => x.type === 'combined'));
+  const dep = a ? depRwys(a.datis) : [];
+  const use = dep.length ? rows.filter(x => dep.some(d => rwyHit(x.rwy, d))) : rows;
+  const what = x => {
+    const e = x.efp.toUpperCase(), sp = rel.p[x.rwy] || '';
+    if (/COMPLEX/.test(e) || (/SPECIAL/.test(e) && /SEE COMPLEX/.test(sp))) return 'Complex procedure';
+    if (/SPECIAL/.test(e)) return `SPECIAL — ${sp || '절차 줄 없음'}`;
+    return x.efp;
+  };
+  const head = a ? (dep.length ? `D-ATIS ${esc(a.code)} 출발 ${dep.map(esc).join(', ')}` : `D-ATIS ${esc(a.code)}에 출발 활주로 없음 — 전체`) : 'D-ATIS 없음 — 전체';
+  const miss = dep.filter(d => !rows.some(x => rwyHit(x.rwy, d)));
+  return `<div class="sub">${head}</div>` + use.map(x => `<div class="se"><b>${esc(x.rwy)}</b> ${esc(what(x))}</div>`).join('')
+    + (miss.length ? `<div class="sub">ACARS RUNWAYS 에 없음: ${miss.map(esc).join(', ')}</div>` : '');
+}
+const seAtis = {};
+function seLoad(box) {
+  if (box.dataset.loaded) return;
+  box.dataset.loaded = '1';
+  const apt = box.dataset.apt, rel = JSON.parse(box.dataset.rel), c = seAtis[apt];
+  const show = list => { box.innerHTML = seProcHtml(rel, list); };
+  if (c && Date.now() - c.at < 5 * 6e4) return show(c.list);
+  api('getAtis', [apt]).then(res => { seAtis[apt] = { at: Date.now(), list: res[apt] || [] }; show(res[apt] || []); }).catch(() => show(null));
+}
+document.addEventListener('toggle', e => {
+  if (e.target.open && e.target.classList?.contains('leg')) e.target.querySelectorAll('.seproc').forEach(seLoad);
+}, true);
+
+let doorKey = '', doorData = null, doorEdit = null, doorQ = '', doorMsg = '', doorTried = false;
+try { doorKey = localStorage.getItem('cbDoorKey') || ''; doorData = JSON.parse(localStorage.getItem('cbDoors') || 'null'); } catch (e) {}
+{
+  const dk = (/[#&]dk=([\w-]{16,})/.exec(location.hash) || [])[1] || DK_PARAM;
+  if (dk) {
+    doorKey = dk;
+    try { localStorage.setItem('cbDoorKey', dk); } catch (e) {}
+    if (/dk=/.test(location.hash)) history.replaceState(null, '', location.pathname + location.search);
+  }
+}
+document.getElementById('doorTab').hidden = !doorKey;
+const DOOR_CARRIERS = ['UA', 'DL', 'AS', 'AA'];
+function watchPush() {
+  if (!doorKey) return;
+  const from = new Date(Date.now() - 864e5).toISOString().slice(0, 10), days = {};
+  (state.trips || []).flatMap(t => t.days).filter(d => d.legs.length && d.legs[0].date >= from).forEach(d => {
+    d.legs.forEach(l => { const a = days[l.date] = days[l.date] || []; [l.from, l.to].forEach(x => { if (x && !a.includes(x)) a.push(x); }); });
+  });
+  const s = JSON.stringify(days);
+  try { if (localStorage.getItem('cbWatchSent') === s) return; } catch (e) {}
+  fetch(RELAY, { method: 'POST', body: JSON.stringify({ f: 'doorDays', dk: doorKey, days }) }).then(r => r.json()).then(r => {
+    if (r.ok) try { localStorage.setItem('cbWatchSent', s); } catch (e) {}
+  }).catch(() => {});
+}
+setTimeout(watchPush, 2000); // 동기화 자료(#d=)를 다 받은 뒤
+const doorKeep = d => { doorData = d; try { localStorage.setItem('cbDoors', JSON.stringify(d)); } catch (e) {} };
+function doorLoad() {
+  fetch(`${RELAY}?f=doors&dk=${encodeURIComponent(doorKey)}`).then(r => r.json()).then(r => {
+    if (!r.ok) throw new Error(r.error);
+    doorKeep({ doors: r.doors, who: r.who, at: Date.now() });
+    doorMsg = '';
+  }).catch(err => { doorMsg = doorData ? `받지 못했습니다 (${esc(err.message)}) — 저장된 목록을 보여 줍니다` : `받지 못했습니다 (${esc(err.message)})`; })
+    .then(() => { if (tab === 'door' && !doorEdit) render(); });
+}
+function doorSave(apt, codes) {
+  doorMsg = '저장하는 중…'; render();
+  fetch(RELAY, { method: 'POST', body: JSON.stringify({ f: 'door', dk: doorKey, apt, codes }) }).then(r => r.json()).then(r => {
+    if (!r.ok) throw new Error(r.error);
+    doorKeep({ doors: r.doors, who: (doorData || {}).who, at: Date.now() });
+    doorEdit = null; doorMsg = `${esc(apt)} 저장했습니다`;
+  }).catch(err => { doorMsg = `저장 실패: ${esc(err.message)} — 인터넷 연결을 확인하고 다시 저장하세요`; })
+    .then(render);
+}
+function doorView() {
+  if (!doorData) {
+    if (!doorTried) { doorTried = true; doorLoad(); }
+    return doorMsg ? `<div class="warn">${doorMsg}</div>` : '<div class="empty">불러오는 중…</div>';
+  }
+  const doors = doorData.doors || {};
+  const day = state.trips.flatMap(t => t.days).find(d => d.date >= today);
+  const mine = day ? [...new Set(day.legs.flatMap(l => [l.from, l.to]))] : [];
+  const q = doorQ.trim().toUpperCase();
+  const ids = Object.keys(doors).filter(id => !q || id.startsWith(q) || (doors[id].name || '').toUpperCase().includes(q))
+    .sort((a, b) => (mine.includes(b) - mine.includes(a)) || a.localeCompare(b));
+  if (doorEdit && !ids.includes(doorEdit)) ids.unshift(doorEdit);
+  const when = x => x ? new Date(x).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' }) : '';
+  const card = id => {
+    const d = doors[id] || {}, ed = doorEdit === id;
+    const cells = ed
+      ? `<div class="door-edit">${DOOR_CARRIERS.map(c => `<label><span class="c">${c}</span><textarea data-dc="${c}" rows="2" autocomplete="off" autocapitalize="characters">${esc(d[c] || '')}</textarea></label>`).join('')}</div>`
+      : `<div class="door-codes">${DOOR_CARRIERS.map(c => `<div><div class="c">${c}</div><div class="v">${esc(d[c] || '—')}</div></div>`).join('')}</div>`;
+    return `<div class="door-card${mine.includes(id) ? ' mine' : ''}" data-apt="${esc(id)}">
+      <div class="hd"><span><span class="apt">${esc(id)}</span> <span class="sub">${esc(d.name || '')}</span></span><span class="sub">${d.by ? `${esc(d.by)} · ${when(d.at)}` : ''}</span></div>
+      ${cells}
+      ${ed ? `<textarea data-dc="note" rows="2" placeholder="메모 (위치 등)">${esc(d.note || '')}</textarea>
+        <div class="door-btns"><button class="on" data-door="save">저장</button><button data-door="cancel">취소</button><span class="sub">넷 다 비우고 저장하면 목록에서 빠집니다</span></div>`
+      : `${d.note ? `<div class="door-note">${esc(d.note)}</div>` : ''}<div class="door-btns"><button data-door="edit">✎ 수정</button></div>`}
+    </div>`;
+  };
+  return `<div class="card box"><div class="door-top">
+      <input id="dSearch" placeholder="공항 (SFO)" value="${esc(doorQ)}" autocomplete="off" autocapitalize="characters">
+      <button data-door="add">＋ 공항 추가</button></div>
+      <p class="sub" style="margin:8px 0 0">${ids.length}곳 · ${doorData.at ? `${new Date(doorData.at).toLocaleString('ko-KR')} 받음` : ''}${doorMsg ? ` · ${doorMsg}` : ''}</p></div>
+    ${ids.map(card).join('') || '<div class="empty">맞는 공항이 없습니다.</div>'}`;
+}
+document.addEventListener('input', e => {
+  if (e.target.id !== 'dSearch') return;
+  doorQ = e.target.value;
+  const pos = e.target.selectionStart;
+  render();
+  const el = document.getElementById('dSearch'); el.focus(); el.setSelectionRange(pos, pos);
+});
+document.addEventListener('click', e => {
+  const act = e.target.dataset?.door;
+  if (!act) return;
+  const cardEl = e.target.closest('.door-card'), apt = cardEl?.dataset.apt;
+  if (act === 'add') {
+    const id = (doorQ.trim() || prompt('공항 코드 (예: SFO)') || '').toUpperCase();
+    if (!/^[A-Z0-9]{3,4}$/.test(id)) { doorMsg = '공항 코드는 3~4글자로 넣어 주세요'; render(); return; }
+    doorEdit = id; doorQ = ''; render();
+  }
+  if (act === 'edit') { doorEdit = apt; render(); }
+  if (act === 'cancel') { doorEdit = null; render(); }
+  if (act === 'save') {
+    const codes = {};
+    cardEl.querySelectorAll('[data-dc]').forEach(i => { codes[i.dataset.dc] = i.value.trim(); });
+    codes.name = ((doorData && doorData.doors[apt]) || {}).name || '';
+    doorSave(apt, codes);
+  }
+});
+render();
+</script>
+</body>
+</html>
