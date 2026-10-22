@@ -56,6 +56,7 @@
   .tabs button[data-tab="set"] { flex:0 0 44px; }
   .script-warn { display:block; width:100%; margin-top:8px; text-align:left; font:600 13px -apple-system,system-ui,sans-serif; padding:8px 10px; border:1px solid var(--warn); border-radius:9px; background:var(--card); color:var(--warn); cursor:pointer; }
   .pmhelp { margin-top:6px; }
+  .watch-steps .pmhelp { margin:6px 0 12px; }
   .pmhelp img { display:block; width:100%; max-width:420px; margin-top:6px; border-radius:10px; border:1px solid var(--line); }
   .ver { display:grid; grid-template-columns:auto 1fr; gap:2px 10px; margin-top:8px; font-variant-numeric:tabular-nums; }
   .ver span { color:var(--mute); font-size:12px; }
@@ -1000,12 +1001,20 @@ function watchBox() {
   return `<div class="card box"><b>Apple Watch door codes</b>
     <p class="sub" style="margin:4px 0 10px">See the door codes for the day's airports right on your watch.</p>
     <div class="setbtns"><button id="wCopy" class="on">① Copy my watch URL</button><a class="wdl" href="${PAGES}DoorCode.shortcut">② Get the shortcut</a><span class="sub" id="wMsg"></span></div>
-    <div class="sub" style="margin-top:10px;line-height:1.6">
+    <div class="sub watch-steps" style="margin-top:10px;line-height:1.6">
     1. Tap <b>① Copy my watch URL</b> (your personal address — don't share it)<br>
-    2. <b>② Get the shortcut</b> → in Shortcuts tap <b>Add Shortcut</b> → paste the copied URL into the question box<br>
-    3. In Shortcuts, long-press Door Code › <b>Details</b> › turn on <b>Show on Apple Watch</b><br>
-    4. iPhone <b>Watch</b> app › My Watch › pick a face › <b>Complications</b> › a slot › Shortcuts › <b>Door Code</b><br>
-    5. On the watch tap the complication, then <b>Run</b> (Apple always asks this; you can also say "Door Code" to Siri)<br>
+    2. <b>② Get the shortcut</b> → in Shortcuts tap <b>Add Shortcut</b> → paste the copied URL into the question box
+    <div class="pmhelp"><img src="${PAGES}img/watch-1-url.jpg" alt=""></div>
+    
+    3. In Shortcuts, long-press Door Code › <b>Details</b> › turn on <b>Show on Apple Watch</b>
+    <div class="pmhelp"><img src="${PAGES}img/watch-2-details.jpg" alt=""></div>
+    
+    4. iPhone <b>Watch</b> app › My Watch › pick a face › <b>Complications</b> › a slot › Shortcuts › <b>Door Code</b>
+    <div class="pmhelp"><img src="${PAGES}img/watch-3-faces.jpg" alt=""><img src="${PAGES}img/watch-4-complications.jpg" alt=""><img src="${PAGES}img/watch-5-pick.jpg" alt=""></div>
+    
+    5. On the watch tap the complication, then <b>Run</b> (Apple always asks this; you can also say "Door Code" to Siri)
+    <div class="pmhelp"><img src="${PAGES}img/watch-6-run.jpg" alt=""></div>
+    
     The airport list is sent when you open this app — open it once after your schedule changes.</div></div>`;
 }
 document.addEventListener('click', e => {
