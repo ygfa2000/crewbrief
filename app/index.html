@@ -535,41 +535,28 @@ function flow(leg, allLegs, rel) {
 const icao = a => /^[A-Z]{4}$/.test(a) ? a : ({ HNL: 'PHNL', OGG: 'PHOG', KOA: 'PHKO', LIH: 'PHLI', ITO: 'PHTO', ANC: 'PANC', FAI: 'PAFA', JNU: 'PAJN', KTN: 'PAKT', SIT: 'PASI' })[a] || (/^Y/.test(a) ? 'C' + a : 'K' + a);
 function logtenUrl(d) {
   const mdy = date => `${date.slice(5, 7)}/${date.slice(8, 10)}/${date.slice(0, 4)}`;
-  const ok = hm => /^\d{1,2}:\d{2}$/.test(hm || '');
-  const stamp = (date, hm, days) => {
+  const at = (date, hm, after) => {
+    if (!/^\d{1,2}:\d{2}$/.test(hm || '')) return undefined;
     const t = new Date(`${date}T00:00:00Z`);
-    t.setUTCDate(t.getUTCDate() + days);
+    if (after && mins(hm) < mins(after)) t.setUTCDate(t.getUTCDate() + 1);
     return `${mdy(t.toISOString().slice(0, 10))} ${hm.padStart(5, '0')}`;
-  };
-  const at = (date, out, hm, shift) => {
-    if (!ok(hm)) return undefined;
-    if (!ok(out)) return stamp(date, hm, 0);
-    const el = ((mins(hm) - shift - mins(out)) % 1440 + 1440) % 1440;
-    return stamp(date, hm, Math.floor((mins(out) + el + shift) / 1440));
-  };
-  const tz = l => {
-    if (!ok(l.dep) || !ok(l.arr) || !ok(l.block)) return 0;
-    let s = ((mins(l.arr) - mins(l.dep) + 1440) % 1440) - mins(l.block);
-    if (s > 720) s -= 1440;
-    if (s < -720) s += 1440;
-    return Math.round(s / 30) * 30;
   };
   const flown = d.legs.filter(l => /\d/.test(l.flight) && l.from !== l.to && !l.dhd && l.block !== '0:00');
   const legs = flown.map(l => {
     const f = ((state.flows || {})[`${l.date}-${l.tail}`]?.flights || []).find(x => x.flight === l.flight && x.from === l.from);
     if (l.date >= today && !f?.in) return null;
-    const out = f?.out || l.dep, inn = f?.in || l.arr, shift = tz(l);
+    const out = f?.out || l.dep, inn = f?.in || l.arr;
     const e = {
       entity_name: 'Flight', flight_key: `crewbrief-${l.date}-${l.flight}-${l.from}`,
       flight_flightDate: mdy(l.date), flight_flightNumber: l.flight.replace(/^[A-Z]{2}(?=\d)/, ''),
       flight_selectedAircraftID: l.tail || undefined, flight_from: icao(l.from), flight_to: icao(l.to),
-      flight_actualDepartureTime: at(l.date, out, out, 0), flight_takeoffTime: at(l.date, out, f?.off, 0),
-      flight_landingTime: at(l.date, out, f?.on, shift), flight_actualArrivalTime: at(l.date, out, inn, shift),
-      flight_totalTime: f?.in ? fmtHM(((mins(inn) - shift - mins(out)) % 1440 + 1440) % 1440) : l.block,
+      flight_actualDepartureTime: at(l.date, out), flight_takeoffTime: at(l.date, f?.off, out),
+      flight_landingTime: at(l.date, f?.on, out), flight_actualArrivalTime: at(l.date, inn, out),
+      flight_totalTime: l.block,
       flight_selectedCrewPIC: l.crew?.ca || undefined, flight_selectedCrewSIC: l.crew?.fo || undefined,
     };
-    if (l === flown[0]) e.flight_onDutyTime = at(l.date, d.report, d.report, 0);
-    if (l === flown[flown.length - 1]) e.flight_offDutyTime = at(l.date, out, d.release, shift);
+    if (l === flown[0]) e.flight_onDutyTime = at(l.date, d.report);
+    if (l === flown[flown.length - 1]) e.flight_offDutyTime = at(l.date, d.release, d.report);
     return e;
   }).filter(Boolean);
   if (!legs.length) return '';
