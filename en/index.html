@@ -75,10 +75,10 @@
   .door-card.mine { border-color:var(--acc); }
   .door-card .hd { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
   .door-card .apt { font:700 18px ui-monospace,monospace; }
-  .door-codes { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; margin-top:8px; }
-  .door-codes div { border:1px solid var(--line); border-radius:9px; padding:5px 7px; min-width:0; }
-  .door-codes .c { color:var(--mute); font-size:11px; letter-spacing:.06em; }
-  .door-codes .v { font:700 16px ui-monospace,monospace; overflow-wrap:anywhere; }
+  .door-codes { display:grid; gap:6px; margin-top:8px; }
+  .door-codes > div { display:grid; grid-template-columns:36px 1fr; gap:8px; align-items:baseline; border:1px solid var(--line); border-radius:9px; padding:6px 10px; min-width:0; }
+  .door-codes .c { color:var(--mute); font:700 14px ui-monospace,monospace; }
+  .door-codes .v { font:700 18px ui-monospace,monospace; word-break:keep-all; overflow-wrap:normal; }
   .door-edit label { display:grid; grid-template-columns:36px 1fr; gap:8px; align-items:start; margin-top:8px; }
   .door-edit .c { color:var(--mute); font:700 14px ui-monospace,monospace; padding-top:10px; }
   .door-edit textarea { margin-top:0; font:600 17px ui-monospace,monospace; padding:8px 10px; }
@@ -953,7 +953,7 @@ function doorView() {
     const d = doors[id] || {}, ed = doorEdit === id;
     const cells = ed
       ? `<div class="door-edit">${DOOR_CARRIERS.map(c => `<label><span class="c">${c}</span><textarea data-dc="${c}" rows="2" autocomplete="off" autocapitalize="characters">${esc(d[c] || '')}</textarea></label>`).join('')}</div>`
-      : `<div class="door-codes">${DOOR_CARRIERS.map(c => `<div><div class="c">${c}</div><div class="v">${esc(d[c] || '—')}</div></div>`).join('')}</div>`;
+      : `<div class="door-codes">${DOOR_CARRIERS.map(c => `<div><div class="c">${c}</div><div class="v">${esc(d[c] || '—').replace(/,\s*/g, ', ')}</div></div>`).join('')}</div>`;
     return `<div class="door-card${mine.includes(id) ? ' mine' : ''}" data-apt="${esc(id)}">
       <div class="hd"><span><span class="apt">${esc(id)}</span> <span class="sub">${esc(d.name || '')}</span></span><span class="sub">${d.by ? `${esc(d.by)} · ${when(d.at)}` : ''}</span></div>
       ${cells}
