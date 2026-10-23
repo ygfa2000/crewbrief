@@ -185,7 +185,8 @@
   .mark { width:36px; height:36px; flex:none; filter:drop-shadow(0 4px 10px rgba(49,130,246,.35)); }
   .word { font-size:23px; font-weight:800; letter-spacing:-.04em; line-height:1; }
   .word em { font-style:normal; color:var(--acc); }
-  .word small { display:block; font-size:10px; font-weight:600; letter-spacing:.04em; color:var(--mute); margin-top:4px; font-size:12px; }
+  .word { display:inline-grid; } .word .wt { white-space:nowrap; }
+  .word small { justify-self:start; white-space:nowrap; display:block; font-size:10px; font-weight:600; letter-spacing:.04em; color:var(--mute); margin-top:4px; font-size:12px; }
   /* 업데이트 버튼 — 짙은 알약 + 안쪽 하이라이트 */
   .upd { display:inline-flex; align-items:center; gap:8px; padding:7px 16px 7px 7px; border-radius:999px; font-weight:700; font-size:14px;
     color:#fff; background:linear-gradient(180deg,#2e3643,#151a22); box-shadow:inset 0 1px 0 rgba(255,255,255,.14), 0 3px 8px rgba(21,26,34,.22); }
@@ -205,7 +206,7 @@
 </style>
 </head>
 <body>
-<header class="hdr"><h1 class="head"><a id="home" target="_top" style="color:inherit;text-decoration:none"><svg class="mark" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="cbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5aa5ff"/><stop offset="1" stop-color="#1b64da"/></linearGradient></defs><rect width="40" height="40" rx="12" fill="url(#cbg)"/><path d="M9 27c6-1 14-5 22-14" stroke="rgba(255,255,255,.35)" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M10.5 21.5 30 12.5l-6.2 16.2-4.3-5.6z" fill="#fff"/><path d="m19.5 23.1 10.5-10.6-12.2 8.9z" fill="#cfe2ff"/></svg><span class="word">Crew <em>Brief</em><small>Flight Deck Tool</small></span></a></h1><a class="upd" target="_top" href="#cbsync" data-u="aHR0cHM6Ly93d3cuc2t5d2VzdG9ubGluZS5jb20vU0tZVy9Ta2VkUGx1cy9NeVNjaGVkdWxlLmFzcHg="><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3.2h-3.2"/></svg></span>업데이트</a></header><div class="status"><div><span class="k">UTC</span><span class="zulu" id="zulu"></span></div><div><span class="k">마지막 동기화</span><span class="sub" id="synced"></span></div></div>
+<header class="hdr"><h1 class="head"><a id="home" target="_top" style="color:inherit;text-decoration:none"><svg class="mark" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="cbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5aa5ff"/><stop offset="1" stop-color="#1b64da"/></linearGradient></defs><rect width="40" height="40" rx="12" fill="url(#cbg)"/><path d="M9 27c6-1 14-5 22-14" stroke="rgba(255,255,255,.35)" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M10.5 21.5 30 12.5l-6.2 16.2-4.3-5.6z" fill="#fff"/><path d="m19.5 23.1 10.5-10.6-12.2 8.9z" fill="#cfe2ff"/></svg><span class="word"><span class="wt">Crew <em>Brief</em></span><small>Flight Deck Tool</small></span></a></h1><a class="upd" target="_top" href="#cbsync" data-u="aHR0cHM6Ly93d3cuc2t5d2VzdG9ubGluZS5jb20vU0tZVy9Ta2VkUGx1cy9NeVNjaGVkdWxlLmFzcHg="><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3.2h-3.2"/></svg></span>업데이트</a></header><div class="status"><div><span class="k">UTC</span><span class="zulu" id="zulu"></span></div><div><span class="k">마지막 동기화</span><span class="sub" id="synced"></span></div></div>
 <button class="script-warn" id="scriptWarn" hidden></button>
 <nav class="tabs"><button data-tab="today">오늘</button><button data-tab="up">내 트립</button><button data-tab="atis">D-ATIS</button><button data-tab="door" id="doorTab" hidden>Door</button><button data-tab="calc">계산기</button><button data-tab="set" aria-label="설정">⚙</button></nav>
 
@@ -636,7 +637,7 @@ function logtenUrl(d) {
     if (l === flown[flown.length - 1]) e.flight_offDutyTime = at(l.date, d.release, d.report);
     return e;
   }).filter(Boolean);
-  if (!legs.length) return '';
+  if (!legs.length || legs.length < flown.length) return '';
   const pkg = { metadata: { application: 'Crew Brief', version: '1.0', dateFormat: 'MM/dd/yyyy', dateAndTimeFormat: 'MM/dd/yyyy HH:mm',
     timesAreZulu: false, shouldApplyAutoFillTimes: true }, entities: legs };
   return 'logten://v2/addEntities?package=' + encodeURIComponent(JSON.stringify(pkg));
@@ -1100,6 +1101,18 @@ document.addEventListener('click', e => {
 render();
 </script>
 <script>
+// 부제(Flight Deck Tool) 글자 간격을 늘려 제목(Crew Brief)과 시작·끝을 맞춘다
+(() => {
+  const fit = () => {
+    const t = document.querySelector('.word .wt'), sm = document.querySelector('.word small');
+    if (!t || !sm) return;
+    sm.style.letterSpacing = '0px'; sm.style.marginRight = '0px';
+    const d = (t.getBoundingClientRect().width - sm.getBoundingClientRect().width) / (sm.textContent.length - 1);
+    sm.style.letterSpacing = d + 'px'; sm.style.marginRight = -d + 'px';
+  };
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(fit);
+  addEventListener('resize', fit);
+})();
 // 동기화 시각을 짧게: "10/22 15:12 동기화"
 (() => {
   const el = document.getElementById('synced');
