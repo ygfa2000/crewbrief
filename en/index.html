@@ -90,11 +90,13 @@
   .door-card textarea { width:100%; box-sizing:border-box; margin-top:6px; font:14px -apple-system,system-ui,sans-serif; padding:6px 8px; border:1px solid var(--line); border-radius:7px; background:var(--bg); color:var(--ink); }
   .door-btns { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:8px; }
   .setlist { display:grid; gap:2px; }
-  .setrow { display:grid; grid-template-columns:22px 92px 1fr; align-items:center; gap:6px; padding:6px 2px; border-bottom:1px solid var(--line); cursor:pointer; }
+  .setrow { display:grid; grid-template-columns:22px 92px 1fr auto; align-items:center; gap:6px; padding:6px 2px; border-bottom:1px solid var(--line); cursor:pointer; }
   .setrow .k { color:var(--mute); font-size:12px; letter-spacing:.04em; }
   .setrow .v { font-weight:600; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
   .setrow .v small { font-weight:400; color:var(--mute); }
   .setrow input { width:18px; height:18px; margin:0; }
+  .setrow .mv { display:flex; gap:4px; }
+  .setrow .mv button { width:34px; height:30px; padding:0; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink2); font-size:12px; cursor:pointer; }
   .setbtns { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:12px; }
   .setbtns button { font:600 14px -apple-system,system-ui,sans-serif; padding:8px 14px; border:1px solid var(--line); border-radius:9px; background:var(--card); color:var(--ink); cursor:pointer; }
   .setbtns .wdl { font:600 14px -apple-system,system-ui,sans-serif; padding:8px 14px; border:1px solid var(--acc); border-radius:9px; color:var(--acc); text-decoration:none; }
@@ -533,7 +535,7 @@ const REL_FIELDS = [
   ['mel', 'MEL / CDL', null],
 ];
 const REL_DEF = ['adsb', 'reserve', 'toc', 'tas', 'ldg', 'hold', 'gaAlt', 'fltlv', 'rlsf', 'minto', 'ete', 'dist', 'alt1', 'seproc', 'route', 'remarks', 'mel'];
-let relShow = REL_DEF;
+let relShow = REL_FIELDS.map(f => f[0]).filter(id => REL_DEF.includes(id));
 try {
   const a = JSON.parse(localStorage.getItem('cbRelFields')), known = JSON.parse(localStorage.getItem('cbRelKnown') || 'null') || REL_FIELDS.map(f => f[0]).filter(id => id !== 'route' && id !== 'seproc');
   if (Array.isArray(a)) relShow = a.concat(REL_DEF.filter(id => !known.includes(id) && !a.includes(id)));
@@ -541,12 +543,13 @@ try {
 
 function releaseCard(r) {
   const on = id => relShow.includes(id);
-  const cells = REL_FIELDS.filter(([id, , f]) => f && id !== 'adsb' && on(id)).map(([, k, f]) => kv(k, ...f(r))).join('');
-  const top = [on('adsb') && `<div class="part"><h4>ADSB</h4><b>${esc(r.adsb)}</b></div>`,
-    on('route') && `<div class="part"><h4>ROUTE</h4><pre>${esc(r.route || '—')}</pre></div>`].filter(Boolean).join('');
-  const parts = [on('seproc') && `<div class="part"><h4>SE PROC</h4><div class="seproc" data-apt="${esc(r.from || '')}" data-rel="${esc(JSON.stringify({ a: r.acarsRwys || [], p: r.seProc || {} }))}"><span class="sub">Checking D-ATIS…</span></div></div>`,
-    on('remarks') && `<div class="part"><h4>REMARKS</h4><pre>${esc(r.remarks.join('\n') || 'None')}</pre></div>`,
-    on('mel') && `<div class="part"><h4>MEL / CDL</h4><pre>${esc(r.mel.join('\n') || 'None')}</pre></div>`].filter(Boolean).join('');
+  const cells = relShow.map(id => REL_FIELDS.find(f => f[0] === id)).filter(f => f && f[2] && f[0] !== 'adsb').map(([, k, f]) => kv(k, ...f(r))).join('');
+  const inOrder = o => relShow.filter(id => o[id]).map(id => o[id]).join('');
+  const top = inOrder({ adsb: `<div class="part"><h4>ADSB</h4><b>${esc(r.adsb)}</b></div>`,
+    route: `<div class="part"><h4>ROUTE</h4><pre>${esc(r.route || '—')}</pre></div>` });
+  const parts = inOrder({ seproc: `<div class="part"><h4>SE PROC</h4><div class="seproc" data-apt="${esc(r.from || '')}" data-rel="${esc(JSON.stringify({ a: r.acarsRwys || [], p: r.seProc || {} }))}"><span class="sub">Checking D-ATIS…</span></div></div>`,
+    remarks: `<div class="part"><h4>REMARKS</h4><pre>${esc(r.remarks.join('\n') || 'None')}</pre></div>`,
+    mel: `<div class="part"><h4>MEL / CDL</h4><pre>${esc(r.mel.join('\n') || 'None')}</pre></div>` });
   return `
     ${top ? `<div class="panel">${top}</div>` : ''}
     ${cells ? `<div class="grid">${cells}</div>` : ''}
@@ -562,22 +565,35 @@ function settingsView() {
   const mine = last && last.weights ? last : null;
   const r = mine || SAMPLE_REL;
   const src = mine ? `your latest release (${esc(mine.flight)} ${esc(mine.from)}→${esc(mine.to)})` : 'an example release';
-  const rows = REL_FIELDS.map(([id, k, f]) => {
+  const order = relShow.filter(id => REL_FIELDS.some(f => f[0] === id)).concat(REL_FIELDS.map(f => f[0]).filter(id => !relShow.includes(id)));
+  const rows = order.map(id => REL_FIELDS.find(f => f[0] === id)).map(([id, k, f]) => {
     const [v, sub] = f ? f(r) : id === 'seproc' ? [esc((r.acarsRwys || []).filter(x => !x.ix).map(x => `${x.rwy} ${x.efp}`).join(' · ') || '—')] : [esc(id === 'route' ? r.route || '—' : ((id === 'remarks' ? r.remarks : r.mel)[0] || 'None').slice(0, 40))];
-    return `<label class="setrow"><input type="checkbox" data-f="${id}"${relShow.includes(id) ? ' checked' : ''}><span class="k">${k}</span><span class="v">${v}${sub ? ` <small>${sub}</small>` : ''}</span></label>`;
+    return `<label class="setrow"><input type="checkbox" data-f="${id}"${relShow.includes(id) ? ' checked' : ''}><span class="k">${k}</span><span class="v">${v}${sub ? ` <small>${sub}</small>` : ''}</span><span class="mv"><button data-mv="-1" aria-label="Move up">▲</button><button data-mv="1" aria-label="Move down">▼</button></span></label>`;
   }).join('');
   const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release items</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>Update${scriptOld() ? ' ●' : ''}</button>${doorKey ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}</div>`;
   if (setTab === 'upd') return seg + scriptBox();
   if (setTab === 'watch' && doorKey) return seg + watchBox();
   return `${seg}<div class="card box"><b>Release items</b>
-    <p class="sub" style="margin:4px 0 10px">Only checked items are shown in the release box. Values are from ${src}.</p>
+    <p class="sub" style="margin:4px 0 10px">Only checked items are shown in the release box. Use ▲▼ to reorder, then Save. Values are from ${src}.</p>
     <div class="setlist">${rows}</div>
     <div class="setbtns"><button id="sSave" class="on">Save</button><button id="sAll">Select all</button><button id="sDef">Default</button><span class="sub" id="sMsg"></span></div></div>`;
 }
 document.addEventListener('click', e => {
   const id = e.target.id, boxes = () => [...document.querySelectorAll('.setrow input')];
+  const mv = e.target.closest('.setrow .mv button');
+  if (mv) {
+    e.preventDefault();
+    const row = mv.closest('.setrow');
+    if (mv.dataset.mv < 0 && row.previousElementSibling) row.parentNode.insertBefore(row, row.previousElementSibling);
+    if (mv.dataset.mv > 0 && row.nextElementSibling) row.parentNode.insertBefore(row.nextElementSibling, row);
+    return;
+  }
   if (id === 'sAll') boxes().forEach(b => { b.checked = true; });
-  if (id === 'sDef') boxes().forEach(b => { b.checked = REL_DEF.includes(b.dataset.f); });
+  if (id === 'sDef') {
+    boxes().forEach(b => { b.checked = REL_DEF.includes(b.dataset.f); });
+    const list = document.querySelector('.setlist'), ix = r => REL_FIELDS.findIndex(f => f[0] === r.querySelector('input').dataset.f);
+    [...list.children].sort((a, b) => ix(a) - ix(b)).forEach(r => list.appendChild(r));
+  }
   if (id === 'sSave') {
     relShow = boxes().filter(b => b.checked).map(b => b.dataset.f);
     try { localStorage.setItem('cbRelFields', JSON.stringify(relShow)); localStorage.setItem('cbRelKnown', JSON.stringify(REL_FIELDS.map(f => f[0]))); } catch (err) {}
