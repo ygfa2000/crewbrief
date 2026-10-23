@@ -62,6 +62,7 @@
   .watch-steps .pmhelp { margin:6px 0 12px; }
   .pmhelp img { display:block; width:100%; max-width:420px; margin-top:6px; border-radius:10px; border:1px solid var(--line); }
   .ver { display:grid; grid-template-columns:auto 1fr; gap:2px 10px; margin-top:8px; font-variant-numeric:tabular-nums; }
+  .kin { width:100%; box-sizing:border-box; font:inherit; font-size:16px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:var(--card, #fff); color:inherit; margin-bottom:10px; }
   .ver span { color:var(--mute); font-size:12px; }
   .ok-tag, .need-tag { font-size:12px; font-weight:600; padding:2px 8px; border-radius:999px; margin-left:6px; }
   .ok-tag { background:var(--soft); color:var(--acc); }
@@ -570,9 +571,10 @@ function settingsView() {
     const [v, sub] = f ? f(r) : id === 'seproc' ? [esc((r.acarsRwys || []).filter(x => !x.ix).map(x => `${x.rwy} ${x.efp}`).join(' · ') || '—')] : [esc(id === 'route' ? r.route || '—' : ((id === 'remarks' ? r.remarks : r.mel)[0] || '없음').slice(0, 40))];
     return `<label class="setrow"><input type="checkbox" data-f="${id}"${relShow.includes(id) ? ' checked' : ''}><span class="k">${k}</span><span class="v">${v}${sub ? ` <small>${sub}</small>` : ''}</span>${num(i)}</label>`;
   }).join('');
-  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release 항목</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>업데이트${scriptOld() ? ' ●' : ''}</button>${doorKey ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}</div>`;
+  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release 항목</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>업데이트${scriptOld() ? ' ●' : ''}</button>${IN_APP ? `<button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>도어 키</button>` : ''}${doorKey ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}</div>`;
   if (setTab === 'upd') return seg + scriptBox();
   if (setTab === 'watch' && doorKey) return seg + watchBox();
+  if (setTab === 'key' && IN_APP) return seg + keyBox();
   return `${seg}<div class="card box"><b>Release 항목</b>
     <p class="sub" style="margin:4px 0 10px">체크한 항목만 Release 칸에 보입니다. 오른쪽 번호로 순서를 정하고 저장하세요. 값은 ${src}.</p>
     <div class="setlist">${rows}</div>
@@ -869,9 +871,13 @@ setInterval(() => {
 const SCRIPT_URL = 'https://gist.githubusercontent.com/ygfa2000/66609878012f76472d34391ba0f808ec/raw/CrewBrief.user.js', PAGES = 'https://ygfa2000.github.io/crewbrief/';
 let scriptLatest = null;
 const scriptCur = () => document.documentElement.dataset.cbScript || state.script;
-const scriptOld = () => { const v = scriptCur(); return !!(scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
+const IN_APP = document.documentElement.dataset.cbApp || '';
+const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 function scriptBox() {
+  if (IN_APP) return `<div class="card box"><b>동기화 스크립트</b> <span class="ok-tag">자동 최신</span>
+    <div class="ver"><span>앱</span><b>${esc(IN_APP)}</b><span>마지막 동기화</span><b>${esc(scriptCur() || '—')}</b><span>최신</span><b>${esc(scriptLatest || '—')}</b></div>
+    <div class="sub" style="margin-top:8px">앱이 동기화할 때마다 최신 스크립트를 받아 씁니다. 따로 설치하거나 업데이트할 것이 없습니다.</div></div>`;
   const v = scriptCur();
   const cur = v === 'bookmark' ? '북마크 (CB 동기화)' : v || (state.syncedAt ? '알 수 없음 (예전 스크립트)' : '아직 동기화 전');
   const st = !v && !state.syncedAt ? '' : v === 'bookmark' ? '<span class="ok-tag">북마크는 늘 최신</span>'
@@ -1095,6 +1101,37 @@ document.addEventListener('click', e => {
   }
 });
 const watchUrl = () => `${RELAY}?f=watch&dk=${encodeURIComponent(doorKey)}`;
+let keyMsg = '';
+function keyBox() {
+  return `<div class="card box"><b>도어 키</b>
+    <p class="sub" style="margin:4px 0 10px">받은 도어 키나 키가 든 링크를 붙여 넣고 저장하면 Door 탭이 열립니다.</p>
+    <input id="kIn" class="kin" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="도어 키 또는 링크">
+    <div class="setbtns"><button id="kSave" class="on">저장</button>${doorKey ? '<button id="kDel">지우기</button>' : ''}<span class="sub" id="kMsg">${keyMsg || (doorKey ? `저장된 키: ${esc(doorKey.slice(0, 4))}…` : '')}</span></div></div>`;
+}
+document.addEventListener('click', e => {
+  const id = e.target.id;
+  if (id === 'kDel') {
+    doorKey = ''; doorData = null; keyMsg = '지웠습니다';
+    try { ['cbDoorKey', 'cbDoors', 'cbWatchSent'].forEach(k => localStorage.removeItem(k)); } catch (er) {}
+    document.getElementById('doorTab').hidden = true;
+    render();
+  }
+  if (id !== 'kSave') return;
+  const v = document.getElementById('kIn').value.trim();
+  const k = (/dk=([\w-]{16,})/.exec(v) || /^([\w-]{16,})$/.exec(v) || [])[1];
+  const say = t => { keyMsg = t; const m = document.getElementById('kMsg'); if (m) m.textContent = t; };
+  if (!k) return say('도어 키 모양이 아닙니다');
+  say('확인하는 중…');
+  fetch(`${RELAY}?f=doors&dk=${encodeURIComponent(k)}`).then(r => r.json()).then(r => {
+    if (!r.ok) throw new Error(r.error);
+    doorKey = k;
+    try { localStorage.setItem('cbDoorKey', k); localStorage.removeItem('cbWatchSent'); } catch (er) {}
+    doorKeep({ doors: r.doors, who: r.who, at: Date.now() });
+    document.getElementById('doorTab').hidden = false;
+    keyMsg = '저장했습니다 — Door 탭이 열렸습니다';
+    render(); watchPush();
+  }).catch(err => say(`저장 못 함: ${err.message}`));
+});
 function watchBox() {
   return `<div class="card box"><b>Apple Watch 도어 코드</b>
     <p class="sub" style="margin:4px 0 10px">워치에서 그날 가는 공항들의 도어 코드를 바로 봅니다.</p>

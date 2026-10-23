@@ -62,6 +62,7 @@
   .watch-steps .pmhelp { margin:6px 0 12px; }
   .pmhelp img { display:block; width:100%; max-width:420px; margin-top:6px; border-radius:10px; border:1px solid var(--line); }
   .ver { display:grid; grid-template-columns:auto 1fr; gap:2px 10px; margin-top:8px; font-variant-numeric:tabular-nums; }
+  .kin { width:100%; box-sizing:border-box; font:inherit; font-size:16px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:var(--card, #fff); color:inherit; margin-bottom:10px; }
   .ver span { color:var(--mute); font-size:12px; }
   .ok-tag, .need-tag { font-size:12px; font-weight:600; padding:2px 8px; border-radius:999px; margin-left:6px; }
   .ok-tag { background:var(--soft); color:var(--acc); }
@@ -570,9 +571,10 @@ function settingsView() {
     const [v, sub] = f ? f(r) : id === 'seproc' ? [esc((r.acarsRwys || []).filter(x => !x.ix).map(x => `${x.rwy} ${x.efp}`).join(' · ') || '—')] : [esc(id === 'route' ? r.route || '—' : ((id === 'remarks' ? r.remarks : r.mel)[0] || 'None').slice(0, 40))];
     return `<label class="setrow"><input type="checkbox" data-f="${id}"${relShow.includes(id) ? ' checked' : ''}><span class="k">${k}</span><span class="v">${v}${sub ? ` <small>${sub}</small>` : ''}</span>${num(i)}</label>`;
   }).join('');
-  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release items</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>Update${scriptOld() ? ' ●' : ''}</button>${doorKey ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}</div>`;
+  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release items</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>Update${scriptOld() ? ' ●' : ''}</button>${IN_APP ? `<button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>Door key</button>` : ''}${doorKey ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}</div>`;
   if (setTab === 'upd') return seg + scriptBox();
   if (setTab === 'watch' && doorKey) return seg + watchBox();
+  if (setTab === 'key' && IN_APP) return seg + keyBox();
   return `${seg}<div class="card box"><b>Release items</b>
     <p class="sub" style="margin:4px 0 10px">Only checked items are shown in the release box. Pick a number on the right to set the order, then Save. Values are from ${src}.</p>
     <div class="setlist">${rows}</div>
@@ -869,9 +871,13 @@ setInterval(() => {
 const SCRIPT_URL = 'https://gist.githubusercontent.com/ygfa2000/66609878012f76472d34391ba0f808ec/raw/CrewBrief.user.js', PAGES = 'https://ygfa2000.github.io/crewbrief/';
 let scriptLatest = null;
 const scriptCur = () => document.documentElement.dataset.cbScript || state.script;
-const scriptOld = () => { const v = scriptCur(); return !!(scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
+const IN_APP = document.documentElement.dataset.cbApp || '';
+const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 function scriptBox() {
+  if (IN_APP) return `<div class="card box"><b>Sync script</b> <span class="ok-tag">Always latest</span>
+    <div class="ver"><span>App</span><b>${esc(IN_APP)}</b><span>Last sync</span><b>${esc(scriptCur() || '—')}</b><span>Latest</span><b>${esc(scriptLatest || '—')}</b></div>
+    <div class="sub" style="margin-top:8px">The app fetches the latest script every time it syncs. Nothing to install or update.</div></div>`;
   const v = scriptCur();
   const cur = v === 'bookmark' ? 'Bookmark (CB Sync)' : v || (state.syncedAt ? 'Unknown (older script)' : 'Not synced yet');
   const st = !v && !state.syncedAt ? '' : v === 'bookmark' ? '<span class="ok-tag">Bookmark is always current</span>'
@@ -1095,6 +1101,37 @@ document.addEventListener('click', e => {
   }
 });
 const watchUrl = () => `${RELAY}?f=watch&dk=${encodeURIComponent(doorKey)}`;
+let keyMsg = '';
+function keyBox() {
+  return `<div class="card box"><b>Door key</b>
+    <p class="sub" style="margin:4px 0 10px">Paste your door key, or the link that contains it, and tap Save to unlock the Door tab.</p>
+    <input id="kIn" class="kin" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Door key or link">
+    <div class="setbtns"><button id="kSave" class="on">Save</button>${doorKey ? '<button id="kDel">Remove</button>' : ''}<span class="sub" id="kMsg">${keyMsg || (doorKey ? `Saved key: ${esc(doorKey.slice(0, 4))}…` : '')}</span></div></div>`;
+}
+document.addEventListener('click', e => {
+  const id = e.target.id;
+  if (id === 'kDel') {
+    doorKey = ''; doorData = null; keyMsg = 'Removed';
+    try { ['cbDoorKey', 'cbDoors', 'cbWatchSent'].forEach(k => localStorage.removeItem(k)); } catch (er) {}
+    document.getElementById('doorTab').hidden = true;
+    render();
+  }
+  if (id !== 'kSave') return;
+  const v = document.getElementById('kIn').value.trim();
+  const k = (/dk=([\w-]{16,})/.exec(v) || /^([\w-]{16,})$/.exec(v) || [])[1];
+  const say = t => { keyMsg = t; const m = document.getElementById('kMsg'); if (m) m.textContent = t; };
+  if (!k) return say('That doesn\'t look like a door key');
+  say('Checking…');
+  fetch(`${RELAY}?f=doors&dk=${encodeURIComponent(k)}`).then(r => r.json()).then(r => {
+    if (!r.ok) throw new Error(r.error);
+    doorKey = k;
+    try { localStorage.setItem('cbDoorKey', k); localStorage.removeItem('cbWatchSent'); } catch (er) {}
+    doorKeep({ doors: r.doors, who: r.who, at: Date.now() });
+    document.getElementById('doorTab').hidden = false;
+    keyMsg = 'Saved — the Door tab is now on';
+    render(); watchPush();
+  }).catch(err => say(`Not saved: ${err.message}`));
+});
 function watchBox() {
   return `<div class="card box"><b>Apple Watch door codes</b>
     <p class="sub" style="margin:4px 0 10px">See the door codes for the day's airports right on your watch.</p>
