@@ -127,11 +127,84 @@
   .readout .v { font:700 40px ui-monospace,monospace; color:#ffb547; font-variant-numeric:tabular-nums; }
   .readout .n { font:13px ui-monospace,monospace; color:#c9d2dc; min-height:1.2em; }
 </style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+    :root { --bg:#f2f4f6; --card:#fff; --ink:#191f28; --ink2:#4e5968; --mute:#8b95a1; --line:#f2f4f6; --acc:#3182f6; --accsoft:#e8f3ff; --soft:#f2f4f6; --warn:#f04452; --pill:#f2f4f6; --segbg:#e5e8eb; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#101013; --card:#1d1d22; --ink:#ececf0; --ink2:#b0b8c1; --mute:#7e8590; --line:#2a2a31; --acc:#4b96ff; --accsoft:#1c2a40; --soft:#26262c; --warn:#ff6b75; --pill:#2c2c34; --segbg:#26262c; color-scheme:dark; } }
+  body { background:var(--bg); color:var(--ink); font-family:'Pretendard Variable',Pretendard,-apple-system,'Apple SD Gothic Neo',sans-serif; letter-spacing:-.01em; max-width:560px; }
+  h1.head { font-size:22px; font-weight:800; letter-spacing:-.03em; margin:8px 2px 6px; }
+  h1.head a { color:var(--ink2) !important; }
+  .zulu { color:var(--acc); font:700 17px 'Pretendard Variable',Pretendard,sans-serif; font-variant-numeric:tabular-nums; }
+  .topbar { padding:0 2px; } #synced { color:var(--mute); }
+  .upd { background:var(--accsoft); color:var(--acc); border-radius:10px; padding:8px 14px; font-weight:700; }
+  .tabs { background:var(--bg); gap:4px; padding:10px 0; }
+  .tabs button { font:600 14px 'Pretendard Variable',Pretendard,sans-serif; border:0; border-radius:12px; background:var(--card); color:var(--mute); padding:11px 2px; }
+  .tabs button.on { background:var(--ink); color:var(--card); }
+  .card { border:0; border-radius:22px; margin-top:12px; }
+  .box { padding:20px 22px; } .card > .box > b:first-child, .card.box > b:first-child, .trip > summary b { font-weight:700; font-size:18px; }
+  .trip > summary { padding:20px 22px 14px; }
+  .sub { color:var(--mute); }
+  .day { border-top:0; padding:4px 22px 16px; }
+  .dayhead { font-weight:700; font-size:15px; padding:10px 0 6px; border-top:1px solid var(--line); }
+  .day:first-of-type .dayhead { border-top:0; }
+  .logten { display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:12px;
+    padding:5px 14px 5px 5px; font-weight:700; text-decoration:none; font-size:14px; margin:4px 0 6px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .logten .lt-ico { width:30px; height:30px; border-radius:7px; box-shadow:0 0 0 1px rgba(0,0,0,.08); }
+  .leg > summary { grid-template-columns:4.6em 1fr auto; align-items:center; gap:12px; padding:12px 0; border-bottom:0; }
+  .leg > summary > span:first-child { color:var(--ink2); font-weight:600; font-size:14px; }
+  .leg > summary > span:nth-child(2) { font-weight:700; font-size:17px; display:grid; }
+  .leg > summary > span:nth-child(2) .sub { font-weight:500; font-size:13px; }
+  .leg > summary .r { color:var(--mute); font-size:13px; }
+  .tag { border:0; background:var(--accsoft); color:var(--acc); font-weight:700; border-radius:6px; padding:1px 6px; }
+  .legbody { background:var(--soft); border-radius:16px; padding:14px; margin:2px 0 12px; }
+  .panel { border:0; border-radius:14px; padding:16px; background:var(--card); }
+  .panel h4 { color:var(--mute); font-size:13px; font-weight:600; letter-spacing:0; margin-bottom:10px; }
+  .stats { gap:10px; }
+  .stats .lbl { color:var(--mute); font-size:13px; letter-spacing:0; }
+  .stats b { font-size:20px; font-weight:700; }
+  .info .lbl, .kv .k, .sec .k, .setrow .k { color:var(--mute); font-size:12px; letter-spacing:0; }
+  .grid { gap:8px; }
+  .kv { border:0; background:var(--soft); border-radius:12px; padding:10px 12px; }
+  .kv .v { font-weight:700; font-size:16px; }
+  .seg { gap:2px; background:var(--segbg); padding:3px; border-radius:12px; }
+  .seg button { border:0; border-radius:10px; background:transparent; color:var(--mute); font:600 13px 'Pretendard Variable',Pretendard,sans-serif; padding:9px 4px; }
+  .seg button.on { background:var(--card); color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .frow { border-bottom:1px solid var(--line); }
+  .frow.mine { background:var(--accsoft); }
+  .hotel { color:var(--ink2); background:var(--soft); border-radius:12px; padding:10px 12px; margin-top:8px; }
+  .atis-in input, #calc input, .door-top input { border:0; background:var(--soft); border-radius:12px; }
+  .atis-in button, .bm { background:var(--acc); border:0; border-radius:12px; font-weight:700; }
+  .atis-apt, .door-top button, .door-card button, .setbtns button, .chips button { border:0; background:var(--pill); color:var(--ink2); border-radius:10px; font-weight:600; }
+  .door-top button.on, .door-card button.on, .setbtns button.on { background:var(--acc); color:#fff; }
+  .door-card, .door-codes > div { border:0; background:var(--soft); border-radius:14px; }
+  .readout { border-radius:16px; }
+    h1.head { display:flex; align-items:center; justify-content:space-between; margin:10px 2px 8px; }
+  h1.head a#home { display:inline-flex; align-items:center; gap:10px; color:var(--ink) !important; }
+  .mark { width:36px; height:36px; flex:none; filter:drop-shadow(0 4px 10px rgba(49,130,246,.35)); }
+  .word { font-size:23px; font-weight:800; letter-spacing:-.04em; line-height:1; }
+  .word em { font-style:normal; color:var(--acc); }
+  .word { display:inline-grid; } .word .wt { white-space:nowrap; }
+  .word small { justify-self:start; white-space:nowrap; display:block; font-size:10px; font-weight:600; letter-spacing:.04em; color:var(--mute); margin-top:4px; font-size:12px; }
+    .upd { display:inline-flex; align-items:center; gap:8px; padding:7px 16px 7px 7px; border-radius:999px; font-weight:700; font-size:14px;
+    color:#fff; background:linear-gradient(180deg,#2e3643,#151a22); box-shadow:inset 0 1px 0 rgba(255,255,255,.14), 0 3px 8px rgba(21,26,34,.22); }
+  .upd .ico { width:26px; height:26px; border-radius:50%; display:grid; place-items:center; background:linear-gradient(180deg,#4b96ff,#2272eb); box-shadow:inset 0 1px 0 rgba(255,255,255,.35); }
+  .upd .ico svg { width:14px; height:14px; }
+  .upd:active { transform:translateY(1px); }
+  @media (prefers-color-scheme: dark) { .upd { color:#191f28; background:linear-gradient(180deg,#ffffff,#dfe3e8); box-shadow:inset 0 1px 0 #fff, 0 6px 16px rgba(0,0,0,.4); } }
+  .hdr { display:flex; justify-content:space-between; align-items:center; gap:12px; margin:10px 2px 12px; }
+  .hdr h1.head { margin:0; }
+  .status { display:grid; grid-template-columns:1fr 1fr; background:var(--card); border-radius:16px; padding:12px 0; margin-bottom:2px; }
+  .status > div { display:grid; gap:3px; padding:0 18px; }
+  .status > div + div { border-left:1px solid var(--line); text-align:right; }
+  .status .k { color:var(--mute); font-size:12px; font-weight:500; }
+  .status .zulu, .status #synced { font:700 17px 'Pretendard Variable',Pretendard,sans-serif; color:var(--ink); font-variant-numeric:tabular-nums; letter-spacing:0; }
+  .status .zulu { color:var(--acc); }
+</style>
 </head>
 <body>
-<h1 class="head"><a id="home" target="_top" style="color:inherit;text-decoration:none">Crew Brief</a> <span class="zulu" id="zulu"></span></h1>
-<div class="topbar"><span class="sub" id="synced"></span>
-  <a class="upd" target="_top" href="#cbsync" data-u="aHR0cHM6Ly93d3cuc2t5d2VzdG9ubGluZS5jb20vU0tZVy9Ta2VkUGx1cy9NeVNjaGVkdWxlLmFzcHg=">↻ 업데이트</a></div>
+<header class="hdr"><h1 class="head"><a id="home" target="_top" style="color:inherit;text-decoration:none"><svg class="mark" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="cbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5aa5ff"/><stop offset="1" stop-color="#1b64da"/></linearGradient></defs><rect width="40" height="40" rx="12" fill="url(#cbg)"/><path d="M9 27c6-1 14-5 22-14" stroke="rgba(255,255,255,.35)" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M10.5 21.5 30 12.5l-6.2 16.2-4.3-5.6z" fill="#fff"/><path d="m19.5 23.1 10.5-10.6-12.2 8.9z" fill="#cfe2ff"/></svg><span class="word"><span class="wt">Crew <em>Brief</em></span><small>Flight Deck Tool</small></span></a></h1>
+  <a class="upd" target="_top" href="#cbsync" data-u="aHR0cHM6Ly93d3cuc2t5d2VzdG9ubGluZS5jb20vU0tZVy9Ta2VkUGx1cy9NeVNjaGVkdWxlLmFzcHg="><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3.2h-3.2"/></svg></span>업데이트</a></header>
+<div class="status"><div><span class="k">UTC</span><span class="zulu" id="zulu"></span></div><div><span class="k">마지막 동기화</span><span class="sub" id="synced"></span></div></div>
 <button class="script-warn" id="scriptWarn" hidden></button>
 <nav class="tabs"><button data-tab="today">오늘</button><button data-tab="up">내 트립</button><button data-tab="atis">D-ATIS</button><button data-tab="door" id="doorTab" hidden>Door</button><button data-tab="calc">계산기</button><button data-tab="set" aria-label="설정">⚙</button></nav>
 
@@ -536,6 +609,7 @@ function flow(leg, allLegs, rel) {
 }
 
 const icao = a => /^[A-Z]{4}$/.test(a) ? a : ({ HNL: 'PHNL', OGG: 'PHOG', KOA: 'PHKO', LIH: 'PHLI', ITO: 'PHTO', ANC: 'PANC', FAI: 'PAFA', JNU: 'PAJN', KTN: 'PAKT', SIT: 'PASI' })[a] || (/^Y/.test(a) ? 'C' + a : 'K' + a);
+const LT_ICON = '<svg class="lt-ico" viewBox="0 0 40 40" aria-hidden="true"><defs><radialGradient id="ltg" cx=".5" cy=".42" r=".6"><stop offset="0" stop-color="#6cc0f2"/><stop offset="1" stop-color="#2f8fd6"/></radialGradient></defs><rect width="40" height="40" rx="10" fill="#fff"/><circle cx="20" cy="20" r="16.5" fill="url(#ltg)"/><rect x="19.3" y="5.6" width="1.4" height="3" rx=".7" fill="#fff" opacity=".9" transform="rotate(0 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(30 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(60 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="3" rx=".7" fill="#fff" opacity=".9" transform="rotate(90 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(120 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(150 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="3" rx=".7" fill="#fff" opacity=".9" transform="rotate(180 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(210 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(240 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="3" rx=".7" fill="#fff" opacity=".9" transform="rotate(270 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(300 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(330 20 20)"/><path d="M5.5 21.2 17 20h6l11.5 1.2v1.3L23 22.3h-6l-11.5.2z" fill="#fff"/><circle cx="20" cy="21.4" r="3" fill="#fff"/><path d="M19.1 12.5h1.8v7h-1.8z" fill="#fff"/><path d="M15.8 14.2h8.4v1.6h-8.4z" fill="#fff"/></svg>';
 function logtenUrl(d) {
   const mdy = date => `${date.slice(5, 7)}/${date.slice(8, 10)}/${date.slice(0, 4)}`;
   const at = (date, hm, after) => {
@@ -562,7 +636,7 @@ function logtenUrl(d) {
     if (l === flown[flown.length - 1]) e.flight_offDutyTime = at(l.date, d.release, d.report);
     return e;
   }).filter(Boolean);
-  if (!legs.length) return '';
+  if (!legs.length || legs.length < flown.length) return ''; // 그날 마지막 구간이 IN 해야 보낸다
   const pkg = { metadata: { application: 'Crew Brief', version: '1.0', dateFormat: 'MM/dd/yyyy', dateAndTimeFormat: 'MM/dd/yyyy HH:mm',
     timesAreZulu: false, shouldApplyAutoFillTimes: true }, entities: legs };
   return 'logten://v2/addEntities?package=' + encodeURIComponent(JSON.stringify(pkg));
@@ -573,7 +647,7 @@ function dayBlock(trip, d) {
   return `
     <div class="day">
       <div class="dayhead"><span>${md(d.date)}</span><span class="sub">Report ${esc(d.report)} · Release ${esc(d.release)}${d.duty ? ` · Duty ${esc(d.duty)}` : ''}</span></div>
-      ${(u => u ? `<a class="logten" href="${u}">LogTen ↗</a>` : '')(logtenUrl(d))}
+      ${(u => u ? `<a class="logten" href="${u}">${LT_ICON}<span>LogTen</span></a>` : '')(logtenUrl(d))}
       ${d.legs.map(l => {
         const rel = state.releases[`${l.date}-${l.flight}-${l.from}`];
         const dh = l.dhd ? '<span class="tag">DH</span>' : '';
@@ -628,10 +702,20 @@ function todayView() {
     ${dayBlock(trip, trip.days[i])}</div>`;
 }
 
+function fitWord() {
+  const t = document.querySelector('.word .wt'), sm = document.querySelector('.word small');
+  if (!t || !sm) return;
+  sm.style.letterSpacing = '0px'; sm.style.marginRight = '0px';
+  const g = (t.getBoundingClientRect().width - sm.getBoundingClientRect().width) / (sm.textContent.length - 1);
+  sm.style.letterSpacing = g + 'px'; sm.style.marginRight = -g + 'px';
+}
+(document.fonts ? document.fonts.ready : Promise.resolve()).then(fitWord);
+addEventListener('resize', fitWord);
+
 let tab = null;
 function render() {
   document.getElementById('synced').textContent = state.syncedAt
-    ? `마지막 동기화: ${new Date(state.syncedAt).toLocaleString('ko-KR')}` : '아직 동기화 전입니다 — 아래 "동기화 방법"을 보세요.';
+    ? (t => `${t.getMonth() + 1}/${t.getDate()} ${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`)(new Date(state.syncedAt)) : '아직 없음';
   if (!state.syncedAt) document.getElementById('howto').open = true;
   scriptWarn();
   const hasToday = state.trips.some(t => t.days.some(d => d.date === today));
