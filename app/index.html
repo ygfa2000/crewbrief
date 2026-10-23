@@ -873,7 +873,8 @@ setInterval(() => {
 const SCRIPT_URL = 'https://gist.githubusercontent.com/ygfa2000/66609878012f76472d34391ba0f808ec/raw/CrewBrief.user.js', PAGES = 'https://ygfa2000.github.io/crewbrief/';
 let scriptLatest = null;
 const scriptCur = () => document.documentElement.dataset.cbScript || state.script;
-const IN_APP = document.documentElement.dataset.cbApp || '';
+const IN_APP = document.documentElement.dataset.cbApp
+  || ([...document.querySelectorAll('style')].some(st => st.textContent.includes('#howto { display: none !important; }')) ? '1.0' : '');
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
