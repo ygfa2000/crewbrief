@@ -118,6 +118,15 @@
   .late { color:var(--warn); }
   .tl-gate { display:grid; text-align:right; font-size:17px; font-weight:800; font-variant-numeric:tabular-nums; }
   .hotel2 { display:grid; gap:2px; padding-bottom:14px; }
+  .nt-day { display:grid; grid-template-columns:78px 1fr; gap:10px; padding:10px 0; border-top:1px solid var(--line); }
+  .hc-h + .tl-sub { margin-bottom:8px; }
+  .nt-d { color:var(--mute); font-size:13px; font-weight:700; padding-top:2px; }
+  .nt-day b { font-size:16px; font-weight:800; letter-spacing:-.01em; }
+  .chg { margin-top:12px; border-color:var(--warn); padding-bottom:12px; }
+  .chg .hc-h { color:var(--warn); display:flex; justify-content:space-between; align-items:center; }
+  .chg-x { border:0; background:none; color:var(--mute); font-size:16px; padding:0 2px; cursor:pointer; }
+  .chg-i { font-weight:700; padding:4px 0; font-variant-numeric:tabular-nums; }
+  .chg + .home { margin-top:10px; }
   .hdoor { display:grid; grid-template-columns:48px 1fr; gap:8px; align-items:start; padding:8px 0; border-top:1px solid var(--line); }
   .hc-h + .hdoor { border-top:0; }
   .hdoor > b { font-size:15px; font-weight:800; padding-top:4px; }
@@ -795,9 +804,17 @@ function homeView() {
   if (!cur) {
     const nx = days.find(x => x.d.date > today && x.d.report);
     if (!nx) return `<div class="card box"><b>No upcoming flights</b><div class="sub" style="margin-top:4px">↻ Update to load your schedule.</div></div>`;
-    return `<div class="hero off" data-at="${esc(nx.d.date)}T${esc(nx.d.report.padStart(5, '0'))}">
+    const nd = nx.t.days.filter(d => d.date >= nx.d.date).map(d => {
+      const ls = d.legs.filter(l => l.from !== l.to), chain = ls.length ? [ls[0].from, ...ls.map(l => l.to)].join(' → ') : '—';
+      return `<div class="nt-day"><span class="nt-d">${md(d.date)}</span><div><b>${esc(chain)}</b>
+        <div class="tl-sub">Report ${esc(d.report || '—')} · Release ${esc(d.release || '—')}${ls[0] ? ` · ${esc(ls[0].flight)} ${esc(ls[0].dep)}` : ''}</div>
+        ${d.hotel ? `<div class="tl-sub">🏨 ${esc(d.hotel)}</div>` : ''}</div></div>`;
+    }).join('');
+    return `<div class="home" data-go="up"><div class="hero off" data-at="${esc(nx.d.date)}T${esc(nx.d.report.padStart(5, '0'))}">
       <div class="hx-lbl">Next report in</div><div class="cd">${countdown(nx.d.date, nx.d.report)}</div>
-      <div class="hx-when">${md(nx.d.date)} · ${esc(nx.d.report)}</div></div>`;
+      <div class="hx-when">${md(nx.d.date)} · ${esc(nx.d.report)}</div></div>
+      <div class="card hcard"><div class="hc-h">NEXT TRIP · ${esc(nx.t.pairing)}</div>
+        <div class="tl-sub">${tripTitle(nx.t)} · Block ${esc(nx.t.block)} · Credit ${esc(nx.t.credit)} · TAFB ${esc(nx.t.tafb)}</div>${nd}</div></div>`;
   }
   const { t: trip, d } = cur;
   const fl = l => (((state.flows || {})[`${l.date}-${l.tail}`] || {}).flights || []).find(x => x.flight === l.flight && x.from === l.from) || {};
@@ -840,6 +857,40 @@ function homeView() {
     ${d.hotel ? `<div class="card hcard hotel2"><div class="hc-h">HOTEL</div><b>${esc(d.hotel)}</b><span class="sub">Layover ${esc(d.layover)}</span></div>` : ''}</div>
     ${doors ? `<div class="card hcard"><div class="hc-h">DOOR CODES</div>${doors}</div>` : ''}`;
 }
+let schedChanges = null;
+{
+  const dig = {};
+  state.trips.forEach(t => t.days.forEach(d => {
+    if (d.date >= today) dig[d.date] = [t.pairing, d.report, d.legs.filter(l => l.from !== l.to).map(l => `${l.flight} ${l.from}-${l.to} ${l.dep}`).join(',')];
+  }));
+  const last = Object.keys(dig).sort().pop() || '';
+  let prev = null;
+  try { prev = JSON.parse(localStorage.getItem('cbSched') || 'null'); schedChanges = JSON.parse(localStorage.getItem('cbChanges') || 'null'); } catch (e) {}
+  if (prev && state.syncedAt && state.syncedAt !== prev.at) {
+    const edge = prev.last < last ? prev.last : last, items = [];
+    [...new Set([...Object.keys(prev.days), ...Object.keys(dig)])].filter(d => d >= today && d <= edge).sort().forEach(d => {
+      const a = prev.days[d], b = dig[d];
+      if (!a) items.push(`${md(d)} · ${esc(b[0])} added · Report ${esc(b[1])}`);
+      else if (!b) items.push(`${md(d)} · ${esc(a[0])} removed`);
+      else if (a[0] !== b[0]) items.push(`${md(d)} · ${esc(a[0])} → ${esc(b[0])}`);
+      else if (a[1] !== b[1]) items.push(`${md(d)} · Report ${esc(a[1])} → ${esc(b[1])}`);
+      else if (a[2] !== b[2]) items.push(`${md(d)} · ${esc(b[0])} legs changed`);
+    });
+    if (items.length) schedChanges = { at: state.syncedAt, items };
+  }
+  try {
+    if (state.syncedAt) localStorage.setItem('cbSched', JSON.stringify({ at: state.syncedAt, last, days: dig }));
+    if (schedChanges) localStorage.setItem('cbChanges', JSON.stringify(schedChanges));
+  } catch (e) {}
+}
+const changesCard = () => schedChanges ? `<div class="card hcard chg"><div class="hc-h">Schedule changed<button class="chg-x" id="chgX" aria-label="Close">✕</button></div>
+  ${schedChanges.items.map(t => `<div class="chg-i">${t}</div>`).join('')}</div>` : '';
+document.addEventListener('click', e => {
+  if (e.target.id !== 'chgX') return;
+  schedChanges = null;
+  try { localStorage.removeItem('cbChanges'); } catch (er) {}
+  render();
+});
 function countdown(date, hm) {
   const [y, m, d] = date.split('-').map(Number), [h, mi] = hm.split(':').map(Number);
   const left = Math.max(0, Math.round((new Date(y, m - 1, d, h, mi) - Date.now()) / 60e3));
@@ -868,7 +919,7 @@ function render() {
   if (tab === 'atis') atisChips();
   if (tab === 'calc' || tab === 'atis') return;
   document.getElementById('view').innerHTML =
-    tab === 'home' ? homeView()
+    tab === 'home' ? changesCard() + homeView()
     : tab === 'today' ? todayView()
     : tab === 'set' ? settingsView()
     : tab === 'door' ? doorView()
