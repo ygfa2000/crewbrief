@@ -41,6 +41,9 @@
   .frow:last-child { border-bottom:0; }
   .frow.mine { background:var(--soft); border-radius:6px; }
   .frow .r { color:var(--mute); font-size:12px; text-align:right; }
+  .ooo { grid-column:2 / -1; display:grid; grid-template-columns:repeat(4,1fr); gap:4px; }
+  .ooo span { border:1px solid var(--line); border-radius:8px; background:var(--card); padding:3px 0; text-align:center; font-weight:600; font-size:13px; }
+  .ooo i { display:block; font-style:normal; font-weight:500; font-size:10px; color:var(--mute); letter-spacing:.04em; }
   .info { display:grid; grid-template-columns:3em 1fr; gap:3px 8px; font-size:13px; }
   .info .lbl { color:var(--mute); font-size:11px; letter-spacing:.04em; padding-top:2px; }
   .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:8px; font-variant-numeric:tabular-nums; }
@@ -590,13 +593,15 @@ function flowPanel(leg, fl) {
   const rows = fl.flights.map((f, i) => {
     const late = f.etd && f.std ? ((mins(f.etd) - mins(f.std) + 1440 + 720) % 1440) - 720 : 0;
     const state = f.in ? '✓' : f.out ? '✈' : '·';
-    const times = f.in ? `OUT ${esc(f.out)} · IN ${esc(f.in)}` : f.out ? `OUT ${esc(f.out)} · ETA ${esc(f.eta)}` : `STD ${esc(f.std)}${late >= 5 ? ` → ETD ${esc(f.etd)}` : ''}`;
+    const cell = (k, v) => `<span><i>${k}</i>${esc(v || '—')}</span>`;
+    const ooo = f.out ? `<div class="ooo">${cell('OUT', f.out)}${cell('OFF', f.off)}${cell('ON', f.on)}${f.in || !f.eta ? cell('IN', f.in) : cell('ETA', f.eta)}</div>` : '';
+    const times = f.out ? '' : `STD ${esc(f.std)}${late >= 5 ? ` → ETD ${esc(f.etd)}` : ''}`;
     return `<div class="frow${i === mine ? ' mine' : ''}">
       <span>${i === mine ? '▶' : state}</span>
       <span><b>${esc(f.flight)}</b> ${esc(f.from)}→${esc(f.to)}${i === mine - 1 ? ' <span class="tag">inbound</span>' : ''}
         <span class="sub">${times}${late >= 5 ? ` <b style="color:var(--warn)">+${fmtHM(late)}</b>` : ''}</span>
         ${f.delayReason && late >= 5 ? `<div class="sub" style="color:var(--warn)">${esc(f.delayReason)}</div>` : ''}</span>
-      <span class="r">${esc(f.depGate || '—')}→${esc(f.arrGate || '—')}</span></div>`;
+      <span class="r">${esc(f.depGate || '—')}→${esc(f.arrGate || '—')}</span>${ooo}</div>`;
   }).join('');
   const at = new Date(fl.at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
   return `<div class="panel"><h4>FLOW · ${esc(leg.tail)} <span style="font-weight:400">(as of ${at} · local times · gates)</span></h4>${rows || '<span class="sub">No flight info</span>'}</div>`;
