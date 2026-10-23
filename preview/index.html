@@ -149,8 +149,7 @@
   .dayhead { font-weight:700; font-size:15px; padding:10px 0 6px; border-top:1px solid var(--line); }
   .day:first-of-type .dayhead { border-top:0; }
   .logten { border:0; background:var(--pill); color:var(--ink2); border-radius:10px; padding:7px 12px; font-weight:600; margin:4px 0 6px; }
-  .leg > summary { grid-template-columns:42px 4.6em 1fr auto; align-items:center; gap:12px; padding:12px 0; border-bottom:0; }
-  .leg > summary::before { content:"✈"; width:42px; height:42px; border-radius:50%; background:var(--accsoft); color:var(--acc); display:grid; place-items:center; font-size:17px; }
+  .leg > summary { grid-template-columns:4.6em 1fr auto; align-items:center; gap:12px; padding:12px 0; border-bottom:0; }
   .leg > summary > span:first-child { color:var(--ink2); font-weight:600; font-size:14px; }
   .leg > summary > span:nth-child(2) { font-weight:700; font-size:17px; display:grid; }
   .leg > summary > span:nth-child(2) .sub { font-weight:500; font-size:13px; }
@@ -192,13 +191,17 @@
   .upd .ico svg { width:14px; height:14px; }
   .upd:active { transform:translateY(1px); }
   @media (prefers-color-scheme: dark) { .upd { color:#191f28; background:linear-gradient(180deg,#ffffff,#dfe3e8); box-shadow:inset 0 1px 0 #fff, 0 6px 16px rgba(0,0,0,.4); } }
+  .hdr { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin:10px 2px 4px; }
+  .hl, .hr { display:grid; gap:8px; }
+  .hr { justify-items:end; }
+  .hdr h1.head { margin:0; }
+  .hdr .zulu { padding-left:46px; font-size:15px; letter-spacing:.02em; }
+  #synced { font-size:12px; font-weight:500; color:var(--mute); padding-right:6px; font-variant-numeric:tabular-nums; }
   .preview-note { color:var(--mute); font-size:12px; text-align:center; margin:18px 0 0; }
 </style>
 </head>
 <body>
-<h1 class="head"><a id="home" target="_top" style="color:inherit;text-decoration:none"><svg class="mark" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="cbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5aa5ff"/><stop offset="1" stop-color="#1b64da"/></linearGradient></defs><rect width="40" height="40" rx="12" fill="url(#cbg)"/><path d="M9 27c6-1 14-5 22-14" stroke="rgba(255,255,255,.35)" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M10.5 21.5 30 12.5l-6.2 16.2-4.3-5.6z" fill="#fff"/><path d="m19.5 23.1 10.5-10.6-12.2 8.9z" fill="#cfe2ff"/></svg><span class="word">Crew <em>Brief</em><small>Flight Deck Tool</small></span></a> <span class="zulu" id="zulu"></span></h1>
-<div class="topbar"><span class="sub" id="synced"></span>
-  <a class="upd" target="_top" href="#cbsync" data-u="aHR0cHM6Ly93d3cuc2t5d2VzdG9ubGluZS5jb20vU0tZVy9Ta2VkUGx1cy9NeVNjaGVkdWxlLmFzcHg="><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3.2h-3.2"/></svg></span>업데이트</a></div>
+<header class="hdr"><div class="hl"><h1 class="head"><a id="home" target="_top" style="color:inherit;text-decoration:none"><svg class="mark" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="cbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5aa5ff"/><stop offset="1" stop-color="#1b64da"/></linearGradient></defs><rect width="40" height="40" rx="12" fill="url(#cbg)"/><path d="M9 27c6-1 14-5 22-14" stroke="rgba(255,255,255,.35)" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M10.5 21.5 30 12.5l-6.2 16.2-4.3-5.6z" fill="#fff"/><path d="m19.5 23.1 10.5-10.6-12.2 8.9z" fill="#cfe2ff"/></svg><span class="word">Crew <em>Brief</em><small>Flight Deck Tool</small></span></a></h1><span class="zulu" id="zulu"></span></div><div class="hr"><a class="upd" target="_top" href="#cbsync" data-u="aHR0cHM6Ly93d3cuc2t5d2VzdG9ubGluZS5jb20vU0tZVy9Ta2VkUGx1cy9NeVNjaGVkdWxlLmFzcHg="><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3.2h-3.2"/></svg></span>업데이트</a><span class="sub" id="synced"></span></div></header>
 <button class="script-warn" id="scriptWarn" hidden></button>
 <nav class="tabs"><button data-tab="today">오늘</button><button data-tab="up">내 트립</button><button data-tab="atis">D-ATIS</button><button data-tab="door" id="doorTab" hidden>Door</button><button data-tab="calc">계산기</button><button data-tab="set" aria-label="설정">⚙</button></nav>
 
@@ -1091,6 +1094,19 @@ document.addEventListener('click', e => {
 });
 
 render();
+</script>
+<script>
+// 동기화 시각을 짧게: "10/22 15:12 동기화"
+(() => {
+  const el = document.getElementById('synced');
+  const fix = () => {
+    const t = (typeof state !== 'undefined' && state.syncedAt) ? new Date(state.syncedAt) : null;
+    const txt = t ? `${t.getMonth() + 1}/${t.getDate()} ${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')} 동기화` : '동기화 전';
+    if (el.textContent !== txt) el.textContent = txt;
+  };
+  new MutationObserver(fix).observe(el, { childList: true, characterData: true, subtree: true });
+  fix();
+})();
 </script>
 <p class="preview-note">디자인 시안 — 실제 앱과 같은 자료를 보여 줍니다. 동기화는 원래 앱에서 하세요.</p>
 </body>
