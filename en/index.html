@@ -129,8 +129,8 @@
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
-    :root { --bg:#f2f4f6; --card:#fff; --ink:#191f28; --ink2:#4e5968; --mute:#8b95a1; --line:#f2f4f6; --acc:#3182f6; --accsoft:#e8f3ff; --soft:#f2f4f6; --warn:#f04452; --pill:#f2f4f6; --segbg:#e5e8eb; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#101013; --card:#1d1d22; --ink:#ececf0; --ink2:#b0b8c1; --mute:#7e8590; --line:#2a2a31; --acc:#4b96ff; --accsoft:#1c2a40; --soft:#26262c; --warn:#ff6b75; --pill:#2c2c34; --segbg:#26262c; color-scheme:dark; } }
+    :root { --bg:#f2f4f6; --card:#fff; --ink:#191f28; --ink2:#4e5968; --mute:#8b95a1; --line:#e5e8eb; --acc:#3182f6; --accsoft:#e8f3ff; --soft:#f2f4f6; --warn:#f04452; --pill:#f2f4f6; --segbg:#e5e8eb; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#101013; --card:#1d1d22; --ink:#ececf0; --ink2:#b0b8c1; --mute:#7e8590; --line:#33333b; --acc:#4b96ff; --accsoft:#1c2a40; --soft:#26262c; --warn:#ff6b75; --pill:#2c2c34; --segbg:#26262c; color-scheme:dark; } }
   body { background:var(--bg); color:var(--ink); font-family:'Pretendard Variable',Pretendard,-apple-system,'Apple SD Gothic Neo',sans-serif; letter-spacing:-.01em; max-width:560px; }
   h1.head { font-size:22px; font-weight:800; letter-spacing:-.03em; margin:8px 2px 6px; }
   h1.head a { color:var(--ink2) !important; }
@@ -138,10 +138,10 @@
   .topbar { padding:0 2px; } #synced { color:var(--mute); }
   .upd { background:var(--accsoft); color:var(--acc); border-radius:10px; padding:8px 14px; font-weight:700; }
   .tabs { background:var(--bg); gap:4px; padding:10px 0; }
-  .tabs button { font:600 14px 'Pretendard Variable',Pretendard,sans-serif; border:0; border-radius:12px; background:var(--card); color:var(--mute); padding:11px 2px; }
-  .tabs button.on { background:var(--ink); color:var(--card); }
-  .card { border:0; border-radius:22px; margin-top:12px; }
-  .box { padding:20px 22px; } .card > .box > b:first-child, .card.box > b:first-child, .trip > summary b { font-weight:700; font-size:18px; }
+  .tabs button { font:600 14px 'Pretendard Variable',Pretendard,sans-serif; border:1px solid var(--line); border-radius:12px; background:var(--card); color:var(--mute); padding:11px 2px; }
+  .tabs button.on { background:var(--ink); color:var(--card); border-color:var(--ink); }
+  .card { border:1px solid var(--line); border-radius:22px; margin-top:12px; }
+  .box { padding:20px 22px; } .card > .box:first-child > b:first-child, .card.box > b:first-child, .trip > summary b { font-weight:700; font-size:18px; }
   .trip > summary { padding:20px 22px 14px; }
   .sub { color:var(--mute); }
   .day { border-top:0; padding:4px 22px 16px; }
@@ -150,14 +150,14 @@
   .logten { display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:12px;
     padding:5px 14px 5px 5px; font-weight:700; text-decoration:none; font-size:14px; margin:4px 0 6px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
   .logten .lt-ico { width:30px; height:30px; border-radius:7px; box-shadow:0 0 0 1px rgba(0,0,0,.08); }
-  .leg > summary { grid-template-columns:4.6em 1fr auto; align-items:center; gap:12px; padding:12px 0; border-bottom:0; }
+  .leg > summary { grid-template-columns:4.6em 1fr auto; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); }
   .leg > summary > span:first-child { color:var(--ink2); font-weight:600; font-size:14px; }
   .leg > summary > span:nth-child(2) { font-weight:700; font-size:17px; display:grid; }
   .leg > summary > span:nth-child(2) .sub { font-weight:500; font-size:13px; }
   .leg > summary .r { color:var(--mute); font-size:13px; }
   .tag { border:0; background:var(--accsoft); color:var(--acc); font-weight:700; border-radius:6px; padding:1px 6px; }
   .legbody { background:var(--soft); border-radius:16px; padding:14px; margin:2px 0 12px; }
-  .panel { border:0; border-radius:14px; padding:16px; background:var(--card); }
+  .panel { border:1px solid var(--line); border-radius:14px; padding:16px; background:var(--card); }
   .panel h4 { color:var(--mute); font-size:13px; font-weight:600; letter-spacing:0; margin-bottom:10px; }
   .stats { gap:10px; }
   .stats .lbl { color:var(--mute); font-size:13px; letter-spacing:0; }
@@ -176,7 +176,9 @@
   .atis-in button, .bm { background:var(--acc); border:0; border-radius:12px; font-weight:700; }
   .atis-apt, .door-top button, .door-card button, .setbtns button, .chips button { border:0; background:var(--pill); color:var(--ink2); border-radius:10px; font-weight:600; }
   .door-top button.on, .door-card button.on, .setbtns button.on { background:var(--acc); color:#fff; }
-  .door-card, .door-codes > div { border:0; background:var(--soft); border-radius:14px; }
+  .door-card { border:1px solid var(--line); background:var(--card); border-radius:18px; }
+  .door-card.mine { border-color:var(--acc); }
+  .door-codes > div { border:1px solid var(--line); background:var(--soft); border-radius:12px; }
   .readout { border-radius:16px; }
     h1.head { display:flex; align-items:center; justify-content:space-between; margin:10px 2px 8px; }
   h1.head a#home { display:inline-flex; align-items:center; gap:10px; color:var(--ink) !important; }
@@ -193,7 +195,7 @@
   @media (prefers-color-scheme: dark) { .upd { color:#191f28; background:linear-gradient(180deg,#ffffff,#dfe3e8); box-shadow:inset 0 1px 0 #fff, 0 6px 16px rgba(0,0,0,.4); } }
   .hdr { display:flex; justify-content:space-between; align-items:center; gap:12px; margin:10px 2px 12px; }
   .hdr h1.head { margin:0; }
-  .status { display:grid; grid-template-columns:1fr 1fr; background:var(--card); border-radius:16px; padding:12px 0; margin-bottom:2px; }
+  .status { display:grid; grid-template-columns:1fr 1fr; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:12px 0; margin-bottom:2px; }
   .status > div { display:grid; gap:3px; padding:0 18px; }
   .status > div + div { border-left:1px solid var(--line); text-align:right; }
   .status .k { color:var(--mute); font-size:12px; font-weight:500; }
