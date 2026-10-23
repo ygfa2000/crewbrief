@@ -95,8 +95,7 @@
   .setrow .v { font-weight:600; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
   .setrow .v small { font-weight:400; color:var(--mute); }
   .setrow input { width:18px; height:18px; margin:0; }
-  .setrow .mv { display:flex; gap:4px; }
-  .setrow .mv button { width:34px; height:30px; padding:0; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink2); font-size:12px; cursor:pointer; }
+  .setrow .pos { width:56px; height:32px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font:600 15px -apple-system,system-ui,sans-serif; text-align:center; text-align-last:center; }
   .setbtns { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:12px; }
   .setbtns button { font:600 14px -apple-system,system-ui,sans-serif; padding:8px 14px; border:1px solid var(--line); border-radius:9px; background:var(--card); color:var(--ink); cursor:pointer; }
   .setbtns .wdl { font:600 14px -apple-system,system-ui,sans-serif; padding:8px 14px; border:1px solid var(--acc); border-radius:9px; color:var(--acc); text-decoration:none; }
@@ -566,33 +565,35 @@ function settingsView() {
   const r = mine || SAMPLE_REL;
   const src = mine ? `내 최근 Release (${esc(mine.flight)} ${esc(mine.from)}→${esc(mine.to)})` : '예시 Release';
   const order = relShow.filter(id => REL_FIELDS.some(f => f[0] === id)).concat(REL_FIELDS.map(f => f[0]).filter(id => !relShow.includes(id)));
-  const rows = order.map(id => REL_FIELDS.find(f => f[0] === id)).map(([id, k, f]) => {
+  const num = i => `<select class="pos" aria-label="순서">${order.map((_, j) => `<option${j === i ? ' selected' : ''}>${j + 1}</option>`).join('')}</select>`;
+  const rows = order.map(id => REL_FIELDS.find(f => f[0] === id)).map(([id, k, f], i) => {
     const [v, sub] = f ? f(r) : id === 'seproc' ? [esc((r.acarsRwys || []).filter(x => !x.ix).map(x => `${x.rwy} ${x.efp}`).join(' · ') || '—')] : [esc(id === 'route' ? r.route || '—' : ((id === 'remarks' ? r.remarks : r.mel)[0] || '없음').slice(0, 40))];
-    return `<label class="setrow"><input type="checkbox" data-f="${id}"${relShow.includes(id) ? ' checked' : ''}><span class="k">${k}</span><span class="v">${v}${sub ? ` <small>${sub}</small>` : ''}</span><span class="mv"><button data-mv="-1" aria-label="위로">▲</button><button data-mv="1" aria-label="아래로">▼</button></span></label>`;
+    return `<label class="setrow"><input type="checkbox" data-f="${id}"${relShow.includes(id) ? ' checked' : ''}><span class="k">${k}</span><span class="v">${v}${sub ? ` <small>${sub}</small>` : ''}</span>${num(i)}</label>`;
   }).join('');
   const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release 항목</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>업데이트${scriptOld() ? ' ●' : ''}</button>${doorKey ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}</div>`;
   if (setTab === 'upd') return seg + scriptBox();
   if (setTab === 'watch' && doorKey) return seg + watchBox();
   return `${seg}<div class="card box"><b>Release 항목</b>
-    <p class="sub" style="margin:4px 0 10px">체크한 항목만 Release 칸에 보입니다. ▲▼ 로 순서를 바꾸고 저장하세요. 값은 ${src}.</p>
+    <p class="sub" style="margin:4px 0 10px">체크한 항목만 Release 칸에 보입니다. 오른쪽 번호로 순서를 정하고 저장하세요. 값은 ${src}.</p>
     <div class="setlist">${rows}</div>
     <div class="setbtns"><button id="sSave" class="on">저장</button><button id="sAll">모두 선택</button><button id="sDef">기본값</button><span class="sub" id="sMsg"></span></div></div>`;
 }
+const relRenumber = () => document.querySelectorAll('.setlist .pos').forEach((sel, i) => { sel.selectedIndex = i; });
+document.addEventListener('change', e => {
+  if (!e.target.matches('.setlist .pos')) return;
+  const row = e.target.closest('.setrow'), list = row.parentNode, to = e.target.selectedIndex;
+  row.remove();
+  list.insertBefore(row, list.children[to] || null);
+  relRenumber();
+});
 document.addEventListener('click', e => {
   const id = e.target.id, boxes = () => [...document.querySelectorAll('.setrow input')];
-  const mv = e.target.closest('.setrow .mv button');
-  if (mv) {
-    e.preventDefault();
-    const row = mv.closest('.setrow');
-    if (mv.dataset.mv < 0 && row.previousElementSibling) row.parentNode.insertBefore(row, row.previousElementSibling);
-    if (mv.dataset.mv > 0 && row.nextElementSibling) row.parentNode.insertBefore(row.nextElementSibling, row);
-    return;
-  }
   if (id === 'sAll') boxes().forEach(b => { b.checked = true; });
   if (id === 'sDef') {
     boxes().forEach(b => { b.checked = REL_DEF.includes(b.dataset.f); });
     const list = document.querySelector('.setlist'), ix = r => REL_FIELDS.findIndex(f => f[0] === r.querySelector('input').dataset.f);
     [...list.children].sort((a, b) => ix(a) - ix(b)).forEach(r => list.appendChild(r));
+    relRenumber();
   }
   if (id === 'sSave') {
     relShow = boxes().filter(b => b.checked).map(b => b.dataset.f);
