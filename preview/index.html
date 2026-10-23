@@ -130,8 +130,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style id="skin">
   /* 밝은 회색 바탕 + 둥근 흰 카드, 회색 작은 라벨 위에 굵은 큰 값 */
-  :root { --bg:#f2f4f6; --card:#fff; --ink:#191f28; --ink2:#4e5968; --mute:#8b95a1; --line:#f2f4f6; --acc:#3182f6; --accsoft:#e8f3ff; --soft:#f2f4f6; --warn:#f04452; --pill:#f2f4f6; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#101013; --card:#1d1d22; --ink:#ececf0; --ink2:#b0b8c1; --mute:#7e8590; --line:#2a2a31; --acc:#4b96ff; --accsoft:#1c2a40; --soft:#26262c; --warn:#ff6b75; --pill:#2c2c34; color-scheme:dark; } }
+  :root { --bg:#f2f4f6; --card:#fff; --ink:#191f28; --ink2:#4e5968; --mute:#8b95a1; --line:#f2f4f6; --acc:#3182f6; --accsoft:#e8f3ff; --soft:#f2f4f6; --warn:#f04452; --pill:#f2f4f6; --segbg:#e5e8eb; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#101013; --card:#1d1d22; --ink:#ececf0; --ink2:#b0b8c1; --mute:#7e8590; --line:#2a2a31; --acc:#4b96ff; --accsoft:#1c2a40; --soft:#26262c; --warn:#ff6b75; --pill:#2c2c34; --segbg:#26262c; color-scheme:dark; } }
   body { background:var(--bg); color:var(--ink); font-family:'Pretendard Variable',Pretendard,-apple-system,'Apple SD Gothic Neo',sans-serif; letter-spacing:-.01em; max-width:560px; }
   h1.head { font-size:22px; font-weight:800; letter-spacing:-.03em; margin:8px 2px 6px; }
   h1.head a { color:var(--ink2) !important; }
@@ -166,7 +166,7 @@
   .grid { gap:8px; }
   .kv { border:0; background:var(--soft); border-radius:12px; padding:10px 12px; }
   .kv .v { font-weight:700; font-size:16px; }
-  .seg { gap:2px; background:var(--soft); padding:3px; border-radius:12px; }
+  .seg { gap:2px; background:var(--segbg); padding:3px; border-radius:12px; }
   .seg button { border:0; border-radius:10px; background:transparent; color:var(--mute); font:600 13px 'Pretendard Variable',Pretendard,sans-serif; padding:9px 4px; }
   .seg button.on { background:var(--card); color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.08); }
   .frow { border-bottom:1px solid var(--line); }
@@ -178,13 +178,27 @@
   .door-top button.on, .door-card button.on, .setbtns button.on { background:var(--acc); color:#fff; }
   .door-card, .door-codes > div { border:0; background:var(--soft); border-radius:14px; }
   .readout { border-radius:16px; }
+  /* 로고 + 워드마크 한 덩어리 */
+  h1.head { display:flex; align-items:center; justify-content:space-between; margin:10px 2px 8px; }
+  h1.head a#home { display:inline-flex; align-items:center; gap:10px; color:var(--ink) !important; }
+  .mark { width:36px; height:36px; flex:none; filter:drop-shadow(0 4px 10px rgba(49,130,246,.35)); }
+  .word { font-size:23px; font-weight:800; letter-spacing:-.04em; line-height:1; }
+  .word em { font-style:normal; color:var(--acc); }
+  .word small { display:block; font-size:10px; font-weight:600; letter-spacing:.18em; color:var(--mute); margin-top:4px; text-transform:uppercase; }
+  /* 업데이트 버튼 — 짙은 알약 + 안쪽 하이라이트 */
+  .upd { display:inline-flex; align-items:center; gap:8px; padding:7px 16px 7px 7px; border-radius:999px; font-weight:700; font-size:14px;
+    color:#fff; background:linear-gradient(180deg,#2e3643,#151a22); box-shadow:inset 0 1px 0 rgba(255,255,255,.14), 0 3px 8px rgba(21,26,34,.22); }
+  .upd .ico { width:26px; height:26px; border-radius:50%; display:grid; place-items:center; background:linear-gradient(180deg,#4b96ff,#2272eb); box-shadow:inset 0 1px 0 rgba(255,255,255,.35); }
+  .upd .ico svg { width:14px; height:14px; }
+  .upd:active { transform:translateY(1px); }
+  @media (prefers-color-scheme: dark) { .upd { color:#191f28; background:linear-gradient(180deg,#ffffff,#dfe3e8); box-shadow:inset 0 1px 0 #fff, 0 6px 16px rgba(0,0,0,.4); } }
   .preview-note { color:var(--mute); font-size:12px; text-align:center; margin:18px 0 0; }
 </style>
 </head>
 <body>
-<h1 class="head"><a id="home" target="_top" style="color:inherit;text-decoration:none">Crew Brief</a> <span class="zulu" id="zulu"></span></h1>
+<h1 class="head"><a id="home" target="_top" style="color:inherit;text-decoration:none"><svg class="mark" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="cbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5aa5ff"/><stop offset="1" stop-color="#1b64da"/></linearGradient></defs><rect width="40" height="40" rx="12" fill="url(#cbg)"/><path d="M9 27c6-1 14-5 22-14" stroke="rgba(255,255,255,.35)" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M10.5 21.5 30 12.5l-6.2 16.2-4.3-5.6z" fill="#fff"/><path d="m19.5 23.1 10.5-10.6-12.2 8.9z" fill="#cfe2ff"/></svg><span class="word">Crew <em>Brief</em><small>Flight deck notes</small></span></a> <span class="zulu" id="zulu"></span></h1>
 <div class="topbar"><span class="sub" id="synced"></span>
-  <a class="upd" target="_top" href="#cbsync" data-u="aHR0cHM6Ly93d3cuc2t5d2VzdG9ubGluZS5jb20vU0tZVy9Ta2VkUGx1cy9NeVNjaGVkdWxlLmFzcHg=">↻ 업데이트</a></div>
+  <a class="upd" target="_top" href="#cbsync" data-u="aHR0cHM6Ly93d3cuc2t5d2VzdG9ubGluZS5jb20vU0tZVy9Ta2VkUGx1cy9NeVNjaGVkdWxlLmFzcHg="><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3.2h-3.2"/></svg></span>업데이트</a></div>
 <button class="script-warn" id="scriptWarn" hidden></button>
 <nav class="tabs"><button data-tab="today">오늘</button><button data-tab="up">내 트립</button><button data-tab="atis">D-ATIS</button><button data-tab="door" id="doorTab" hidden>Door</button><button data-tab="calc">계산기</button><button data-tab="set" aria-label="설정">⚙</button></nav>
 
