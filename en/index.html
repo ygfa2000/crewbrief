@@ -63,6 +63,8 @@
   .pmhelp img { display:block; width:100%; max-width:420px; margin-top:6px; border-radius:10px; border:1px solid var(--line); }
   .ver { display:grid; grid-template-columns:auto 1fr; gap:2px 10px; margin-top:8px; font-variant-numeric:tabular-nums; }
   .kin { width:100%; box-sizing:border-box; font:inherit; font-size:16px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:var(--card, #fff); color:inherit; margin-bottom:10px; }
+  .hist { display:grid; grid-template-columns:auto 1fr; gap:6px 12px; margin-top:10px; font-size:14px; }
+  .hist span:nth-child(odd) { color:var(--mute); font-variant-numeric:tabular-nums; }
   .ver span { color:var(--mute); font-size:12px; }
   .ok-tag, .need-tag { font-size:12px; font-weight:600; padding:2px 8px; border-radius:999px; margin-left:6px; }
   .ok-tag { background:var(--soft); color:var(--acc); }
@@ -874,10 +876,23 @@ const scriptCur = () => document.documentElement.dataset.cbScript || state.scrip
 const IN_APP = document.documentElement.dataset.cbApp || '';
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
+const CHANGES = [
+  ['10/23', 'Door key can be entered in Settings'],
+  ['10/23', 'Release items: choose the order with numbers'],
+  ['10/23', 'Widget Update syncs in the background without opening the app'],
+  ['10/23', 'Widget shows departure gates'],
+  ['10/23', 'Auto-sync on open and every 15 min, plus background refresh'],
+  ['10/23', 'Notifications for a new release or an ETD change'],
+  ['10/23', 'Sign-in sheet appears only when sign-in is needed'],
+  ['10/23', 'iPhone app with home screen widget'],
+  ['10/22', 'Flow: OUT · OFF · ON · IN times'],
+  ['10/22', 'New design: logo, Zulu clock and last-sync status'],
+  ['10/22', 'LogTen export after the day\'s last leg is in'],
+  ['10/22', 'Apple Watch door code shortcut'],
+];
 function scriptBox() {
-  if (IN_APP) return `<div class="card box"><b>Sync script</b> <span class="ok-tag">Always latest</span>
-    <div class="ver"><span>App</span><b>${esc(IN_APP)}</b><span>Last sync</span><b>${esc(scriptCur() || '—')}</b><span>Latest</span><b>${esc(scriptLatest || '—')}</b></div>
-    <div class="sub" style="margin-top:8px">The app fetches the latest script every time it syncs. Nothing to install or update.</div></div>`;
+  if (IN_APP) return `<div class="card box"><b>Update history</b> <span class="sub">App ${esc(IN_APP)}</span>
+    <div class="hist">${CHANGES.map(([d, t]) => `<span>${d}</span><span>${t}</span>`).join('')}</div></div>`;
   const v = scriptCur();
   const cur = v === 'bookmark' ? 'Bookmark (CB Sync)' : v || (state.syncedAt ? 'Unknown (older script)' : 'Not synced yet');
   const st = !v && !state.syncedAt ? '' : v === 'bookmark' ? '<span class="ok-tag">Bookmark is always current</span>'
