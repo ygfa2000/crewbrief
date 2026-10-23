@@ -573,9 +573,9 @@ function settingsView() {
     const [v, sub] = f ? f(r) : id === 'seproc' ? [esc((r.acarsRwys || []).filter(x => !x.ix).map(x => `${x.rwy} ${x.efp}`).join(' · ') || '—')] : [esc(id === 'route' ? r.route || '—' : ((id === 'remarks' ? r.remarks : r.mel)[0] || 'None').slice(0, 40))];
     return `<label class="setrow"><input type="checkbox" data-f="${id}"${relShow.includes(id) ? ' checked' : ''}><span class="k">${k}</span><span class="v">${v}${sub ? ` <small>${sub}</small>` : ''}</span>${num(i)}</label>`;
   }).join('');
-  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release items</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>Update${scriptOld() ? ' ●' : ''}</button>${IN_APP ? `<button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>Door key</button>` : ''}${doorKey ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}</div>`;
+  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release items</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>Update${scriptOld() ? ' ●' : ''}</button>${IN_APP ? `<button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>Door key</button>` : ''}${doorKey && !IN_APP ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}</div>`;
   if (setTab === 'upd') return seg + scriptBox();
-  if (setTab === 'watch' && doorKey) return seg + watchBox();
+  if (setTab === 'watch' && doorKey && !IN_APP) return seg + watchBox();
   if (setTab === 'key' && IN_APP) return seg + keyBox();
   return `${seg}<div class="card box"><b>Release items</b>
     <p class="sub" style="margin:4px 0 10px">Only checked items are shown in the release box. Pick a number on the right to set the order, then Save. Values are from ${src}.</p>
