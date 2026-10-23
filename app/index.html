@@ -91,6 +91,12 @@
   .hx-facts b.late { color:#ffd0d4; }
   .hx-facts small { font-size:12px; }
   .hx-done { font-size:30px; font-weight:800; margin-top:4px; }
+  .hero.off { margin-top:12px; padding:22px 20px 20px; }
+  .hero.off .hx-lbl { margin-top:0; }
+  .cd { display:flex; align-items:baseline; gap:4px; margin-top:6px; font-variant-numeric:tabular-nums; }
+  .cd b { font-size:56px; font-weight:800; letter-spacing:-.03em; line-height:1; }
+  .cd i { font-style:normal; font-size:20px; font-weight:700; opacity:.7; margin-right:8px; }
+  .hx-when { margin-top:10px; font-size:15px; font-weight:600; opacity:.85; font-variant-numeric:tabular-nums; }
   .duty { display:grid; grid-template-columns:repeat(3,1fr); background:var(--card); border:1px solid var(--line); border-radius:18px; }
   .duty > div { display:grid; gap:2px; padding:12px 14px; }
   .duty > div + div { border-left:1px solid var(--line); }
@@ -785,18 +791,24 @@ function todayView() {
 function homeView() {
   if (homeSync) return `<div class="card box hload"><span class="spin"></span><b>최신 정보를 받는 중…</b><div class="sub">동기화가 끝나면 오늘 비행을 보여 줍니다</div></div>`;
   const days = state.trips.flatMap(t => t.days.map(d => ({ t, d }))).sort((a, b) => a.d.date.localeCompare(b.d.date));
-  const cur = days.find(x => x.d.date === today) || days.find(x => x.d.date > today);
-  if (!cur) return `<div class="card box"><b>예정된 비행 없음</b><div class="sub" style="margin-top:4px">↻ 업데이트로 스케줄을 받아 오세요.</div></div>`;
-  const { t: trip, d } = cur, isToday = d.date === today;
+  const cur = days.find(x => x.d.date === today && x.d.legs.some(l => l.from !== l.to));
+  if (!cur) {
+    const nx = days.find(x => x.d.date > today && x.d.report);
+    if (!nx) return `<div class="card box"><b>예정된 비행 없음</b><div class="sub" style="margin-top:4px">↻ 업데이트로 스케줄을 받아 오세요.</div></div>`;
+    return `<div class="hero off" data-at="${esc(nx.d.date)}T${esc(nx.d.report.padStart(5, '0'))}">
+      <div class="hx-lbl">다음 리포트까지</div><div class="cd">${countdown(nx.d.date, nx.d.report)}</div>
+      <div class="hx-when">${md(nx.d.date)} · ${esc(nx.d.report)}</div></div>`;
+  }
+  const { t: trip, d } = cur;
   const fl = l => (((state.flows || {})[`${l.date}-${l.tail}`] || {}).flights || []).find(x => x.flight === l.flight && x.from === l.from) || {};
   const late = f => f.etd && f.std ? ((mins(f.etd) - mins(f.std) + 1440 + 720) % 1440) - 720 : 0;
   const legs = d.legs.filter(l => l.from !== l.to);
-  const nextI = isToday ? legs.findIndex(l => !fl(l).in) : 0;
+  const nextI = legs.findIndex(l => !fl(l).in);
   const plane = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15.5v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V8.5l-8 5v2l8-2.5V18l-2 1.5V21l3.5-1 3.5 1v-1.5L13 18v-5z" fill="currentColor" transform="rotate(90 12 12)"/></svg>';
   const n = legs[nextI], nf = n ? fl(n) : {}, nl = n ? late(nf) : 0;
   const st = f => f.in ? `IN ${f.in}` : f.on ? `ON ${f.on}` : f.off ? `OFF ${f.off}` : f.out ? `OUT ${f.out}` : '';
   const hero = n ? `
-      <div class="hx-lbl">${isToday ? '다음 비행' : '첫 비행'} · ${esc(n.flight)}${n.dhd ? ' · DH' : ''}${st(nf) ? ` · ${esc(st(nf))}` : ''}</div>
+      <div class="hx-lbl">다음 비행 · ${esc(n.flight)}${n.dhd ? ' · DH' : ''}${st(nf) ? ` · ${esc(st(nf))}` : ''}</div>
       <div class="hx-route">
         <div><b>${esc(n.from)}</b><span>${esc(n.dep)}</span></div>
         <div class="hx-mid"><i></i>${plane}<i></i><small>${esc(n.block || '')}</small></div>
@@ -819,15 +831,25 @@ function homeView() {
     const c = doorData.doors[a];
     return `<div class="hdoor"><b>${esc(a)}</b><div>${DOOR_CARRIERS.filter(k => c[k]).map(k => `<span class="chip"><i>${k}</i>${esc(c[k])}</span>`).join('') || '—'}</div></div>`;
   }).join('') : '';
-  return `<div class="home" data-go="${isToday ? 'today' : 'up'}">
+  return `<div class="home" data-go="today">
     <div class="hero">
-      <div class="hx-top"><span>${isToday ? '오늘' : '다음 근무'} · ${md(d.date)}</span><span class="pill">${esc(trip.pairing)} · Day ${trip.days.indexOf(d) + 1}/${trip.days.length}</span></div>
+      <div class="hx-top"><span>오늘 · ${md(d.date)}</span><span class="pill">${esc(trip.pairing)} · Day ${trip.days.indexOf(d) + 1}/${trip.days.length}</span></div>
       ${hero}</div>
     <div class="duty"><div><span>REPORT</span><b>${esc(d.report || '—')}</b></div><div><span>RELEASE</span><b>${esc(d.release || '—')}</b></div><div><span>DUTY</span><b>${esc(d.duty || '—')}</b></div></div>
     <div class="card hcard"><div class="hc-h">${legs.length} LEGS</div>${rows}</div>
     ${d.hotel ? `<div class="card hcard hotel2"><div class="hc-h">HOTEL</div><b>${esc(d.hotel)}</b><span class="sub">레이오버 ${esc(d.layover)}</span></div>` : ''}</div>
     ${doors ? `<div class="card hcard"><div class="hc-h">DOOR CODES</div>${doors}</div>` : ''}`;
 }
+function countdown(date, hm) {
+  const [y, m, d] = date.split('-').map(Number), [h, mi] = hm.split(':').map(Number);
+  const left = Math.max(0, Math.round((new Date(y, m - 1, d, h, mi) - Date.now()) / 60e3));
+  const dd = Math.floor(left / 1440), hh = Math.floor(left % 1440 / 60), mm = left % 60;
+  return `${dd ? `<b>${dd}</b><i>d</i>` : ''}<b>${hh}</b><i>h</i><b>${String(mm).padStart(2, '0')}</b><i>m</i>`;
+}
+setInterval(() => document.querySelectorAll('.hero.off').forEach(el => {
+  const [date, hm] = el.dataset.at.split('T');
+  el.querySelector('.cd').innerHTML = countdown(date, hm);
+}), 30e3);
 document.addEventListener('click', e => {
   const h = e.target.closest?.('.home');
   if (h) { tab = h.dataset.go; render(); scrollTo(0, 0); }
