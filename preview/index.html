@@ -148,7 +148,9 @@
   .day { border-top:0; padding:4px 22px 16px; }
   .dayhead { font-weight:700; font-size:15px; padding:10px 0 6px; border-top:1px solid var(--line); }
   .day:first-of-type .dayhead { border-top:0; }
-  .logten { border:0; background:var(--pill); color:var(--ink2); border-radius:10px; padding:7px 12px; font-weight:600; margin:4px 0 6px; }
+  .logten { display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:12px;
+    padding:5px 14px 5px 5px; font-weight:700; text-decoration:none; font-size:14px; margin:4px 0 6px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .logten .lt-ico { width:30px; height:30px; border-radius:7px; box-shadow:0 0 0 1px rgba(0,0,0,.08); }
   .leg > summary { grid-template-columns:4.6em 1fr auto; align-items:center; gap:12px; padding:12px 0; border-bottom:0; }
   .leg > summary > span:first-child { color:var(--ink2); font-weight:600; font-size:14px; }
   .leg > summary > span:nth-child(2) { font-weight:700; font-size:17px; display:grid; }
@@ -191,17 +193,19 @@
   .upd .ico svg { width:14px; height:14px; }
   .upd:active { transform:translateY(1px); }
   @media (prefers-color-scheme: dark) { .upd { color:#191f28; background:linear-gradient(180deg,#ffffff,#dfe3e8); box-shadow:inset 0 1px 0 #fff, 0 6px 16px rgba(0,0,0,.4); } }
-  .hdr { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin:10px 2px 4px; }
-  .hl, .hr { display:grid; gap:8px; }
-  .hr { justify-items:end; }
+  .hdr { display:flex; justify-content:space-between; align-items:center; gap:12px; margin:10px 2px 12px; }
   .hdr h1.head { margin:0; }
-  .hdr .zulu { padding-left:46px; font-size:15px; letter-spacing:.02em; }
-  #synced { font-size:12px; font-weight:500; color:var(--mute); padding-right:6px; font-variant-numeric:tabular-nums; }
+  .status { display:grid; grid-template-columns:1fr 1fr; background:var(--card); border-radius:16px; padding:12px 0; margin-bottom:2px; }
+  .status > div { display:grid; gap:3px; padding:0 18px; }
+  .status > div + div { border-left:1px solid var(--line); text-align:right; }
+  .status .k { color:var(--mute); font-size:12px; font-weight:500; }
+  .status .zulu, .status #synced { font:700 17px 'Pretendard Variable',Pretendard,sans-serif; color:var(--ink); font-variant-numeric:tabular-nums; letter-spacing:0; }
+  .status .zulu { color:var(--acc); }
   .preview-note { color:var(--mute); font-size:12px; text-align:center; margin:18px 0 0; }
 </style>
 </head>
 <body>
-<header class="hdr"><div class="hl"><h1 class="head"><a id="home" target="_top" style="color:inherit;text-decoration:none"><svg class="mark" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="cbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5aa5ff"/><stop offset="1" stop-color="#1b64da"/></linearGradient></defs><rect width="40" height="40" rx="12" fill="url(#cbg)"/><path d="M9 27c6-1 14-5 22-14" stroke="rgba(255,255,255,.35)" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M10.5 21.5 30 12.5l-6.2 16.2-4.3-5.6z" fill="#fff"/><path d="m19.5 23.1 10.5-10.6-12.2 8.9z" fill="#cfe2ff"/></svg><span class="word">Crew <em>Brief</em><small>Flight Deck Tool</small></span></a></h1><span class="zulu" id="zulu"></span></div><div class="hr"><a class="upd" target="_top" href="#cbsync" data-u="aHR0cHM6Ly93d3cuc2t5d2VzdG9ubGluZS5jb20vU0tZVy9Ta2VkUGx1cy9NeVNjaGVkdWxlLmFzcHg="><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3.2h-3.2"/></svg></span>업데이트</a><span class="sub" id="synced"></span></div></header>
+<header class="hdr"><h1 class="head"><a id="home" target="_top" style="color:inherit;text-decoration:none"><svg class="mark" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="cbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5aa5ff"/><stop offset="1" stop-color="#1b64da"/></linearGradient></defs><rect width="40" height="40" rx="12" fill="url(#cbg)"/><path d="M9 27c6-1 14-5 22-14" stroke="rgba(255,255,255,.35)" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M10.5 21.5 30 12.5l-6.2 16.2-4.3-5.6z" fill="#fff"/><path d="m19.5 23.1 10.5-10.6-12.2 8.9z" fill="#cfe2ff"/></svg><span class="word">Crew <em>Brief</em><small>Flight Deck Tool</small></span></a></h1><a class="upd" target="_top" href="#cbsync" data-u="aHR0cHM6Ly93d3cuc2t5d2VzdG9ubGluZS5jb20vU0tZVy9Ta2VkUGx1cy9NeVNjaGVkdWxlLmFzcHg="><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3.2h-3.2"/></svg></span>업데이트</a></header><div class="status"><div><span class="k">UTC</span><span class="zulu" id="zulu"></span></div><div><span class="k">마지막 동기화</span><span class="sub" id="synced"></span></div></div>
 <button class="script-warn" id="scriptWarn" hidden></button>
 <nav class="tabs"><button data-tab="today">오늘</button><button data-tab="up">내 트립</button><button data-tab="atis">D-ATIS</button><button data-tab="door" id="doorTab" hidden>Door</button><button data-tab="calc">계산기</button><button data-tab="set" aria-label="설정">⚙</button></nav>
 
@@ -643,7 +647,7 @@ function dayBlock(trip, d) {
   return `
     <div class="day">
       <div class="dayhead"><span>${md(d.date)}</span><span class="sub">Report ${esc(d.report)} · Release ${esc(d.release)}${d.duty ? ` · Duty ${esc(d.duty)}` : ''}</span></div>
-      ${(u => u ? `<a class="logten" href="${u}">LogTen ↗</a>` : '')(logtenUrl(d))}
+      ${(u => u ? `<a class="logten" href="${u}"><svg class="lt-ico" viewBox="0 0 40 40" aria-hidden="true"><defs><radialGradient id="ltg" cx=".5" cy=".42" r=".6"><stop offset="0" stop-color="#6cc0f2"/><stop offset="1" stop-color="#2f8fd6"/></radialGradient></defs><rect width="40" height="40" rx="10" fill="#fff"/><circle cx="20" cy="20" r="16.5" fill="url(#ltg)"/><rect x="19.3" y="5.6" width="1.4" height="3" rx=".7" fill="#fff" opacity=".9" transform="rotate(0 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(30 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(60 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="3" rx=".7" fill="#fff" opacity=".9" transform="rotate(90 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(120 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(150 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="3" rx=".7" fill="#fff" opacity=".9" transform="rotate(180 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(210 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(240 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="3" rx=".7" fill="#fff" opacity=".9" transform="rotate(270 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(300 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(330 20 20)"/><path d="M5.5 21.2 17 20h6l11.5 1.2v1.3L23 22.3h-6l-11.5.2z" fill="#fff"/><circle cx="20" cy="21.4" r="3" fill="#fff"/><path d="M19.1 12.5h1.8v7h-1.8z" fill="#fff"/><path d="M15.8 14.2h8.4v1.6h-8.4z" fill="#fff"/></svg><span>LogTen</span></a>` : '')(logtenUrl(d))}
       ${d.legs.map(l => {
         const rel = state.releases[`${l.date}-${l.flight}-${l.from}`];
         const dh = l.dhd ? '<span class="tag">DH</span>' : '';
@@ -1101,7 +1105,7 @@ render();
   const el = document.getElementById('synced');
   const fix = () => {
     const t = (typeof state !== 'undefined' && state.syncedAt) ? new Date(state.syncedAt) : null;
-    const txt = t ? `${t.getMonth() + 1}/${t.getDate()} ${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')} 동기화` : '동기화 전';
+    const txt = t ? `${t.getMonth() + 1}/${t.getDate()} ${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}` : '아직 없음';
     if (el.textContent !== txt) el.textContent = txt;
   };
   new MutationObserver(fix).observe(el, { childList: true, characterData: true, subtree: true });
