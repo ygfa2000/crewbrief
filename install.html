@@ -19,7 +19,10 @@ function go() {
     location.replace(app);
   } else {
     try { sessionStorage.cbInst = '1'; } catch (e) {}
-    location.href = 'https://gist.githubusercontent.com/ygfa2000/66609878012f76472d34391ba0f808ec/raw/CrewBrief.user.js';
+    // The plain raw URL is cached for 5 minutes, so open this revision's own URL to install the newest copy
+    const raw = 'https://gist.githubusercontent.com/ygfa2000/66609878012f76472d34391ba0f808ec/raw/CrewBrief.user.js';
+    fetch('https://api.github.com/gists/66609878012f76472d34391ba0f808ec', { cache: 'no-store' }).then(r => r.json())
+      .then(g => g.files['CrewBrief.user.js'].raw_url).catch(() => raw).then(u => { location.href = u || raw; });
   }
 }
 addEventListener('pageshow', go);
