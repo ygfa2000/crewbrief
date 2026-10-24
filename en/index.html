@@ -881,7 +881,7 @@ function incentiveCard() {
   const rows = list.map(x => `<div class="inc"><span class="inc-p">${x.pct ? `${x.pct}%` : 'INC'}</span><div>
     <div class="tl-top"><b>${md(x.date)}</b><span class="tl-fl">${esc(x.pairing)} · ${x.days}-day</span></div>
     <div class="tl-sub">${esc(x.report)} – ${x.relDate !== x.date ? `${md(x.relDate)} ` : ''}${esc(x.release)} · Credit ${esc(x.credit)}${x.overnights.length ? ` · ${esc(x.overnights.join(' '))}` : ''}</div></div></div>`).join('');
-  return `<div class="card hcard incard"><div class="hc-h">INCENTIVE OPEN TIME · ${list.length}<span class="inc-at">as of ${when}</span></div>${rows || '<div class="tl-sub" style="padding-bottom:10px">No incentive trips posted right now</div>'}</div>`;
+  return `<div class="card hcard incard"><div class="hc-h">INCENTIVE OPEN TIME · ${list.length}<span class="inc-at">as of ${when}</span></div>${rows || (ot.err ? `<div class="tl-sub" style="padding-bottom:10px">Could not read Open Time (${esc(ot.err)})</div>` : '<div class="tl-sub" style="padding-bottom:10px">No incentive trips posted right now</div>')}</div>`;
 }
 let schedChanges = null;
 {
@@ -1112,7 +1112,13 @@ function scriptBox() {
   const cur = v === 'bookmark' ? 'Bookmark (CB Sync)' : v || (state.syncedAt ? 'Unknown (older script)' : 'Not synced yet');
   const st = !v && !state.syncedAt ? '' : v === 'bookmark' ? '<span class="ok-tag">Bookmark is always current</span>'
     : !scriptLatest ? '<span class="sub">Checking latest…</span>' : scriptOld() ? '<span class="need-tag">Update needed</span>' : '<span class="ok-tag">Up to date</span>';
-  return `<div class="card box"><b>Sync script</b> ${st}
+  const off = scriptOff ? `<div class="card box off-box"><b>The sync script is not running</b>
+    <div class="sub" style="margin-top:6px;line-height:1.6">If Safari stops allowing the extension (for example, an "Allow for One Day" permission ran out), the script stops silently.<br>
+    1. Tap <b>aA</b> at the left of the address bar › <b>Manage Extensions</b> › turn on <b>Userscripts</b><br>
+    2. Same menu › <b>Userscripts</b> › <b>Always Allow</b> on this website (this page and the schedule site)<br>
+    3. In the Userscripts app, make sure only one <b>Crew Brief Auto Sync</b> is installed and it is on<br>
+    On Android, make sure Tampermonkey is on.</div></div>` : '';
+  return `${off}<div class="card box"><b>Sync script</b> ${st}
     <div class="ver"><span>Installed</span><b>${esc(cur)}</b><span>Latest</span><b>${esc(scriptLatest || '—')}</b></div>
     <div class="sub" style="margin-top:8px"><b>iPhone (Userscripts)</b><br>
     1. <a href="${installUrl()}" class="inst">Update link</a>: open it in Safari<br>
@@ -1127,9 +1133,18 @@ function scriptBox() {
 }
 function scriptWarn() {
   const b = document.getElementById('scriptWarn');
-  b.hidden = !scriptOld();
-  if (!b.hidden) b.textContent = `Sync script update needed (installed ${scriptCur() || 'older'} → latest ${scriptLatest}) · View`;
+  b.hidden = !scriptOff && !scriptOld();
+  if (!b.hidden) b.textContent = scriptOff ? 'The sync script is not running — check the Safari extension permission · View'
+    : `Sync script update needed (installed ${scriptCur() || 'older'} → latest ${scriptLatest}) · View`;
 }
+let scriptOff = false;
+if (!IN_APP && /github\.io$/.test(location.hostname)) setTimeout(() => {
+  const v = state.script;
+  if (document.documentElement.dataset.cbScript || !v || v === 'bookmark' || v === 'app') return;
+  scriptOff = true;
+  scriptWarn();
+  if (tab === 'set') render();
+}, 4000);
 document.getElementById('scriptWarn').addEventListener('click', () => { tab = 'set'; setTab = 'upd'; render(); scrollTo(0, 0); });
 document.addEventListener('click', e => { if (e.target.dataset?.st) { setTab = e.target.dataset.st; render(); } });
 document.addEventListener('click', e => { if (e.target.classList?.contains('inst')) try { localStorage.cbInstalling = '1'; } catch (er) {} });
@@ -1145,7 +1160,7 @@ function installDone() {
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 4000);
 }
-new MutationObserver(() => { scriptWarn(); installDone(); if (tab === 'set') render(); })
+new MutationObserver(() => { scriptOff = false; scriptWarn(); installDone(); if (tab === 'set') render(); })
   .observe(document.documentElement, { attributes: true, attributeFilter: ['data-cb-script'] });
 fetch(SCRIPT_URL, { cache: 'no-store' }).then(r => r.text()).then(t => {
   scriptLatest = (/@version\s+(\S+)/.exec(t) || [])[1] || null;

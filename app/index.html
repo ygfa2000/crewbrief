@@ -881,7 +881,7 @@ function incentiveCard() {
   const rows = list.map(x => `<div class="inc"><span class="inc-p">${x.pct ? `${x.pct}%` : 'INC'}</span><div>
     <div class="tl-top"><b>${md(x.date)}</b><span class="tl-fl">${esc(x.pairing)} · ${x.days}일</span></div>
     <div class="tl-sub">${esc(x.report)} – ${x.relDate !== x.date ? `${md(x.relDate)} ` : ''}${esc(x.release)} · Credit ${esc(x.credit)}${x.overnights.length ? ` · ${esc(x.overnights.join(' '))}` : ''}</div></div></div>`).join('');
-  return `<div class="card hcard incard"><div class="hc-h">INCENTIVE OPEN TIME · ${list.length}<span class="inc-at">${when} 기준</span></div>${rows || '<div class="tl-sub" style="padding-bottom:10px">지금 올라온 incentive 트립이 없습니다</div>'}</div>`;
+  return `<div class="card hcard incard"><div class="hc-h">INCENTIVE OPEN TIME · ${list.length}<span class="inc-at">${when} 기준</span></div>${rows || (ot.err ? `<div class="tl-sub" style="padding-bottom:10px">Open Time 을 못 읽었습니다 (${esc(ot.err)})</div>` : '<div class="tl-sub" style="padding-bottom:10px">지금 올라온 incentive 트립이 없습니다</div>')}</div>`;
 }
 let schedChanges = null;
 {
@@ -1112,7 +1112,13 @@ function scriptBox() {
   const cur = v === 'bookmark' ? '북마크 (CB 동기화)' : v || (state.syncedAt ? '알 수 없음 (예전 스크립트)' : '아직 동기화 전');
   const st = !v && !state.syncedAt ? '' : v === 'bookmark' ? '<span class="ok-tag">북마크는 늘 최신</span>'
     : !scriptLatest ? '<span class="sub">최신 번호 확인 중…</span>' : scriptOld() ? '<span class="need-tag">업데이트 필요</span>' : '<span class="ok-tag">최신</span>';
-  return `<div class="card box"><b>동기화 스크립트</b> ${st}
+  const off = scriptOff ? `<div class="card box off-box"><b>동기화 스크립트가 실행되지 않고 있어요</b>
+    <div class="sub" style="margin-top:6px;line-height:1.6">Safari의 확장 허용이 풀리면(예: "하루 동안 허용"이 끝나면) 스크립트가 조용히 멈춥니다.<br>
+    1. 주소창 왼쪽 <b>aA</b> › <b>확장 프로그램 관리</b> › <b>Userscripts</b> 켜기<br>
+    2. 같은 메뉴 › <b>Userscripts</b> › 이 웹사이트를 <b>항상 허용</b> (이 페이지와 스케줄 사이트 둘 다)<br>
+    3. Userscripts 앱에서 <b>Crew Brief Auto Sync</b>가 하나만 켜져 있는지 확인<br>
+    Android는 Tampermonkey가 켜져 있는지 확인하세요.</div></div>` : '';
+  return `${off}<div class="card box"><b>동기화 스크립트</b> ${st}
     <div class="ver"><span>현재</span><b>${esc(cur)}</b><span>최신</span><b>${esc(scriptLatest || '—')}</b></div>
     <div class="sub" style="margin-top:8px"><b>iPhone (Userscripts)</b><br>
     1. <a href="${installUrl()}" class="inst">업데이트 링크</a> 를 Safari에서 엽니다<br>
@@ -1127,9 +1133,18 @@ function scriptBox() {
 }
 function scriptWarn() {
   const b = document.getElementById('scriptWarn');
-  b.hidden = !scriptOld();
-  if (!b.hidden) b.textContent = `동기화 스크립트 업데이트 필요 (현재 ${scriptCur() || '예전'} → 최신 ${scriptLatest}) · 보기`;
+  b.hidden = !scriptOff && !scriptOld();
+  if (!b.hidden) b.textContent = scriptOff ? '동기화 스크립트가 실행되지 않고 있어요 — Safari 확장 허용을 확인하세요 · 보기'
+    : `동기화 스크립트 업데이트 필요 (현재 ${scriptCur() || '예전'} → 최신 ${scriptLatest}) · 보기`;
 }
+let scriptOff = false;
+if (!IN_APP && /github\.io$/.test(location.hostname)) setTimeout(() => {
+  const v = state.script;
+  if (document.documentElement.dataset.cbScript || !v || v === 'bookmark' || v === 'app') return;
+  scriptOff = true;
+  scriptWarn();
+  if (tab === 'set') render();
+}, 4000);
 document.getElementById('scriptWarn').addEventListener('click', () => { tab = 'set'; setTab = 'upd'; render(); scrollTo(0, 0); });
 document.addEventListener('click', e => { if (e.target.dataset?.st) { setTab = e.target.dataset.st; render(); } });
 document.addEventListener('click', e => { if (e.target.classList?.contains('inst')) try { localStorage.cbInstalling = '1'; } catch (er) {} });
@@ -1145,7 +1160,7 @@ function installDone() {
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 4000);
 }
-new MutationObserver(() => { scriptWarn(); installDone(); if (tab === 'set') render(); })
+new MutationObserver(() => { scriptOff = false; scriptWarn(); installDone(); if (tab === 'set') render(); })
   .observe(document.documentElement, { attributes: true, attributeFilter: ['data-cb-script'] });
 fetch(SCRIPT_URL, { cache: 'no-store' }).then(r => r.text()).then(t => {
   scriptLatest = (/@version\s+(\S+)/.exec(t) || [])[1] || null;

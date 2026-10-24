@@ -86,11 +86,12 @@ function parseOpenTime(html) {
   const cell = s => s.replace(/<[^>]+>/g, '').replace(/&nbsp;| /g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
   const when = s => { const m = /(\d+)\/(\d+)\/(\d+) (\d+:\d+)/.exec(s); return m ? [`20${m[3]}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`, m[4]] : ['', '']; };
   const trips = [];
-  const re = /<tr valign="top">([\s\S]*?)<\/tr>/g;
+  const re = /<tr\b[^>]*>([\s\S]*?)<\/tr>/gi;
   let m;
   while ((m = re.exec(html))) {
-    const cls = (/<td class="(\w+)"/.exec(m[1]) || [])[1];
-    const c = [...m[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map(x => cell(x[1]));
+    if (!/chkPairing_/.test(m[1])) continue;
+    const cls = (/<td[^>]*\sclass=["']?(\w+)/i.exec(m[1]) || [])[1];
+    const c = [...m[1].matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)].map(x => cell(x[1]));
     if (c.length < 16 || c[12] !== 'Open') continue;
     const note = c[15];
     if (cls !== 'incentiverow' && !/incentive/i.test(note)) continue;
@@ -397,13 +398,15 @@ async function run() {
     try {
       say('Open Time 읽는 중');
       const OT = '${atob('L1NLWVcvU2tlZFBsdXMvT3BlblRpbWUuYXNweA==')}';
-      let html = await get(OT);
-      if (!/<tr valign="top">/.test(html) && /name="btnSearch"/.test(html)) {
+      let html = await get(OT), how = 'GET';
+      if (!/chkPairing_/.test(html) && /name="btnSearch"/.test(html)) {
         const res = await fetch(OT, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: formOf(html, 'btnSearch') });
         html = res.ok ? await res.text() : '';
+        how = `POST ${res.status}`;
       }
-      if (/<tr valign="top">/.test(html)) opentime = { at: new Date().toISOString(), trips: parseOpenTime(html) };
-    } catch (e) {}
+      opentime = /chkPairing_/.test(html) ? { at: new Date().toISOString(), trips: parseOpenTime(html) }
+        : { at: new Date().toISOString(), trips: [], err: `${how} · ${html.length}B · no list` };
+    } catch (e) { opentime = { at: new Date().toISOString(), trips: [], err: String(e.message || e).slice(0, 80) }; }
 
     if (typeof CB_DONE === 'function') CB_DONE();
     const payload = { syncedAt: now.toISOString(), trips, releases, flows, raws, opentime, script: typeof CB_SCRIPT_VER === 'string' ? CB_SCRIPT_VER : 'bookmark' };
