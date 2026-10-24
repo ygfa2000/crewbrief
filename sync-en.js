@@ -82,6 +82,25 @@ function parseFlowBoard(html) {
   return flights;
 }
 
+function parseOpenTime(html) {
+  const cell = s => s.replace(/<[^>]+>/g, '').replace(/&nbsp;| /g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+  const when = s => { const m = /(\d+)\/(\d+)\/(\d+) (\d+:\d+)/.exec(s); return m ? [`20${m[3]}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`, m[4]] : ['', '']; };
+  const trips = [];
+  const re = /<tr valign="top">([\s\S]*?)<\/tr>/g;
+  let m;
+  while ((m = re.exec(html))) {
+    const cls = (/<td class="(\w+)"/.exec(m[1]) || [])[1];
+    const c = [...m[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map(x => cell(x[1]));
+    if (c.length < 16 || c[12] !== 'Open') continue;
+    const note = c[15];
+    if (cls !== 'incentiverow' && !/incentive/i.test(note)) continue;
+    const [date, report] = when(c[5]), [relDate, release] = when(c[6]);
+    trips.push({ pairing: c[1], date, report, relDate, release, block: c[7], credit: c[8], tafb: c[9], days: +c[10] || 0,
+      overnights: c[14].split(/,\s*/).filter(Boolean), note, pct: +((/(\d+)%/.exec(note) || [])[1] || 0) });
+  }
+  return trips;
+}
+
 
 async function pdfTextLines(pdfjsLib, data) {
   const doc = await pdfjsLib.getDocument({ data }).promise;
@@ -306,6 +325,25 @@ async function get(path) {
   throw new Error('Blocked by the site security check — reload the page and tap again');
 }
 
+function formOf(html, button) {
+  const dec = v => v.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+  const attr = (tag, k) => { const m = new RegExp(`\\s${k}="([^"]*)"`).exec(tag); return m ? dec(m[1]) : null; };
+  const out = [];
+  (html.match(/<input[^>]*>/g) || []).forEach(tag => {
+    const name = attr(tag, 'name'), type = (attr(tag, 'type') || 'text').toLowerCase();
+    if (!name || type === 'submit' || type === 'button' || type === 'image') return;
+    if ((type === 'checkbox' || type === 'radio') && !/\schecked/.test(tag)) return;
+    out.push([name, attr(tag, 'value') ?? (type === 'checkbox' ? 'on' : '')]);
+  });
+  (html.match(/<select[\s\S]*?<\/select>/g) || []).forEach(sel => {
+    const name = attr(sel.slice(0, sel.indexOf('>') + 1), 'name');
+    const opt = /<option[^>]*selected[^>]*>/.exec(sel) || /<option[^>]*>/.exec(sel);
+    if (name && opt) out.push([name, attr(opt[0], 'value') ?? '']);
+  });
+  out.push([button, attr((new RegExp(`<input[^>]*name="${button}"[^>]*>`).exec(html) || [''])[0], 'value') || '']);
+  return out.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
+}
+
 async function run() {
   if (!location.hostname.endsWith(atob('c2t5d2VzdG9ubGluZS5jb20='))) {
     alert('Tap this while logged in to the crew portal.');
@@ -355,8 +393,20 @@ async function run() {
       flows[`${date}-${tail}`] = { at: new Date().toISOString(), flights: parseFlowBoard(await get(`${atob('L1NLWVcvRmxpZ2h0U2NyZWVuL0Zsb3dCb2FyZC5hc3B4')}?${q}`)) };
     }
 
+    let opentime = null;
+    try {
+      say('Reading Open Time');
+      const OT = '${atob('L1NLWVcvU2tlZFBsdXMvT3BlblRpbWUuYXNweA==')}';
+      let html = await get(OT);
+      if (!/<tr valign="top">/.test(html) && /name="btnSearch"/.test(html)) {
+        const res = await fetch(OT, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: formOf(html, 'btnSearch') });
+        html = res.ok ? await res.text() : '';
+      }
+      if (/<tr valign="top">/.test(html)) opentime = { at: new Date().toISOString(), trips: parseOpenTime(html) };
+    } catch (e) {}
+
     if (typeof CB_DONE === 'function') CB_DONE();
-    const payload = { syncedAt: now.toISOString(), trips, releases, flows, raws, script: typeof CB_SCRIPT_VER === 'string' ? CB_SCRIPT_VER : 'bookmark' };
+    const payload = { syncedAt: now.toISOString(), trips, releases, flows, raws, opentime, script: typeof CB_SCRIPT_VER === 'string' ? CB_SCRIPT_VER : 'bookmark' };
     if (!CB_EXEC) {
       say(`Done — ${trips.length} trips, ${Object.keys(releases).length} releases, ${Object.keys(flows).length} flows · returning to the app…`);
       const d = await pack(payload);

@@ -131,6 +131,12 @@
   .hc-h + .tl-sub { margin-bottom:8px; }
   .nt-d { color:var(--mute); font-size:13px; font-weight:700; padding-top:2px; }
   .nt-day b { font-size:16px; font-weight:800; letter-spacing:-.01em; }
+  .incard { margin-top:12px; }
+  .incard .hc-h { display:flex; justify-content:space-between; }
+  .inc-at { font-size:12px; }
+  .inc { display:grid; grid-template-columns:52px 1fr; gap:10px; align-items:center; padding:10px 0; border-top:1px solid var(--line); }
+  .hc-h + .inc { border-top:0; }
+  .inc-p { justify-self:start; font-size:13px; font-weight:800; color:#fff; background:#e5484d; border-radius:999px; padding:3px 8px; font-variant-numeric:tabular-nums; }
   .chg { margin-top:12px; border-color:var(--warn); padding-bottom:12px; }
   .chg .hc-h { color:var(--warn); display:flex; justify-content:space-between; align-items:center; }
   .chg-x { border:0; background:none; color:var(--mute); font-size:16px; padding:0 2px; cursor:pointer; }
@@ -867,6 +873,16 @@ function homeView() {
     ${d.hotel ? `<div class="card hcard hotel2"><div class="hc-h">HOTEL</div><b>${esc(d.hotel)}</b><span class="sub">레이오버 ${esc(d.layover)}</span></div>` : ''}</div>
     ${doors ? `<div class="card hcard"><div class="hc-h">DOOR CODES</div>${doors}</div>` : ''}`;
 }
+function incentiveCard() {
+  const ot = state.opentime;
+  if (homeSync || !ot) return '';
+  const list = (ot.trips || []).filter(x => x.date >= today).sort((a, b) => (a.date + a.report).localeCompare(b.date + b.report));
+  const at = new Date(ot.at), when = `${at.getMonth() + 1}/${at.getDate()} ${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`;
+  const rows = list.map(x => `<div class="inc"><span class="inc-p">${x.pct ? `${x.pct}%` : 'INC'}</span><div>
+    <div class="tl-top"><b>${md(x.date)}</b><span class="tl-fl">${esc(x.pairing)} · ${x.days}일</span></div>
+    <div class="tl-sub">${esc(x.report)} – ${x.relDate !== x.date ? `${md(x.relDate)} ` : ''}${esc(x.release)} · Credit ${esc(x.credit)}${x.overnights.length ? ` · ${esc(x.overnights.join(' '))}` : ''}</div></div></div>`).join('');
+  return `<div class="card hcard incard"><div class="hc-h">INCENTIVE OPEN TIME · ${list.length}<span class="inc-at">${when} 기준</span></div>${rows || '<div class="tl-sub" style="padding-bottom:10px">지금 올라온 incentive 트립이 없습니다</div>'}</div>`;
+}
 let schedChanges = null;
 {
   const dig = {};
@@ -929,7 +945,7 @@ function render() {
   if (tab === 'atis') atisChips();
   if (tab === 'calc' || tab === 'atis') return;
   document.getElementById('view').innerHTML =
-    tab === 'home' ? changesCard() + homeView()
+    tab === 'home' ? changesCard() + homeView() + incentiveCard()
     : tab === 'today' ? todayView()
     : tab === 'set' ? settingsView()
     : tab === 'door' ? doorView()
