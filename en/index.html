@@ -64,6 +64,15 @@
   .ver { display:grid; grid-template-columns:auto 1fr; gap:2px 10px; margin-top:8px; font-variant-numeric:tabular-nums; }
   .kin { width:100%; box-sizing:border-box; font:inherit; font-size:16px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:var(--card, #fff); color:inherit; margin-bottom:10px; }
   .hist { display:grid; grid-template-columns:auto 1fr; gap:6px 12px; margin-top:10px; font-size:14px; }
+  .fb-seg { margin:0 0 10px; }
+  #fbIn { resize:vertical; min-height:96px; }
+  .fbl { display:grid; gap:10px; margin-top:10px; }
+  .fbi { border-top:1px solid var(--line); padding-top:10px; }
+  .fbh { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+  .fbk { font-size:12px; font-weight:700; padding:2px 8px; border-radius:999px; }
+  .fbk.good { background:rgba(46,160,67,.14); color:#2ea043; }
+  .fbk.bad { background:rgba(240,140,0,.16); color:#d97706; }
+  .fbt { white-space:pre-wrap; overflow-wrap:anywhere; }
   .hist span:nth-child(odd) { color:var(--mute); font-variant-numeric:tabular-nums; }
   .home { cursor:pointer; display:grid; gap:10px; margin-top:12px; }
   .hload { display:grid; justify-items:center; gap:8px; padding:36px 16px; text-align:center; }
@@ -640,10 +649,11 @@ function settingsView() {
     const [v, sub] = f ? f(r) : id === 'seproc' ? [esc((r.acarsRwys || []).filter(x => !x.ix).map(x => `${x.rwy} ${x.efp}`).join(' · ') || '—')] : [esc(id === 'route' ? r.route || '—' : ((id === 'remarks' ? r.remarks : r.mel)[0] || 'None').slice(0, 40))];
     return `<label class="setrow"><input type="checkbox" data-f="${id}"${relShow.includes(id) ? ' checked' : ''}><span class="k">${k}</span><span class="v">${v}${sub ? ` <small>${sub}</small>` : ''}</span>${num(i)}</label>`;
   }).join('');
-  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release items</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>Update${scriptOld() ? ' ●' : ''}</button>${IN_APP ? `<button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>Door key</button>` : ''}${doorKey && !IN_APP ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}</div>`;
+  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release items</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>Update${scriptOld() ? ' ●' : ''}</button>${IN_APP ? `<button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>Door key</button>` : ''}${doorKey && !IN_APP ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}${doorKey ? `<button data-st="fb"${setTab === 'fb' ? ' class="on"' : ''}>Feedback</button>` : ''}</div>`;
   if (setTab === 'upd') return seg + scriptBox();
   if (setTab === 'watch' && doorKey && !IN_APP) return seg + watchBox();
   if (setTab === 'key' && IN_APP) return seg + keyBox();
+  if (setTab === 'fb' && doorKey) return seg + fbBox();
   return `${seg}<div class="card box"><b>Release items</b>
     <p class="sub" style="margin:4px 0 10px">Only checked items are shown in the release box. Pick a number on the right to set the order, then Save. Values are from ${src}.</p>
     <div class="setlist">${rows}</div>
@@ -1063,6 +1073,9 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/23', 'Feedback in Settings'],
+  ['10/23', 'Schedule change alerts'],
+  ['10/23', 'Home screen: next flight, or countdown to next report'],
   ['10/23', 'Door key can be entered in Settings'],
   ['10/23', 'Release items: choose the order with numbers'],
   ['10/23', 'Widget Update syncs in the background without opening the app'],
@@ -1332,6 +1345,43 @@ document.addEventListener('click', e => {
     keyMsg = 'Saved — the Door tab is now on';
     render(); watchPush();
   }).catch(err => say(`Not saved: ${err.message}`));
+});
+let fbKind = 'bad', fbData = null, fbMsg = '';
+const fbWhen = iso => { const d = new Date(iso); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+function fbLoad() {
+  fbData = { list: [] };
+  fetch(`${RELAY}?f=fb&dk=${encodeURIComponent(doorKey)}`).then(r => r.json()).then(r => {
+    if (!r.ok) throw new Error(r.error);
+    fbData = r;
+    if (tab === 'set' && setTab === 'fb') render();
+  }).catch(err => { fbMsg = `Couldn't load list: ${err.message}`; if (tab === 'set' && setTab === 'fb') render(); });
+}
+function fbBox() {
+  if (!fbData) fbLoad();
+  const list = fbData.list || [];
+  const kind = k => k === 'good' ? 'Good' : 'Improve';
+  return `<div class="card box"><b>Feedback</b>
+    <p class="sub" style="margin:4px 0 10px">Tell us what works well or what could be better.</p>
+    <div class="seg fb-seg"><button data-fk="good"${fbKind === 'good' ? ' class="on"' : ''}>👍 Good</button><button data-fk="bad"${fbKind === 'bad' ? ' class="on"' : ''}>🛠 Improve</button></div>
+    <textarea id="fbIn" class="kin" rows="4" placeholder="Write anything"></textarea>
+    <div class="setbtns"><button id="fbSend" class="on">Send</button><span class="sub" id="fbMsg">${esc(fbMsg)}</span></div></div>
+  ${list.length ? `<div class="card box"><b>${fbData.admin ? 'Received' : 'Sent'}</b> <span class="sub">${list.length}</span>
+    <div class="fbl">${list.map(x => `<div class="fbi"><div class="fbh"><span class="fbk ${x.kind}">${kind(x.kind)}</span><span class="sub">${fbWhen(x.at)}${fbData.admin ? ` · ${esc(x.by)}` : ''}</span></div><div class="fbt">${esc(x.text)}</div></div>`).join('')}</div></div>` : ''}`;
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-fk]');
+  if (b) { fbKind = b.dataset.fk; b.parentNode.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); return; }
+  if (e.target.id !== 'fbSend') return;
+  const el = document.getElementById('fbIn'), text = el.value.trim();
+  const say = t => { fbMsg = t; const m = document.getElementById('fbMsg'); if (m) m.textContent = t; };
+  if (!text) return say('Please write something');
+  e.target.disabled = true;
+  say('Sending…');
+  fetch(RELAY, { method: 'POST', body: JSON.stringify({ f: 'fb', dk: doorKey, kind: fbKind, text }) }).then(r => r.json()).then(r => {
+    if (!r.ok) throw new Error(r.error);
+    fbData = r; fbMsg = 'Sent — thank you';
+    render();
+  }).catch(err => { e.target.disabled = false; say(`Not sent: ${err.message}`); });
 });
 function watchBox() {
   return `<div class="card box"><b>Apple Watch door codes</b>
