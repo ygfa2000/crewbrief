@@ -1326,7 +1326,8 @@ document.addEventListener('toggle', e => {
 }, true);
 
 let doorKey = '', doorData = null, doorEdit = null, doorQ = '', doorMsg = '', doorTried = false;
-try { doorKey = localStorage.getItem('cbDoorKey') || ''; doorData = JSON.parse(localStorage.getItem('cbDoors') || 'null'); } catch (e) {}
+const doorStore = () => doorKey ? 'cbDoors' : 'cbPubDoors';
+try { doorKey = localStorage.getItem('cbDoorKey') || ''; doorData = JSON.parse(localStorage.getItem(doorStore()) || 'null'); } catch (e) {}
 {
   const dk = (/[#&]dk=([\w-]{16,})/.exec(location.hash) || [])[1] || DK_PARAM;
   if (dk) {
@@ -1335,7 +1336,7 @@ try { doorKey = localStorage.getItem('cbDoorKey') || ''; doorData = JSON.parse(l
     if (/dk=/.test(location.hash)) history.replaceState(null, '', location.pathname + location.search);
   }
 }
-document.getElementById('doorTab').hidden = !doorKey;
+document.getElementById('doorTab').hidden = false;
 const DOOR_CARRIERS = ['UA', 'DL', 'AS', 'AA'];
 function watchPush() {
   if (!doorKey) return;
@@ -1350,9 +1351,9 @@ function watchPush() {
   }).catch(() => {});
 }
 setTimeout(watchPush, 2000); // 동기화 자료(#d=)를 다 받은 뒤
-const doorKeep = d => { doorData = d; try { localStorage.setItem('cbDoors', JSON.stringify(d)); } catch (e) {} };
+const doorKeep = d => { doorData = d; try { localStorage.setItem(doorStore(), JSON.stringify(d)); } catch (e) {} };
 function doorLoad() {
-  fetch(`${RELAY}?f=doors&dk=${encodeURIComponent(doorKey)}`).then(r => r.json()).then(r => {
+  fetch(doorKey ? `${RELAY}?f=doors&dk=${encodeURIComponent(doorKey)}` : `${RELAY}?f=pubDoors`).then(r => r.json()).then(r => {
     if (!r.ok) throw new Error(r.error);
     doorKeep({ doors: r.doors, who: r.who, at: Date.now() });
     doorMsg = '';
@@ -1361,7 +1362,7 @@ function doorLoad() {
 }
 function doorSave(apt, codes) {
   doorMsg = '저장하는 중…'; render();
-  fetch(RELAY, { method: 'POST', body: JSON.stringify({ f: 'door', dk: doorKey, apt, codes }) }).then(r => r.json()).then(r => {
+  fetch(RELAY, { method: 'POST', body: JSON.stringify(doorKey ? { f: 'door', dk: doorKey, apt, codes } : { f: 'pubDoor', apt, codes }) }).then(r => r.json()).then(r => {
     if (!r.ok) throw new Error(r.error);
     doorKeep({ doors: r.doors, who: (doorData || {}).who, at: Date.now() });
     doorEdit = null; doorMsg = `${esc(apt)} 저장했습니다`;
@@ -1373,11 +1374,12 @@ function doorView() {
     if (!doorTried) { doorTried = true; doorLoad(); }
     return doorMsg ? `<div class="warn">${doorMsg}</div>` : '<div class="empty">불러오는 중…</div>';
   }
-  const doors = doorData.doors || {};
+  const doors = doorData.doors || {}, pub = !doorKey;
   const day = state.trips.flatMap(t => t.days).find(d => d.date >= today);
   const mine = day ? [...new Set(day.legs.flatMap(l => [l.from, l.to]))] : [];
+  const ahead = pub ? [...new Set(state.trips.flatMap(t => t.days).filter(d => d.date >= today).flatMap(d => d.legs.flatMap(l => [l.from, l.to])))].filter(Boolean) : [];
   const q = doorQ.trim().toUpperCase();
-  const ids = Object.keys(doors).filter(id => !q || id.startsWith(q) || (doors[id].name || '').toUpperCase().includes(q))
+  const ids = [...new Set([...Object.keys(doors), ...ahead])].filter(id => !q || id.startsWith(q) || (doors[id].name || '').toUpperCase().includes(q))
     .sort((a, b) => (mine.includes(b) - mine.includes(a)) || a.localeCompare(b));
   if (doorEdit && !ids.includes(doorEdit)) ids.unshift(doorEdit);
   const when = x => x ? new Date(x).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' }) : '';
@@ -1387,14 +1389,16 @@ function doorView() {
       ? `<div class="door-edit">${DOOR_CARRIERS.map(c => `<label><span class="c">${c}</span><textarea data-dc="${c}" rows="2" autocomplete="off" autocapitalize="characters">${esc(d[c] || '')}</textarea></label>`).join('')}</div>`
       : `<div class="door-codes">${DOOR_CARRIERS.map(c => `<div><div class="c">${c}</div><div class="v">${esc(d[c] || '—').replace(/,\s*/g, ', ')}</div></div>`).join('')}</div>`;
     return `<div class="door-card${mine.includes(id) ? ' mine' : ''}" data-apt="${esc(id)}">
-      <div class="hd"><span><span class="apt">${esc(id)}</span> <span class="sub">${esc(d.name || '')}</span></span><span class="sub">${d.by ? `${esc(d.by)} · ${when(d.at)}` : ''}</span></div>
+      <div class="hd"><span><span class="apt">${esc(id)}</span> <span class="sub">${esc(d.name || '')}</span></span><span class="sub">${d.by ? `${esc(d.by)} · ${when(d.at)}` : d.at ? when(d.at) : ''}</span></div>
       ${cells}
       ${ed ? `<textarea data-dc="note" rows="2" placeholder="메모 (위치 등)">${esc(d.note || '')}</textarea>
         <div class="door-btns"><button class="on" data-door="save">저장</button><button data-door="cancel">취소</button><span class="sub">넷 다 비우고 저장하면 목록에서 빠집니다</span></div>`
       : `${d.note ? `<div class="door-note">${esc(d.note)}</div>` : ''}<div class="door-btns"><button data-door="edit">✎ 수정</button></div>`}
     </div>`;
   };
-  return `<div class="card box"><div class="door-top">
+  const intro = pub ? `<div class="card box door-intro"><b>도어 코드를 함께 채워 주세요</b>
+      <p class="sub" style="margin:4px 0 0">지금은 시작 단계라 도어 코드 자료가 거의 없습니다. 젯브리지를 이용한 뒤 그 공항 칸의 <b>✎ 수정</b>을 눌러 코드를 넣어 주세요. 넣은 코드는 이 앱을 쓰는 다른 크루와 함께 봅니다.</p></div>` : '';
+  return `${intro}<div class="card box"><div class="door-top">
       <input id="dSearch" placeholder="공항 (SFO)" value="${esc(doorQ)}" autocomplete="off" autocapitalize="characters">
       <button data-door="add">＋ 공항 추가</button></div>
       <p class="sub" style="margin:8px 0 0">${ids.length}곳 · ${doorData.at ? `${new Date(doorData.at).toLocaleString('ko-KR')} 받음` : ''}${doorMsg ? ` · ${doorMsg}` : ''}</p></div>
@@ -1436,9 +1440,8 @@ function keyBox() {
 document.addEventListener('click', e => {
   const id = e.target.id;
   if (id === 'kDel') {
-    doorKey = ''; doorData = null; keyMsg = '지웠습니다';
+    doorKey = ''; doorData = null; doorTried = false; doorEdit = null; keyMsg = '지웠습니다';
     try { ['cbDoorKey', 'cbDoors', 'cbWatchSent'].forEach(k => localStorage.removeItem(k)); } catch (er) {}
-    document.getElementById('doorTab').hidden = true;
     render();
   }
   if (id !== 'kSave') return;
