@@ -154,6 +154,12 @@
   .need-tag { background:var(--warn); color:#fff; }
   .toast { position:fixed; left:16px; right:16px; top:16px; z-index:50; background:#1e8e3e; color:#fff; font-weight:600; padding:12px 14px; border-radius:10px; text-align:center; box-shadow:0 4px 16px #0005; }
   .seg.leg-seg { grid-template-columns:repeat(3,1fr); margin-top:10px; }
+  .seg.trip-seg { grid-template-columns:repeat(3,1fr); }
+  .durrow { display:flex; gap:8px; align-items:center; margin-top:4px; }
+  #calc .durrow input { width:76px; flex:none; margin-top:0; font-size:18px; padding:8px; }
+  .pick { flex:1; min-width:0; display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0, 1fr); gap:4px; }
+  .pick button { display:flex; flex-direction:column; align-items:center; padding:4px 0; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:11px; line-height:1.25; cursor:pointer; min-width:0; }
+  .pick button.on { border-color:var(--acc); background:var(--soft); color:var(--acc); }
   .seg.calc-seg { grid-template-columns:repeat(3,1fr); margin-bottom:14px; }
   .lt pre.raw { margin-top:10px !important; font:11px/1.35 ui-monospace,Menlo,monospace; white-space:pre; overflow-x:auto; background:var(--soft); border-radius:8px; padding:8px; margin:0; }
   .se { font:13px/1.5 ui-monospace,Menlo,monospace; margin-top:3px; }
@@ -319,7 +325,8 @@
   <div id="cBlock">
   <div class="seg"><button data-m="end" class="on">종료 시각 구하기</button><button data-m="dur">비행 시간 구하기</button></div>
   <label>시작 시각 (OUT) <small>예: 0745 또는 07:45</small><input id="cStart" inputmode="numeric" autocomplete="off" value="0745"></label>
-  <div id="cDurBox"><label>비행 시간 <small>예: 2:35 · 235 · 2.6</small><input id="cDur" inputmode="decimal" autocomplete="off" value="2:35"></label>
+  <div id="cDurBox"><label for="cDur">비행 시간 <small>예: 2:35 · 235 · 2.6</small></label>
+    <div class="durrow"><input id="cDur" inputmode="decimal" autocomplete="off" value="2:35"><div id="cLegs" class="pick" hidden></div></div>
     <div class="chips"><button data-d="1:00">1:00</button><button data-d="1:30">1:30</button><button data-d="2:00">2:00</button><button data-d="3:00">3:00</button><button data-d="5:00">5:00</button></div></div>
   <label id="cEndBox" hidden>종료 시각 (IN) <small>시작보다 이르면 다음 날로 계산</small><input id="cEnd" inputmode="numeric" autocomplete="off" value="1020"></label>
   <label>시차 (도착지 − 출발지, 시간) <small>현지시각으로 넣을 때만. UTC면 0</small><input id="cTz" inputmode="decimal" autocomplete="off" value="0"></label>
@@ -327,15 +334,15 @@
   <p class="sub">24시간제, 자정 넘김 자동 처리. 시차 예: SFO → DEN 은 +1, DEN → SFO 는 −1.</p>
   </div>
   <div id="cTemp" hidden>
-    <label>섭씨 °C<input id="tC" autocomplete="off" value="15"></label>
-    <label>화씨 °F<input id="tF" autocomplete="off" value="59"></label>
+    <label>섭씨 °C<input id="tC" autocomplete="off" placeholder="15"></label>
+    <label>화씨 °F<input id="tF" autocomplete="off" placeholder="59"></label>
     <div class="chips"><button data-t="±">± 부호</button><button data-t="-40">−40°C</button><button data-t="0">0°C</button><button data-t="15">15°C ISA</button><button data-t="30">30°C</button><button data-t="40">40°C</button></div>
     <div class="readout" aria-live="polite"><div class="k" id="tK">화씨</div><div class="v" id="tV">59°F</div><div class="n" id="tN">15°C</div></div>
     <p class="sub">°F = °C × 9/5 + 32 · 어느 칸에 넣어도 다른 칸이 바뀝니다.</p>
   </div>
   <div id="cXw" hidden>
-    <label>활주로 <small>번호(28L) 또는 방위(284)</small><input id="xR" autocomplete="off" autocapitalize="characters" value="28L"></label>
-    <label>바람 <small>예: 310/18G28 · 31018G28KT</small><input id="xW" autocomplete="off" autocapitalize="characters" value="310/18G28"></label>
+    <label>활주로 <small>번호(28L) 또는 방위(284)</small><input id="xR" autocomplete="off" autocapitalize="characters" placeholder="28L"></label>
+    <label>바람 <small>예: 310/18G28 · 31018G28KT</small><input id="xW" autocomplete="off" autocapitalize="characters" placeholder="310/18G28"></label>
     <div class="readout" aria-live="polite"><div class="k" id="xK">측풍</div><div class="v" id="xV">--</div><div class="n" id="xN"></div></div>
     <p class="sub">ATIS 바람과 활주로는 둘 다 자기방위. 활주로 번호는 ×10° 로 계산 (정확한 방위를 넣으면 더 정확).</p>
   </div>
@@ -902,11 +909,13 @@ function incentiveCard() {
   return `<div class="card hcard incard"><div class="hc-h">INCENTIVE OPEN TIME · ${list.length}<span class="inc-at">${when} 기준</span></div>${rows || (ot.err ? `<div class="tl-sub" style="padding-bottom:10px">Open Time 을 못 읽었습니다 (${esc(ot.err)})</div>` : '<div class="tl-sub" style="padding-bottom:10px">지금 올라온 incentive 트립이 없습니다</div>')}</div>`;
 }
 let schedChanges = null;
+const legFlow = l => (((state.flows || {})[`${l.date}-${l.tail}`] || {}).flights || []).find(x => x.flight === l.flight && x.from === l.from) || {};
 {
   const dig = {};
   state.trips.forEach(t => t.days.forEach(d => {
-    if (d.date >= today) dig[d.date] = [t.pairing, d.report, d.legs.filter(l => l.from !== l.to).map(l => `${l.flight} ${l.from}-${l.to} ${l.dep}`).join(',')];
+    if (d.date >= today) dig[d.date] = [t.pairing, d.report, d.legs.filter(l => l.from !== l.to).map(l => [`${l.flight} ${l.from}-${l.to}`, l.dep, !!legFlow(l).out])];
   }));
+  const sameLegs = (a, b) => typeof a === 'string' || a.length === b.length && a.every((x, i) => x[0] === b[i][0] && (x[2] || b[i][2] || x[1] === b[i][1]));
   const last = Object.keys(dig).sort().pop() || '';
   let prev = null;
   try { prev = JSON.parse(localStorage.getItem('cbSched') || 'null'); schedChanges = JSON.parse(localStorage.getItem('cbChanges') || 'null'); } catch (e) {}
@@ -918,7 +927,7 @@ let schedChanges = null;
       else if (!b) items.push(`${md(d)} · ${esc(a[0])} 빠짐`);
       else if (a[0] !== b[0]) items.push(`${md(d)} · ${esc(a[0])} → ${esc(b[0])}`);
       else if (a[1] !== b[1]) items.push(`${md(d)} · Report ${esc(a[1])} → ${esc(b[1])}`);
-      else if (a[2] !== b[2]) items.push(`${md(d)} · ${esc(b[0])} 편 바뀜`);
+      else if (!sameLegs(a[2], b[2])) items.push(`${md(d)} · ${esc(b[0])} 편 바뀜`);
     });
     if (items.length) schedChanges = { at: state.syncedAt, items };
   }
@@ -961,6 +970,7 @@ function render() {
   document.getElementById('calc').hidden = tab !== 'calc';
   document.getElementById('atis').hidden = tab !== 'atis';
   if (tab === 'atis') atisChips();
+  if (tab === 'calc') calcLegs();
   if (tab === 'calc' || tab === 'atis') return;
   document.getElementById('view').innerHTML =
     tab === 'home' ? changesCard() + homeView() + incentiveCard()
@@ -971,10 +981,10 @@ function render() {
 }
 let tripTab = 'up';
 function myTripView() {
-  const seg = `<div class="seg trip-seg"><button data-tt="up"${tripTab === 'up' ? ' class="on"' : ''}>다가오는 트립</button><button data-tt="past"${tripTab === 'past' ? ' class="on"' : ''}>지난 트립</button></div>`;
+  const seg = `<div class="seg trip-seg"><button data-tt="up"${tripTab === 'up' ? ' class="on"' : ''}>다가오는 트립</button><button data-tt="past"${tripTab === 'past' ? ' class="on"' : ''}>지난 트립</button><button data-tt="sked">Sked+ ↗</button></div>`;
   if (tripTab === 'up') {
     const next = state.trips.filter(x => x.start > today).sort((a, b) => a.start.localeCompare(b.start))[0];
-    return seg + (next ? tripCard(next, true) : '<div class="empty">다가오는 트립이 없습니다.</div>');
+    return seg + (next ? tripCard(next, false) : '<div class="empty">다가오는 트립이 없습니다.</div>');
   }
   const from = new Date(Date.now() - 28 * 864e5), pad = n => String(n).padStart(2, '0');
   const since = `${from.getFullYear()}-${pad(from.getMonth() + 1)}-${pad(from.getDate())}`;
@@ -982,7 +992,17 @@ function myTripView() {
     .map(x => x.end < today ? x : { ...x, days: x.days.filter(d => d.date < today) });
   return seg + (past.map(x => tripCard(x, false)).join('') || '<div class="empty">지난 4주 동안의 트립이 없습니다.</div>');
 }
-document.addEventListener('click', e => { if (e.target.dataset?.tt) { tripTab = e.target.dataset.tt; render(); } });
+document.addEventListener('click', e => {
+  const tt = e.target.dataset?.tt;
+  if (!tt) return;
+  if (tt === 'sked') {
+    if (document.documentElement.dataset.cbApp) location.href = 'crewbrief://sked';
+    else { const u = new URL(document.querySelector('.upd').href); window.open(u.origin + u.pathname, '_blank'); }
+    return;
+  }
+  tripTab = tt; render();
+});
+
 document.querySelector('.tabs').addEventListener('click', e => {
   const b = e.target.closest('[data-tab]');   // 아이콘 탭은 svg 를 누르게 된다
   if (b) { tab = b.dataset.tab; if (tab === 'door' && doorData) doorLoad(); render(); scrollTo(0, 0); }
@@ -1040,6 +1060,25 @@ document.querySelector('.tabs').addEventListener('click', e => {
   calc();
 }
 
+function calcLegs() {
+  const box = document.getElementById('cLegs');
+  const items = state.trips.flatMap(t => t.days).filter(d => d.date === today).flatMap(d => d.legs)
+    .filter(l => l.from !== l.to && l.block)
+    .map(l => {
+      return { l, done: !!legFlow(l).in };
+    }).filter(x => !x.done);
+  box.hidden = !items.length;
+  box.innerHTML = items.map(({ l }) => `<button data-d="${esc(l.block)}"><b>${esc(l.flight)}</b>${esc(l.block)}</button>`).join('');
+}
+document.getElementById('cLegs').addEventListener('click', e => {
+  const b = e.target.closest('[data-d]');
+  if (!b) return;
+  const d = document.getElementById('cDur');
+  d.value = b.dataset.d;
+  d.dispatchEvent(new Event('input'));
+  document.querySelectorAll('#cLegs button').forEach(x => x.classList.toggle('on', x === b));
+});
+
 document.querySelector('.calc-seg').addEventListener('click', e => {
   const m = e.target.dataset.cm;
   if (!m) return;
@@ -1054,7 +1093,7 @@ document.querySelector('.calc-seg').addEventListener('click', e => {
   let from = 'c';
   const conv = () => {
     const c = from === 'c' ? num($('tC').value) : (num($('tF').value) - 32) * 5 / 9, f = c * 9 / 5 + 32;
-    if (isNaN(c)) { $('tV').textContent = '--'; $('tN').textContent = ''; return; }
+    if (isNaN(c)) { (from === 'c' ? $('tF') : $('tC')).value = ''; $('tV').textContent = '--'; $('tN').textContent = ''; return; }
     if (from === 'c') $('tF').value = r1(f); else $('tC').value = r1(c);
     $('tK').textContent = from === 'c' ? '화씨' : '섭씨';
     $('tV').textContent = from === 'c' ? `${r1(f)}°F` : `${r1(c)}°C`;
@@ -1088,6 +1127,7 @@ document.querySelector('.calc-seg').addEventListener('click', e => {
   const calc = () => {
     const out = (k, v, n) => { $('xK').textContent = k; $('xV').textContent = v; $('xN').textContent = n; };
     const rh = rwy($('xR').value), w = wind($('xW').value);
+    if (!$('xR').value.trim() || !$('xW').value.trim()) return out('측풍', '--', '');   // 빈칸일 땐 안내만 비운다
     if (rh === null) return out('측풍', '--', '활주로를 확인해 주세요');
     if (!w) return out('측풍', '--', '바람을 확인해 주세요 (예: 310/18G28)');
     if (w.spd === 0 && !w.gust) return out('측풍', '0 kt', '바람 없음 (CALM)');
@@ -1128,7 +1168,7 @@ function atisRender() {
   const ago = x => { const t = issued(x); if (!t) return ''; const m = Math.max(0, Math.round((Date.now() - t) / 6e4)); const s = m < 60 ? `${m}분 전` : m < 2880 ? `${Math.floor(m / 60)}시간 ${m % 60}분 전` : `${Math.round(m / 1440)}일 전`; return m > 90 ? `<b style="color:var(--warn)">${s} — 오래됨</b>` : s; };
   out.innerHTML = ids.map(id => {
     const r = res[id] || [];
-    const body = r.length ? r.map(x => `<div class="part"><h4><span class="atis-code">${esc(x.code)}</span>${esc(x.type === 'combined' ? 'ATIS' : x.type === 'arr' ? 'ARRIVAL' : 'DEPARTURE')} · ${esc(x.time)}Z <span class="sub">(${ago(x)})</span></h4>
+    const body = r.length ? r.map(x => `<div class="part"><h4>${x.type === 'metar' ? '' : `<span class="atis-code">${esc(x.code)}</span>`}${esc(x.type === 'metar' ? 'METAR' : x.type === 'combined' ? 'ATIS' : x.type === 'arr' ? 'ARRIVAL' : 'DEPARTURE')} · ${esc(x.time)}Z <span class="sub">(${ago(x)})</span>${x.type === 'metar' ? ' <span class="sub">D-ATIS 없음</span>' : ''}</h4>
       <div class="atis-msg">${atisHl(x.datis)}</div></div>`).join('') : '<span class="sub">D-ATIS 없음</span>';
     return `<div class="panel"><div class="apt"><b>${esc(id)}</b></div>${body}</div>`;
   }).join('');
