@@ -558,6 +558,7 @@ const APP = 'https://ygfa2000.github.io/crewbrief/app/';
 const SYNC_JS = 'https://ygfa2000.github.io/crewbrief/sync.js';
 const RELAY = 'https://script.google.com/macros/s/AKfycbz8uCeKdYFBjVW8HQh8tD55JFDkTQ1PNQcmtlITo76RG3Wrtn48hrcEbhpl8labYZ5Z/exec', DK_PARAM = '';
 document.getElementById('home').href = APP;
+document.getElementById('home').addEventListener('click', () => { try { sessionStorage.removeItem('cbView'); } catch (e) {} });
 const UPD = document.querySelector('.upd');
 UPD.href = atob(UPD.dataset.u);
 UPD.hash = 'cbsync=web&ret=' + encodeURIComponent(APP);
