@@ -397,7 +397,7 @@ async function run() {
     let opentime = null;
     try {
       say('Reading Open Time');
-      const OT = '${atob('L1NLWVcvU2tlZFBsdXMvT3BlblRpbWUuYXNweA==')}';
+      const OT = atob('L1NLWVcvU2tlZFBsdXMvT3BlblRpbWUuYXNweA==');
       let html = await get(OT), how = 'GET';
       if (!/chkPairing_/.test(html) && /name="btnSearch"/.test(html)) {
         const res = await fetch(OT, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: formOf(html, 'btnSearch') });
