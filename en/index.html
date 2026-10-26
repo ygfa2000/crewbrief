@@ -157,6 +157,9 @@
   .seg.trip-seg { grid-template-columns:repeat(3,1fr); }
   .durrow { display:flex; gap:8px; align-items:center; margin-top:4px; }
   #calc .durrow input { width:76px; flex:none; margin-top:0; font-size:18px; padding:8px; }
+  .sk-nav { display:flex; justify-content:space-between; margin:10px 0 6px; }
+  .sk-nav button { font:600 13px -apple-system,system-ui,sans-serif; padding:6px 12px; border:1px solid var(--line); border-radius:9px; background:var(--card); color:var(--ink); }
+  #skedSlot { border-radius:12px; background:var(--card); border:1px solid var(--line); }
   .pick { flex:1; min-width:0; display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0, 1fr); gap:4px; }
   .pick button { display:flex; flex-direction:column; align-items:center; padding:4px 0; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:11px; line-height:1.25; cursor:pointer; min-width:0; }
   .pick button.on { border-color:var(--acc); background:var(--soft); color:var(--acc); }
@@ -961,6 +964,7 @@ document.addEventListener('click', e => {
 
 let tab = 'home';
 function render() {
+  try { sessionStorage.setItem('cbView', JSON.stringify({ tab, tripTab })); } catch (e) {}
   document.getElementById('synced').textContent = state.syncedAt
     ? (t => `${t.getMonth() + 1}/${t.getDate()} ${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`)(new Date(state.syncedAt)) : 'Not yet';
   if (!state.syncedAt) document.getElementById('howto').open = true;
@@ -971,17 +975,19 @@ function render() {
   document.getElementById('atis').hidden = tab !== 'atis';
   if (tab === 'atis') atisChips();
   if (tab === 'calc') calcLegs();
-  if (tab === 'calc' || tab === 'atis') return;
+  if (tab === 'calc' || tab === 'atis') return skedSync();
   document.getElementById('view').innerHTML =
     tab === 'home' ? changesCard() + homeView() + incentiveCard()
     : tab === 'today' ? todayView()
     : tab === 'set' ? settingsView()
     : tab === 'door' ? doorView()
     : myTripView();
+  skedSync();
 }
 let tripTab = 'up';
 function myTripView() {
-  const seg = `<div class="seg trip-seg"><button data-tt="up"${tripTab === 'up' ? ' class="on"' : ''}>Upcoming</button><button data-tt="past"${tripTab === 'past' ? ' class="on"' : ''}>Past Trips</button><button data-tt="sked">Sked+ ↗</button></div>`;
+  const seg = `<div class="seg trip-seg"><button data-tt="up"${tripTab === 'up' ? ' class="on"' : ''}>Upcoming</button><button data-tt="past"${tripTab === 'past' ? ' class="on"' : ''}>Past Trips</button>${skedIn() ? `<button data-tt="sked"${tripTab === 'sked' ? ' class="on"' : ''}>Sked+</button>` : '<button data-tt="sked">Sked+ ↗</button>'}</div>`;
+  if (tripTab === 'sked' && skedIn()) return seg + '<div class="sk-nav"><button data-skc="back">‹ Back</button><button data-skc="reload">↻</button></div><div id="skedSlot"></div>';
   if (tripTab === 'up') {
     const next = state.trips.filter(x => x.start > today).sort((a, b) => a.start.localeCompare(b.start))[0];
     return seg + (next ? tripCard(next, false) : '<div class="empty">No upcoming trips.</div>');
@@ -992,16 +998,28 @@ function myTripView() {
     .map(x => x.end < today ? x : { ...x, days: x.days.filter(d => d.date < today) });
   return seg + (past.map(x => tripCard(x, false)).join('') || '<div class="empty">No trips in the past 4 weeks.</div>');
 }
+function skedIn() { return !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.cbsked); }
 document.addEventListener('click', e => {
-  const tt = e.target.dataset?.tt;
+  const tt = e.target.dataset?.tt, c = e.target.dataset?.skc;
+  if (c) { window.webkit.messageHandlers.cbsked.postMessage({ cmd: c }); return; }
   if (!tt) return;
-  if (tt === 'sked') {
+  if (tt === 'sked' && !skedIn()) {
     if (document.documentElement.dataset.cbApp) location.href = 'crewbrief://sked';
     else { const u = new URL(document.querySelector('.upd').href); window.open(u.origin + u.pathname, '_blank'); }
     return;
   }
   tripTab = tt; render();
 });
+function skedSync() {
+  if (!skedIn()) return;
+  const el = document.getElementById('skedSlot');
+  if (!el || document.getElementById('view').hidden) return window.webkit.messageHandlers.cbsked.postMessage({ show: false });
+  el.style.height = Math.max(300, innerHeight - (el.getBoundingClientRect().top + scrollY) - 16) + 'px';
+  const r = el.getBoundingClientRect();
+  window.webkit.messageHandlers.cbsked.postMessage({ show: true, x: r.left, y: r.top, w: r.width, h: r.height });
+}
+addEventListener('scroll', skedSync, { passive: true });
+addEventListener('resize', skedSync);
 
 document.querySelector('.tabs').addEventListener('click', e => {
   const b = e.target.closest('[data-tab]');
@@ -1566,6 +1584,10 @@ document.addEventListener('click', e => {
   navigator.clipboard.writeText(watchUrl()).then(() => done('✓ Copied'), () => { prompt('Copy this', watchUrl()); });
 });
 
+try {
+  const v = JSON.parse(sessionStorage.getItem('cbView') || 'null');
+  if (v && v.tab) { tab = v.tab; tripTab = v.tripTab || tripTab; if (tab === 'door' && doorData) doorLoad(); }
+} catch (e) {}
 render();
 </script>
 </body>
