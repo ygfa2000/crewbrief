@@ -23,7 +23,7 @@
   .day { border-top:1px solid var(--line); padding:10px 14px; }
   .logten { display:inline-block; margin:6px 0 2px; padding:4px 12px; border-radius:999px; border:1px solid var(--acc); color:var(--acc); font-size:13px; font-weight:600; text-decoration:none; }
   .dayhead { display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; font-weight:600; }
-  .leg > summary { display:grid; grid-template-columns:4.2em 1fr auto; gap:8px; padding:7px 0; border-bottom:1px dashed var(--line); font-variant-numeric:tabular-nums; }
+  .leg > summary { display:grid; grid-template-columns:4.2em 1fr auto auto; gap:8px; padding:7px 0; border-bottom:1px dashed var(--line); font-variant-numeric:tabular-nums; }
   .leg > summary .r { text-align:right; color:var(--mute); font-size:13px; }
   .tag { font-size:11px; border:1px solid var(--acc); color:var(--acc); border-radius:6px; padding:0 5px; margin-left:4px; }
   .legbody { background:var(--soft); border-radius:10px; padding:10px; margin:6px 0 10px; font-size:13px; }
@@ -103,6 +103,9 @@
   .hx-done { font-size:30px; font-weight:800; margin-top:4px; }
   .hero.off { margin-top:12px; padding:22px 20px 20px; }
   .hero.off .hx-lbl { margin-top:0; }
+  .hx-row { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:16px; } .hx-row .hx-lbl { margin-top:0; }
+  .hero .ot { font-size:13px; padding:3px 9px; } .hero .ot b { display:inline; margin-left:4px; }
+  .hero .ot.ok { background:#e7f8ef; color:#0b8a5f; } .hero .ot.late { background:#ffe3e6; color:#d92d3a; }
   .cd { display:flex; align-items:baseline; gap:4px; margin-top:6px; font-variant-numeric:tabular-nums; }
   .cd b { font-size:56px; font-weight:800; letter-spacing:-.03em; line-height:1; }
   .cd i { font-style:normal; font-size:20px; font-weight:700; opacity:.7; margin-right:8px; }
@@ -255,11 +258,17 @@
   .logten { display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:12px;
     padding:5px 14px 5px 5px; font-weight:700; text-decoration:none; font-size:14px; margin:4px 0 6px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
   .logten .lt-ico { width:30px; height:30px; border-radius:7px; box-shadow:0 0 0 1px rgba(0,0,0,.08); }
-  .leg > summary { grid-template-columns:4.6em 1fr auto; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); }
+  .leg > summary { grid-template-columns:4.6em 1fr auto auto; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); }
   .leg > summary > span:first-child { color:var(--ink2); font-weight:600; font-size:14px; }
   .leg > summary > span:nth-child(2) { font-weight:700; font-size:17px; display:grid; }
   .leg > summary > span:nth-child(2) .sub { font-weight:500; font-size:13px; }
   .leg > summary .r { color:var(--mute); font-size:13px; }
+  .leg > summary .r { display:grid; }
+  @media (max-width:360px) { .leg > summary { grid-template-columns:3.3em 1fr auto auto; gap:6px; } .leg > summary > span:nth-child(2) { font-size:15px; } .ot { padding:2px 4px; font-size:10px; } }
+  .ot b { display:block; }
+  .ot { display:inline-block; text-align:center; line-height:1.25; font-size:11px; font-weight:700; border-radius:7px; padding:2px 7px; white-space:nowrap; }
+  .ot.ok { color:#0e9f6e; background:rgba(14,159,110,.12); }
+  .ot.late { color:var(--warn); background:rgba(240,68,82,.12); }
   .tag { border:0; background:var(--accsoft); color:var(--acc); font-weight:700; border-radius:6px; padding:1px 6px; }
   .legbody { background:var(--soft); border-radius:16px; padding:14px; margin:2px 0 12px; }
   .panel { border:1px solid var(--line); border-radius:14px; padding:16px; background:var(--card); }
@@ -787,6 +796,14 @@ function logtenUrl(d) {
   return 'logten://v2/addEntities?package=' + encodeURIComponent(JSON.stringify(pkg));
 }
 
+function legOt(l) {
+  const ff = (((state.flows || {})[`${l.date}-${l.tail}`] || {}).flights || []).find(x => x.flight === l.flight && x.from === l.from);
+  const lag = (a, b) => ((mins(a) - mins(b) + 2160) % 1440) - 720;
+  const dl = !ff || !ff.std ? 0 : ff.on && ff.sta ? lag(ff.in || ff.eta || ff.on, ff.sta) : lag(ff.out || ff.etd || ff.std, ff.std);
+  const ph = !ff ? '' : ff.in ? 'At gate' : ff.on ? 'Landed' : ff.off ? 'En route' : ff.out ? 'Taxiing' : dl >= 5 ? 'Delayed' : 'On time';
+  return !ff || !ff.std ? '' : `<span class="ot ${dl >= 5 ? 'late' : 'ok'}">${ph}${dl >= 5 ? `<b>+${fmtHM(dl)}</b>` : ''}</span>`;
+}
+
 function dayBlock(trip, d, fold) {
   const allLegs = trip.days.flatMap(x => x.legs);
   const head = `<span>${fold ? `Day ${trip.days.indexOf(d) + 1} · ` : ''}${md(d.date)}</span><span class="sub">Report ${esc(d.report)} · Release ${esc(d.release)}${d.duty ? ` · Duty ${esc(d.duty)}` : ''}</span>`;
@@ -797,10 +814,12 @@ function dayBlock(trip, d, fold) {
       ${d.legs.map(l => {
         const rel = state.releases[`${l.date}-${l.flight}-${l.from}`];
         const dh = l.dhd ? '<span class="tag">DH</span>' : '';
+        const ot = legOt(l);
         return `<details class="leg"><summary>
             <span>${esc(l.flight)}${dh}${rel ? '<span class="tag">R</span>' : ''}</span>
             <span>${esc(l.from)}→${esc(l.to)} <span class="sub">${esc(l.dep)}–${esc(l.arr)}</span></span>
-            <span class="r">${esc(l.tail || '')} · ${esc(l.block)}</span>
+            <span>${ot}</span>
+            <span class="r">${l.tail ? `<span>${esc(l.tail)}</span>` : ''}<span>${esc(l.block)}</span></span>
           </summary>
           <div class="legbody">
             ${legTabs(
@@ -876,7 +895,7 @@ function homeView() {
   const n = legs[nextI], nf = n ? fl(n) : {}, nl = n ? late(nf) : 0;
   const st = f => f.in ? `IN ${f.in}` : f.on ? `ON ${f.on}` : f.off ? `OFF ${f.off}` : f.out ? `OUT ${f.out}` : '';
   const hero = n ? `
-      <div class="hx-lbl">Next flight · ${esc(n.flight)}${n.dhd ? ' · DH' : ''}${st(nf) ? ` · ${esc(st(nf))}` : ''}</div>
+      <div class="hx-row"><div class="hx-lbl">Next flight · ${esc(n.flight)}${n.dhd ? ' · DH' : ''}${st(nf) ? ` · ${esc(st(nf))}` : ''}</div>${legOt(n)}</div>
       <div class="hx-route">
         <div><b>${esc(n.from)}</b><span>${esc(n.dep)}</span></div>
         <div class="hx-mid"><i></i>${plane}<i></i><small>${esc(n.block || '')}</small></div>
