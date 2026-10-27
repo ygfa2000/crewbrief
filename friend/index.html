@@ -97,6 +97,16 @@
   .tz.tz-nd { background:transparent; box-shadow:inset 0 0 0 1.5px currentColor; } .tz-nd.tz-P { color:#8b5cf6; } .tz-nd.tz-M { color:#f08c00; } .tz-nd.tz-C { color:#0ca678; } .tz-nd.tz-E { color:#3182f6; }
   .hero .tz { width:14px; height:14px; font-size:10px; line-height:14px; margin-right:4px; vertical-align:1px; box-shadow:0 0 0 1px rgba(255,255,255,.5); }
   .hero .tz.tz-nd { color:#fff; box-shadow:inset 0 0 0 1.5px #fff; }
+  /* map under a tapped flight: route (dashed great circle) and the live plane from open ADS-B data */
+  [data-leg] { cursor:pointer; }
+  .leg.sel { background:color-mix(in srgb, var(--acc) 8%, transparent); border-radius:12px; }
+  .mapbox { margin:4px 0 10px; border-radius:16px; overflow:hidden; background:var(--card); box-shadow:0 0 0 1px var(--line); }
+  #map { height:260px; background:#dfe6ee; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #map .leaflet-tile-pane { filter:invert(1) hue-rotate(180deg) brightness(.85) contrast(.9); } }
+  .mapinfo { padding:9px 12px; font-size:13px; color:var(--ink2); display:flex; justify-content:space-between; gap:8px; }
+  .mapinfo b { color:var(--ink); }
+  .plane-ic svg { width:30px; height:30px; filter:drop-shadow(0 1px 2px rgba(0,0,0,.45)); }
+  .apt-ic { font:700 11px -apple-system,system-ui,sans-serif; color:#fff; background:#1b4fd0; padding:2px 5px; border-radius:6px; white-space:nowrap; box-shadow:0 1px 3px rgba(0,0,0,.3); }
 </style>
 </head>
 <body>
@@ -249,7 +259,7 @@ function refresh() {
 let page = 'today';
 try { page = sessionStorage.getItem('cbFriendPage') || 'today'; } catch (e) {}
 const dayHtml = (x, i, open) => `<details class="day${open ? ' now' : ''}"${open ? ' open' : ''}><summary class="dh"><span>Day ${i + 1} · ${md(x.date)}</span></summary>
-    ${x.legs.map(l => `<div class="leg"><span class="fl">${esc(l.flight)}${l.dhd ? ' <span class="sub">DH</span>' : ''}</span>
+    ${x.legs.map(l => `<div class="leg" data-leg="${esc(x.date + '|' + l.flight + '|' + l.from)}"><span class="fl">${esc(l.flight)}${l.dhd ? ' <span class="sub">DH</span>' : ''}</span>
       <span class="rt">${esc(l.from)} → ${esc(l.to)}<small>${tzOf(l.from)}${esc(l.dep)}–${tzOf(l.to)}${esc(l.arr)}</small></span>${status(Object.assign({ date: x.date }, l))}</div>`).join('')}
     ${x.city ? `<div class="lay">Overnight in ${esc(x.city)}${x.layover ? ` · ${esc(x.layover)} layover` : ''}</div>` : ''}</details>`;
 const range = t => `${md(t.start)}${t.end !== t.start ? ` – ${md(t.end)}` : ''}`;
@@ -268,7 +278,7 @@ function show() {
   } else {
     const legs = trip ? trip.days.flatMap(x => x.legs.map(l => Object.assign({ date: x.date }, l))) : [];
     const next = legs.find(l => l.date >= today && !(l.in && inAgo(l) > 60));
-    const hero = next ? `<div class="card hero"><div class="row"><span class="lbl">${next.date === today ? 'Today' : md(next.date)} · Flight ${esc(next.flight)}${next.dhd ? ' · riding' : ''}</span>${status(next)}</div>
+    const hero = next ? `<div class="card hero" data-leg="${esc(next.date + '|' + next.flight + '|' + next.from)}"><div class="row"><span class="lbl">${next.date === today ? 'Today' : md(next.date)} · Flight ${esc(next.flight)}${next.dhd ? ' · riding' : ''}</span>${status(next)}</div>
         <div class="route"><b>${esc(next.from)}</b><span class="mid">${esc(next.block || '')}</span><b>${esc(next.to)}</b></div>
         <div class="times"><span>${tzOf(next.from)}${esc(next.dep)}</span><span>${tzOf(next.to)}${esc(next.arr)}</span></div></div>` : '';
     const openDay = trip && (trip.days.some(x => x.date === today) ? today : trip.days[0].date);
@@ -279,6 +289,7 @@ function show() {
     ${body}
     <div class="foot"><button id="change">Use a different key</button></div>`;
   clocks();
+  if (mapKey) openMap(mapKey);
   document.querySelectorAll('#bar [data-pg]').forEach(b => b.classList.toggle('on', b.dataset.pg === page));
 }
 
@@ -305,6 +316,96 @@ setInterval(clocks, 1000);
 
 const ICAO = { UA: 'UAL', AA: 'AAL', DL: 'DAL', WN: 'SWA', AS: 'ASA', B6: 'JBU', NK: 'NKS', F9: 'FFT', G4: 'AAY', HA: 'HAL', OO: 'SKW', QX: 'QXE', YX: 'RPA',
   MQ: 'ENY', '9E': 'EDV', OH: 'JIA', YV: 'ASH', G7: 'GJS', ZW: 'AWI', PT: 'PDT', C5: 'UCA', AC: 'ACA', WS: 'WJA', AM: 'AMX' };
+let mapKey = '', mapObj = null, mapTimer = null, airports = null;
+const trails = {};
+function loadLeaflet() {
+  if (window.L) return Promise.resolve();
+  return new Promise((ok, fail) => {
+    const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; document.head.appendChild(css);
+    const js = document.createElement('script'); js.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'; js.onload = ok; js.onerror = fail; document.head.appendChild(js);
+  });
+}
+function loadAirports() {
+  if (airports) return Promise.resolve(airports);
+  return fetch('airports.txt').then(r => r.text()).then(t => {
+    airports = {};
+    t.split(';').forEach(x => { if (x.length > 3) { const [la, lo] = x.slice(3).split(',').map(Number); airports[x.slice(0, 3)] = [la, lo]; } });
+    return airports;
+  });
+}
+function findLeg(key) {
+  const [date, flight, from] = key.split('|');
+  for (const t of (shared && shared.data && shared.data.trips) || []) for (const d of t.days) if (d.date === date)
+    for (const l of d.legs) if (l.flight === flight && l.from === from) return Object.assign({ date }, l);
+  return null;
+}
+function arc(a, b, n = 64) {
+  const r = Math.PI / 180, [p1, l1, p2, l2] = [a[0] * r, a[1] * r, b[0] * r, b[1] * r];
+  const d = 2 * Math.asin(Math.sqrt(Math.sin((p2 - p1) / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin((l2 - l1) / 2) ** 2));
+  if (!d) return [a, b];
+  const out = [];
+  for (let i = 0; i <= n; i++) {
+    const f = i / n, A = Math.sin((1 - f) * d) / Math.sin(d), B = Math.sin(f * d) / Math.sin(d);
+    const x = A * Math.cos(p1) * Math.cos(l1) + B * Math.cos(p2) * Math.cos(l2), y = A * Math.cos(p1) * Math.sin(l1) + B * Math.cos(p2) * Math.sin(l2), z = A * Math.sin(p1) + B * Math.sin(p2);
+    out.push([Math.atan2(z, Math.sqrt(x * x + y * y)) / r, Math.atan2(y, x) / r]);
+  }
+  return out;
+}
+function closeMap() {
+  clearInterval(mapTimer); mapTimer = null;
+  if (mapObj) { mapObj.remove(); mapObj = null; }
+  const box = $('mapbox'); if (box) box.remove();
+  document.querySelectorAll('[data-leg].sel').forEach(e => e.classList.remove('sel'));
+}
+function openMap(key) {
+  closeMap();
+  const el = [...document.querySelectorAll('[data-leg]')].find(e => e.dataset.leg === key), leg = findLeg(key);
+  if (!el || !leg) { mapKey = ''; return; }
+  mapKey = key;
+  el.classList.add('sel');
+  el.insertAdjacentHTML('afterend', '<div class="mapbox" id="mapbox"><div id="map"></div><div class="mapinfo" id="mapinfo">Loading map…</div></div>');
+  Promise.all([loadLeaflet(), loadAirports()]).then(() => {
+    if (mapKey !== key || !$('map')) return;
+    mapObj = L.map('map', { zoomControl: false, attributionControl: true });
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 12, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · <a href="https://adsb.lol">adsb.lol</a>' }).addTo(mapObj);
+    const a = airports[leg.from], b = airports[leg.to], pts = [];
+    const plan = Array.isArray(leg.route) && leg.route.length >= 2 ? leg.route.map(x => [x[1], x[2]]) : null;
+    if (plan || (a && b)) L.polyline(plan || arc(a, b), { color: '#3182f6', weight: 2.5, dashArray: '6 7', opacity: .9 }).addTo(mapObj);
+    [[leg.from, a], [leg.to, b]].forEach(([c, p]) => { if (p) { pts.push(p); L.marker(p, { icon: L.divIcon({ className: '', html: `<span class="apt-ic">${esc(c)}</span>`, iconSize: null }) }).addTo(mapObj); } });
+    if (plan) mapObj.fitBounds(plan.concat(pts), { padding: [36, 36] }); else if (pts.length === 2) mapObj.fitBounds(pts, { padding: [36, 36] }); else if (pts.length) mapObj.setView(pts[0], 7); else mapObj.setView([39, -98], 3);
+    const trail = trails[key] = trails[key] || [];
+    const line = L.polyline(trail, { color: '#f08c00', weight: 3 }).addTo(mapObj);
+    let plane = null, fitted = false;
+    const info = t => { const i = $('mapinfo'); if (i) i.innerHTML = t; };
+    const tick = () => {
+      if (document.hidden || mapKey !== key) return;
+      const q = `${RELAY}?f=pos&reg=${encodeURIComponent(leg.tail || '')}&cs=${encodeURIComponent('SKW' + (leg.flight || '').replace(/\D/g, ''))}`;
+      fetch(q).then(r => r.json()).then(r => {
+        if (mapKey !== key || !mapObj) return;
+        const ac = r.ok && r.ac, num = (leg.flight || '').replace(/\D/g, '');
+        const mine = ac && (ac.cs.replace(/\D/g, '') === num || ((leg.out || leg.off) && !leg.in));
+        if (!mine) {
+          if (plane) { plane.remove(); plane = null; }
+          info(!r.ok ? 'Live position not available right now' : leg.in ? `<span><b>Arrived</b> ${esc(leg.to)}</span>` :
+            (leg.off || leg.out) ? 'In the air — no live signal right now' : 'Not departed yet — the plane shows here once it is flying');
+          return;
+        }
+        const p = [ac.lat, ac.lon];
+        const last = trail[trail.length - 1];
+        if (!last || last[0] !== p[0] || last[1] !== p[1]) { trail.push(p); line.setLatLngs(trail); }
+        const svg = `<svg viewBox="0 0 24 24" style="transform:rotate(${ac.track || 0}deg)"><path fill="#f08c00" stroke="#fff" stroke-width="1" d="M12 2c.8 0 1.4.9 1.4 2v5.2l7.6 4.4v2.1l-7.6-2.3v4.9l2.2 1.6v1.7L12 20.6l-3.6 1v-1.7l2.2-1.6v-4.9L3 15.7v-2.1l7.6-4.4V4c0-1.1.6-2 1.4-2z"/></svg>`;
+        const icon = L.divIcon({ className: 'plane-ic', html: svg, iconSize: [30, 30], iconAnchor: [15, 15] });
+        if (plane) plane.setLatLng(p).setIcon(icon); else plane = L.marker(p, { icon }).addTo(mapObj);
+        if (!fitted) { fitted = true; mapObj.fitBounds((plan || []).concat(pts, [p]), { padding: [36, 36] }); }   // the plane in view too
+        const alt = ac.alt === 'ground' ? 'On the ground' : ac.alt != null ? (ac.alt >= 18000 ? `FL${String(Math.round(ac.alt / 100)).padStart(3, '0')}` : `${Math.round(ac.alt / 100) * 100} ft`) : '';
+        info(`<span><b>${esc(ac.reg || leg.tail || '')}</b>${alt ? ` · ${alt}` : ''}${ac.gs != null ? ` · ${Math.round(ac.gs)} kt` : ''}</span><span>live</span>`);
+      }).catch(() => info('Live position not available right now'));
+    };
+    tick(); mapTimer = setInterval(tick, 15000);
+  }).catch(() => { const i = $('mapinfo'); if (i) i.textContent = 'Map could not load'; });
+}
+
 function search() {
   const q = $('sq').value.toUpperCase().replace(/[\s-]/g, '');
   const m = q.match(/^([A-Z]{3}|[A-Z][A-Z0-9]|[0-9][A-Z])(\d{1,4}[A-Z]?)$/);
@@ -321,6 +422,8 @@ $('keyForm').addEventListener('submit', e => {
   openKey(k);
 });
 document.addEventListener('click', e => {
+  const lg = e.target.closest('[data-leg]');
+  if (lg && !e.target.closest('summary, a, button, #mapbox')) { if (mapKey === lg.dataset.leg) { mapKey = ''; closeMap(); } else openMap(lg.dataset.leg); return; }
   const pg = e.target.closest('[data-pg]');
   if (pg) { page = pg.dataset.pg; try { sessionStorage.setItem('cbFriendPage', page); } catch (er) {} show(); scrollTo(0, 0); return; }
   if (e.target.closest('#sbtn')) { $('sq').value = ''; $('sheet').hidden = false; $('smsg').textContent = ''; setTimeout(() => $('sq').focus(), 50); return; }

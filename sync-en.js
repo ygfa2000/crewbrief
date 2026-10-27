@@ -289,6 +289,16 @@ function parseRelease(lines, raw) {
 
   r.remarks = block(lines, 'REMARKS').filter(l => !/^\*+$/.test(l));
   r.mel = block(lines, 'MEL / CDL');
+
+  r.fixes = [];
+  for (const l of lines) {
+    const m = /^([A-Z][A-Z0-9]{1,5})\s+(?:\d{2,3}\s+)?([NS])(\d{2}) (\d{2}\.\d) ([EW])(\d{3}) (\d{2}\.\d)\b/.exec(l.trim());
+    if (!m) continue;
+    const lat = (m[2] === 'S' ? -1 : 1) * (Number(m[3]) + Number(m[4]) / 60), lon = (m[5] === 'W' ? -1 : 1) * (Number(m[6]) + Number(m[7]) / 60);
+    const last = r.fixes[r.fixes.length - 1];
+    if (!last || last[0] !== m[1]) r.fixes.push([m[1], Math.round(lat * 1000) / 1000, Math.round(lon * 1000) / 1000]);
+    if (r.fixes.length > 1 && r.to && m[1].length === 4 && m[1].slice(1) === r.to) break;
+  }
   return r;
 }
 

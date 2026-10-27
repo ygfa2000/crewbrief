@@ -584,6 +584,16 @@ function parseRelease(lines, raw) {
 
   r.remarks = block(lines, 'REMARKS').filter(l => !/^\*+$/.test(l));
   r.mel = block(lines, 'MEL / CDL');
+
+  r.fixes = [];
+  for (const l of lines) {
+    const m = /^([A-Z][A-Z0-9]{1,5})\s+(?:\d{2,3}\s+)?([NS])(\d{2}) (\d{2}\.\d) ([EW])(\d{3}) (\d{2}\.\d)\b/.exec(l.trim());
+    if (!m) continue;
+    const lat = (m[2] === 'S' ? -1 : 1) * (Number(m[3]) + Number(m[4]) / 60), lon = (m[5] === 'W' ? -1 : 1) * (Number(m[6]) + Number(m[7]) / 60);
+    const last = r.fixes[r.fixes.length - 1];
+    if (!last || last[0] !== m[1]) r.fixes.push([m[1], Math.round(lat * 1000) / 1000, Math.round(lon * 1000) / 1000]);
+    if (r.fixes.length > 1 && r.to && m[1].length === 4 && m[1].slice(1) === r.to) break;   // 도착지까지만 (뒤의 교체 공항 기록은 빼고)
+  }
   return r;
 }
 
@@ -703,7 +713,7 @@ function releaseCard(r) {
     ${r.warnings.length ? `<div class="warn">⚠ ${esc(r.warnings.join(' · '))}</div>` : ''}`;
 }
 
-const SAMPLE_REL = {"warnings":[],"flight":"3054","date":"16OCT26","from":"SNA","to":"SFO","tail":"N412SY","adsb":"SKW3054","tas":457,"route":"HHERO3 IKAYE DCT RIZIN DCT SPLNT DCT STOKD DCT SERFR SERFR4","cruise":"CSTID030","fltlv":"FL340","minto":7665,"rlsf":8900,"altsFromTable":[],"dest":{"id":"SFO","dist":358,"ete":56},"alt1":null,"alt2":null,"mintoTime":121,"rlsFuel":8886,"reserve":{"apt":null,"time":45,"fuel":2762},"hold":{"apt":null,"time":20,"fuel":982},"gaAlt":{"apt":null,"time":0,"fuel":0},"ldg":{"apt":null,"time":80,"fuel":4465},"taxiOut":{"apt":null,"time":20,"fuel":500},"burnoff":{"apt":null,"time":56,"fuel":3921},"contin":{"apt":null,"time":15,"fuel":721},"taxiIn":{"apt":null,"time":8,"fuel":200},"gateFuel":4265,"weights":{"payload":15912,"pax":68,"maxPayload":19327,"zfw":66471,"tow":74857,"ldw":70936,"bow":{"index":"69.1","wt":50559},"maxCargo":{"fwd":3306,"aft":2535},"seats":76},"takeoff":{"apt":"SNA","rwy":"02L","flaps":"04","temp":"P28"},"landing":{"apt":"SFO","rwy":"28R","flaps":"05","temp":"P22"},"climb":"270M73C1","descent":"290M78","crzWind":{"dir":"039","spd":57},"isaDev":{"clb":"8","crz":"10","dsc":"12"},"dispatcher":{"name":"J DOE","phone":"435-000-0000"},"pic":"SMITH","sic":"JONES","toc":{"fl":"FL340","distFromOrigin":111,"timeFromOrigin":19,"fuelRemain":6354},"next":{"flight":"3490","from":"SFO","to":"SAN","std":"1140"},"acarsRwys":[{"rwy":"02L","ix":null,"len":5700,"pmtow":7887,"efp":"SPECIAL"},{"rwy":"02L","ix":"E","len":4600,"pmtow":7397,"efp":"SPECIAL"},{"rwy":"20R","ix":null,"len":5700,"pmtow":7887,"efp":"DT H196"},{"rwy":"20R","ix":"K","len":5360,"pmtow":7887,"efp":"DT H196"}],"seProc":{"02L":"900 LT H210 1056"},"remarks":["-GOV TURB SIGMET ... (example)"],"mel":[]};
+const SAMPLE_REL = {"warnings":[],"flight":"3054","date":"16OCT26","from":"SNA","to":"SFO","tail":"N412SY","adsb":"SKW3054","tas":457,"route":"HHERO3 IKAYE DCT RIZIN DCT SPLNT DCT STOKD DCT SERFR SERFR4","cruise":"CSTID030","fltlv":"FL340","minto":7665,"rlsf":8900,"altsFromTable":[],"dest":{"id":"SFO","dist":358,"ete":56},"alt1":null,"alt2":null,"mintoTime":121,"rlsFuel":8886,"reserve":{"apt":null,"time":45,"fuel":2762},"hold":{"apt":null,"time":20,"fuel":982},"gaAlt":{"apt":null,"time":0,"fuel":0},"ldg":{"apt":null,"time":80,"fuel":4465},"taxiOut":{"apt":null,"time":20,"fuel":500},"burnoff":{"apt":null,"time":56,"fuel":3921},"contin":{"apt":null,"time":15,"fuel":721},"taxiIn":{"apt":null,"time":8,"fuel":200},"gateFuel":4265,"weights":{"payload":15912,"pax":68,"maxPayload":19327,"zfw":66471,"tow":74857,"ldw":70936,"bow":{"index":"69.1","wt":50559},"maxCargo":{"fwd":3306,"aft":2535},"seats":76},"takeoff":{"apt":"SNA","rwy":"02L","flaps":"04","temp":"P28"},"landing":{"apt":"SFO","rwy":"28R","flaps":"05","temp":"P22"},"climb":"270M73C1","descent":"290M78","crzWind":{"dir":"039","spd":57},"isaDev":{"clb":"8","crz":"10","dsc":"12"},"dispatcher":{"name":"J DOE","phone":"435-000-0000"},"pic":"SMITH","sic":"JONES","toc":{"fl":"FL340","distFromOrigin":111,"timeFromOrigin":19,"fuelRemain":6354},"next":{"flight":"3490","from":"SFO","to":"SAN","std":"1140"},"acarsRwys":[{"rwy":"02L","ix":null,"len":5700,"pmtow":7887,"efp":"SPECIAL"},{"rwy":"02L","ix":"E","len":4600,"pmtow":7397,"efp":"SPECIAL"},{"rwy":"20R","ix":null,"len":5700,"pmtow":7887,"efp":"DT H196"},{"rwy":"20R","ix":"K","len":5360,"pmtow":7887,"efp":"DT H196"}],"seProc":{"02L":"900 LT H210 1056"},"remarks":["-GOV TURB SIGMET ... (example)"],"mel":[],"fixes":[["KSNA",33.675,-117.868],["STREL",33.572,-117.9],["DOLLF",33.48,-118.002],["MIKAA",33.41,-118.147],["SNYPR",33.44,-118.3],["HHERO",33.522,-118.488],["FAYHE",33.665,-118.712],["IKAYE",34.143,-119.01],["TOC",34.358,-119.425],["RIZIN",34.412,-119.533],["SPLNT",35.088,-120.373],["STOKD",35.483,-120.818],["SERFR",36.068,-121.365],["TOD",36.337,-121.573],["NRRLI",36.495,-121.7],["WWAVS",36.742,-121.895],["EPICK",36.95,-121.953],["FOLET",37.275,-122.08],["EDDYY",37.375,-122.118],["KSFO",37.618,-122.375]]};
 let setTab = 'rel';
 function settingsView() {
   const keys = Object.keys(state.releases || {}).sort();
@@ -1298,6 +1308,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/27', 'Friend page: tap a flight for a map with the planned route (from the Release, else the shortest path) and the live plane (open ADS-B data from adsb.lol)'],
   ['10/27', 'Friend page: flight search works with 2-letter airline codes (UA5269 opens UAL5269 on FlightAware)'],
   ['10/27', 'Friend page: P · M · C · E letter before departure and arrival times (outlined = no daylight saving)'],
   ['10/27', 'Friend page: Crew Brief logo with For Friend at the top left; P · M · C · E clocks at the top right'],
@@ -1642,7 +1653,7 @@ function sharePayload() {
       return { date: d.date, report: d.report, release: d.release, layover: d.hotel ? d.layover : '', city: d.hotel && ls.length ? ls[ls.length - 1].to : '',
         legs: ls.map(l => { const f = legFlow(l);
           return { flight: l.flight, from: l.from, to: l.to, dep: l.dep, arr: l.arr, block: l.block, dhd: !!l.dhd,
-            std: f.std, sta: f.sta, stdZ: f.stdZ, etd: f.etd, eta: f.eta, out: f.out, off: f.off, on: f.on, in: f.in }; }) }; }) }));
+            std: f.std, sta: f.sta, stdZ: f.stdZ, etd: f.etd, eta: f.eta, out: f.out, off: f.off, on: f.on, in: f.in, tail: l.tail, route: ((state.releases || {})[`${l.date}-${l.flight}-${l.from}`] || {}).fixes }; }) }; }) }));
   return { syncedAt: state.syncedAt, trips };
 }
 function shareUp() {
