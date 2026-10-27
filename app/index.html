@@ -292,6 +292,8 @@
   /* Flow 의 안 끝난 편마다 지도: 경로(Release 계획 경로, 없으면 최단 경로) · 날고 있으면 실시간 위치(공개 ADS-B) */
   .fmap { margin:6px 0 10px; border-radius:12px; overflow:hidden; border:1px solid var(--line); }
   .fmap-m { height:240px; background:#dfe6ee; }
+  .fmap[hidden] { display:none; }
+  .frow:has(+ .fmap) { cursor:pointer; }
   @media (prefers-color-scheme: dark) { .fmap-m .leaflet-tile-pane { filter:invert(1) hue-rotate(180deg) brightness(.85) contrast(.9); } }
   .fmap-i { padding:8px 10px; font-size:12.5px; color:var(--ink2,var(--mute)); display:flex; justify-content:space-between; gap:8px; }
   .fmap-i b { color:var(--ink); }
@@ -1316,6 +1318,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/27', 'Flow: tap a flight to fold or unfold its map (remembers your choice)'],
   ['10/27', 'Flow: a map under each flight not yet finished: planned route from the Release (else the shortest path); the flight in the air shows the plane live'],
   ['10/27', 'Friend page: the map opens right under the flight you tap; zoomed to fit both airports'],
   ['10/27', 'Friend page: tap a flight for a map with the planned route (from the Release, else the shortest path) and the live plane (open ADS-B data from adsb.lol)'],
@@ -1427,8 +1430,15 @@ fetch(SCRIPT_URL, { cache: 'no-store' }).then(r => r.text()).then(t => {
   if (tab === 'set') render();
 }).catch(() => {});
 
-function fmapBox(leg, f) { return `<div class="fmap" data-date="${esc(leg.date)}" data-flight="${esc(f.flight)}" data-from="${esc(f.from)}" data-to="${esc(f.to)}" data-tail="${esc(leg.tail)}"${f.out ? ' data-live="1"' : ''}><div class="fmap-m"></div><div class="fmap-i">지도 불러오는 중…</div></div>`; }
+function fmapBox(leg, f) { return `<div class="fmap"${fmapOpen() ? '' : ' hidden'} data-date="${esc(leg.date)}" data-flight="${esc(f.flight)}" data-from="${esc(f.from)}" data-to="${esc(f.to)}" data-tail="${esc(leg.tail)}"${f.out ? ' data-live="1"' : ''}><div class="fmap-m"></div><div class="fmap-i">지도 불러오는 중…</div></div>`; }
 let leafletP = null, airportsP = null;
+function fmapOpen() { try { return localStorage.getItem('cbFmapOpen') !== '0'; } catch (e) { return true; } }
+document.addEventListener('click', e => {
+  const row = e.target.closest('.frow'), box = row && row.nextElementSibling;
+  if (!box || !box.classList.contains('fmap')) return;
+  box.hidden = !box.hidden;
+  try { localStorage.setItem('cbFmapOpen', box.hidden ? '0' : '1'); } catch (er) {}
+});
 const fmaps = [];
 function loadLeaflet() {
   return leafletP = leafletP || new Promise((ok, fail) => {
@@ -1477,7 +1487,7 @@ function fmapInit(box) {
     let plane = null, fitted = false;
     const tick = () => {
       if (!document.contains(box)) { clearInterval(timer); map.remove(); return; }
-      if (document.hidden || !box.offsetParent) return;
+      if (document.hidden || !box.querySelector('.fmap-m').offsetParent) return;
       fetch(`${RELAY}?f=pos&reg=${encodeURIComponent(tail)}&cs=${encodeURIComponent('SKW' + String(flight).replace(/\D/g, ''))}`).then(r => r.json()).then(r => {
         const ac = r.ok && r.ac;
         if (!ac) { if (plane) { plane.remove(); plane = null; } info(r.ok ? `<span><b>${esc(tail)}</b> 지금 비행 중 아님</span>` : '위치를 지금 못 받음'); return; }
@@ -1494,7 +1504,7 @@ function fmapInit(box) {
     const timer = setInterval(tick, 15000); tick();
   }).catch(() => info('지도를 못 불러옴'));
 }
-setInterval(() => document.querySelectorAll('.fmap:not([data-init])').forEach(b => { if (b.offsetParent) fmapInit(b); }), 700);
+setInterval(() => document.querySelectorAll('.fmap:not([data-init])').forEach(b => { if (b.querySelector('.fmap-m').offsetParent) fmapInit(b); }), 700);
 
 let legTab = 'rel';
 function legTabs(relHtml, flowHtml, key) {
