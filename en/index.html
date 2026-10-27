@@ -741,8 +741,8 @@ function flowPanel(leg, fl) {
         ${f.delayReason && late >= 5 ? `<div class="sub" style="color:var(--warn)">${esc(f.delayReason)}</div>` : ''}</span>
       <span class="r">${esc(f.depGate || '—')}→${esc(f.arrGate || '—')}</span>${ooo}</div>`;
   }).join('');
-  const at = new Date(fl.at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-  return `<div class="panel"><h4>FLOW · ${esc(leg.tail)} <span style="font-weight:400">(as of ${at} · local times · gates)</span></h4>${rows || '<span class="sub">No flight info</span>'}</div>`;
+  const at = new Date(fl.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  return `<div class="panel"><h4>FLOW · ${esc(leg.tail)} <span style="display:block;font-weight:400;font-size:12px;white-space:nowrap;margin-top:2px">(as of ${at} · local times · gates)</span></h4>${rows || '<span class="sub">No flight info</span>'}</div>`;
 }
 
 function flow(leg, allLegs, rel) {
