@@ -270,6 +270,9 @@
   .ot.ok { color:#0e9f6e; background:rgba(14,159,110,.12); }
   .ot.late { color:var(--warn); background:rgba(240,68,82,.12); }
   .ot.done { color:var(--mute); background:var(--soft); }
+  .shk { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 0; border-top:1px solid var(--line); }
+  .shcode { font:700 18px ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.08em; margin-top:2px; }
+  .shbtn { display:flex; flex-direction:column; gap:6px; } .shbtn button { font-size:13px; padding:6px 10px; }
   .tag { border:0; background:var(--accsoft); color:var(--acc); font-weight:700; border-radius:6px; padding:1px 6px; }
   .legbody { background:var(--soft); border-radius:16px; padding:14px; margin:2px 0 12px; }
   .panel { border:1px solid var(--line); border-radius:14px; padding:16px; background:var(--card); }
@@ -699,11 +702,12 @@ function settingsView() {
     const [v, sub] = f ? f(r) : id === 'seproc' ? [esc((r.acarsRwys || []).filter(x => !x.ix).map(x => `${x.rwy} ${x.efp}`).join(' · ') || '—')] : [esc(id === 'route' ? r.route || '—' : ((id === 'remarks' ? r.remarks : r.mel)[0] || '없음').slice(0, 40))];
     return `<label class="setrow"><input type="checkbox" data-f="${id}"${relShow.includes(id) ? ' checked' : ''}><span class="k">${k}</span><span class="v">${v}${sub ? ` <small>${sub}</small>` : ''}</span>${num(i)}</label>`;
   }).join('');
-  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release 항목</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>업데이트${scriptOld() ? ' ●' : ''}</button><button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>도어 키</button>${doorKey && !IN_APP ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}${doorKey ? `<button data-st="fb"${setTab === 'fb' ? ' class="on"' : ''}>피드백</button>` : ''}</div>`;
+  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release 항목</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>업데이트${scriptOld() ? ' ●' : ''}</button><button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>도어 키</button>${doorKey && !IN_APP ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}${doorKey ? `<button data-st="fb"${setTab === 'fb' ? ' class="on"' : ''}>피드백</button>` : ''}${doorKey ? `<button data-st="share"${setTab === 'share' ? ' class="on"' : ''}>Share</button>` : ''}</div>`;
   if (setTab === 'upd') return seg + scriptBox();
   if (setTab === 'watch' && doorKey && !IN_APP) return seg + watchBox(); // 앱 설정에는 Apple Watch 안내를 두지 않는다
   if (setTab === 'key') return seg + keyBox();   // 웹에서도 키만 지우거나 넣을 수 있게
   if (setTab === 'fb' && doorKey) return seg + fbBox();
+  if (setTab === 'share' && doorKey) return seg + shareBox();
   return `${seg}<div class="card box"><b>Release 항목</b>
     <p class="sub" style="margin:4px 0 10px">체크한 항목만 Release 칸에 보입니다. 오른쪽 번호로 순서를 정하고 저장하세요. 값은 ${src}.</p>
     <div class="setlist">${rows}</div>
@@ -1002,6 +1006,7 @@ document.addEventListener('click', e => {
 let tab = 'home';
 function render() {
   try { sessionStorage.setItem('cbView', JSON.stringify({ tab, tripTab })); } catch (e) {}
+  try { shareUp(); } catch (e) {}   // 처음 그릴 때는 아직 정의 전일 수 있다
   document.getElementById('synced').textContent = state.syncedAt
     ? (t => `${t.getMonth() + 1}/${t.getDate()} ${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`)(new Date(state.syncedAt)) : '아직 없음';
   if (!state.syncedAt) document.getElementById('howto').open = true;
@@ -1571,6 +1576,69 @@ function fbLoad() {
     if (tab === 'set' && setTab === 'fb') render();
   }).catch(err => { fbMsg = `목록을 못 받음: ${err.message}`; if (tab === 'set' && setTab === 'fb') render(); });
 }
+const FRIEND_URL = 'https://ygfa2000.github.io/crewbrief/friend/';
+let shareData = null, shareMsg = '', shareKind = 'friend';
+function sharePayload() {
+  const lo = new Date(Date.now() - 2 * 864e5).toISOString().slice(0, 10), hi = new Date(Date.now() + 45 * 864e5).toISOString().slice(0, 10);
+  const trips = state.trips.filter(t => t.end >= lo && t.start <= hi).map(t => ({ pairing: t.pairing, start: t.start, end: t.end,
+    days: t.days.map(d => { const ls = d.legs.filter(l => l.from !== l.to);
+      return { date: d.date, report: d.report, release: d.release, layover: d.hotel ? d.layover : '', city: d.hotel && ls.length ? ls[ls.length - 1].to : '',
+        legs: ls.map(l => { const f = legFlow(l);
+          return { flight: l.flight, from: l.from, to: l.to, dep: l.dep, arr: l.arr, block: l.block, dhd: !!l.dhd,
+            std: f.std, sta: f.sta, stdZ: f.stdZ, etd: f.etd, eta: f.eta, out: f.out, off: f.off, on: f.on, in: f.in }; }) }; }) }));
+  return { syncedAt: state.syncedAt, trips };
+}
+function shareUp() {
+  let on = '', done = '';
+  try { on = localStorage.getItem('cbShareOn'); done = localStorage.getItem('cbShareUp'); } catch (e) {}
+  if (!doorKey || on !== '1' || !state.syncedAt || done === state.syncedAt) return;
+  const at = state.syncedAt;
+  try { localStorage.setItem('cbShareUp', at); } catch (e) {}
+  fetch(RELAY, { method: 'POST', body: JSON.stringify({ f: 'shareUp', dk: doorKey, data: sharePayload() }) }).then(r => r.json())
+    .then(r => { if (!r.ok) throw new Error(r.error); })
+    .catch(() => { try { localStorage.removeItem('cbShareUp'); } catch (e) {} });   // 다음 화면 그릴 때 다시
+}
+function shareCall(body) {
+  return fetch(RELAY, { method: 'POST', body: JSON.stringify(Object.assign({ dk: doorKey }, body)) }).then(r => r.json()).then(r => {
+    if (!r.ok) throw new Error(r.error);
+    shareData = r;
+    try { localStorage.setItem('cbShareOn', r.keys.length ? '1' : ''); if (r.keys.length && body.f === 'shareNew') localStorage.removeItem('cbShareUp'); } catch (e) {}
+    shareUp();
+  });
+}
+function shareBox() {
+  if (!shareData && !shareMsg) { shareMsg = 'Loading…'; shareCall({ f: 'shareList' }).then(() => { shareMsg = ''; }, err => { shareMsg = `Could not load: ${err.message}`; }).then(() => { if (tab === 'set' && setTab === 'share') render(); }); }
+  const keys = (shareData || {}).keys || [];
+  return `<div class="card box"><b>Share my schedule</b>
+    <p class="sub" style="margin:4px 0 10px">Make a key for a friend or your spouse. They open <b>${esc(FRIEND_URL.replace('https://', ''))}</b> and enter the key. They see your trips, flights, times and live status (on time · delayed · taxiing · en route · landed · at gate). Never crew names, releases, hotels or door codes.</p>
+    <input id="shName" class="kin" placeholder="Name (e.g. Mom, Jane)" maxlength="30" autocomplete="off">
+    <div class="seg sh-seg" style="margin-top:8px"><button data-shk="friend"${shareKind === 'friend' ? ' class="on"' : ''}>Friend</button><button data-shk="spouse"${shareKind === 'spouse' ? ' class="on"' : ''}>Spouse</button></div>
+    <div class="setbtns"><button id="shNew" class="on">Make key</button><span class="sub" id="shMsg">${esc(shareMsg)}</span></div></div>
+  ${keys.length ? `<div class="card box"><b>Keys</b> <span class="sub">${keys.length}</span>
+    ${keys.map(k => `<div class="shk"><div><b>${esc(k.label)}</b> <span class="sub">${k.kind === 'spouse' ? 'Spouse' : 'Friend'}</span><div class="shcode">${esc(k.sk)}</div></div>
+      <div class="shbtn"><button data-shcopy="${esc(k.sk)}">Copy link</button><button data-shdel="${esc(k.sk)}">Delete</button></div></div>`).join('')}
+    <p class="sub" style="margin:8px 0 0">Your schedule is sent each time you sync. Delete a key to stop sharing with that person.</p></div>` : ''}`;
+}
+document.addEventListener('click', e => {
+  const k = e.target.closest('[data-shk]');
+  if (k) { shareKind = k.dataset.shk; k.parentNode.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === k)); return; }
+  const say = t => { shareMsg = t; const m = document.getElementById('shMsg'); if (m) m.textContent = t; };
+  if (e.target.id === 'shNew') {
+    const label = document.getElementById('shName').value.trim();
+    if (!label) return say('Enter a name');
+    say('Making…');
+    shareCall({ f: 'shareNew', label, kind: shareKind }).then(() => { shareMsg = 'Key made'; render(); }, err => say(`Failed: ${err.message}`));
+  }
+  if (e.target.dataset?.shdel) {
+    if (!confirm('Stop sharing with this key?')) return;
+    shareCall({ f: 'shareDel', sk: e.target.dataset.shdel }).then(() => { shareMsg = 'Deleted'; render(); }, err => say(`Failed: ${err.message}`));
+  }
+  if (e.target.dataset?.shcopy) {
+    const u = `${FRIEND_URL}#sk=${e.target.dataset.shcopy}`;
+    (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => say('Link copied'), () => { prompt('Copy this link', u); });
+  }
+});
+
 function fbBox() {
   if (!fbData) fbLoad();
   const list = fbData.list || [];
