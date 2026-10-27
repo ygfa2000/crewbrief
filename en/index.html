@@ -319,12 +319,20 @@
   .status .k { color:var(--mute); font-size:12px; font-weight:500; }
   .status .zulu, .status #synced { font:700 17px 'Pretendard Variable',Pretendard,sans-serif; color:var(--ink); font-variant-numeric:tabular-nums; letter-spacing:0; }
   .status .zulu { color:var(--acc); }
+  .status > .utcbox { display:flex; grid-template-columns:none; align-items:center; gap:12px; text-align:left; }
+  .utc1 { display:grid; gap:3px; text-align:center; }
+  .zones { display:grid; gap:1px; font:600 11px/1.25 'Pretendard Variable',Pretendard,sans-serif; color:var(--ink2,var(--mute)); font-variant-numeric:tabular-nums; }
+  .zones > span { white-space:nowrap; }
+  @media (max-width:360px) { .status > div { padding:0 10px; } .status .zulu, .status #synced { font-size:15px; } .status > .utcbox { gap:7px; } .zones { font-size:10px; } }
+  .tz { display:inline-block; width:12px; height:12px; border-radius:3px; margin:0 3px 0 2px; vertical-align:-1px; font:800 8.5px/12px -apple-system,system-ui,sans-serif; font-style:normal; text-align:center; color:#fff; }
+  .tz-P { background:#8b5cf6; } .tz-M { background:#f08c00; } .tz-C { background:#0ca678; } .tz-E { background:#3182f6; }
+  .hx-route .tz { width:14px; height:14px; font-size:10px; line-height:14px; margin-right:4px; vertical-align:1px; box-shadow:0 0 0 1px rgba(255,255,255,.5); }
 </style>
 </head>
 <body>
 <header class="hdr"><h1 class="head"><a id="home" target="_top" style="color:inherit;text-decoration:none"><svg class="mark" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="cbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5aa5ff"/><stop offset="1" stop-color="#1b64da"/></linearGradient></defs><rect width="40" height="40" rx="12" fill="url(#cbg)"/><path d="M9 27c6-1 14-5 22-14" stroke="rgba(255,255,255,.35)" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M10.5 21.5 30 12.5l-6.2 16.2-4.3-5.6z" fill="#fff"/><path d="m19.5 23.1 10.5-10.6-12.2 8.9z" fill="#cfe2ff"/></svg><span class="word"><span class="wt">Crew <em>Brief</em></span><small>Flight Deck Tool</small></span></a></h1>
   <a class="upd" target="_top" href="#cbsync" data-u="aHR0cHM6Ly93d3cuc2t5d2VzdG9ubGluZS5jb20vU0tZVy9Ta2VkUGx1cy9NeVNjaGVkdWxlLmFzcHg="><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3.2h-3.2"/></svg></span>Update</a></header>
-<div class="status"><div><span class="k">UTC</span><span class="zulu" id="zulu"></span></div><div><span class="k">Last sync</span><span class="sub" id="synced"></span></div></div>
+<div class="status"><div class="utcbox"><div class="utc1"><span class="k">UTC</span><span class="zulu" id="zulu"></span></div><div class="zones" id="zones"></div></div><div><span class="k">Last sync</span><span class="sub" id="synced"></span></div></div>
 <button class="script-warn" id="scriptWarn" hidden></button>
 <nav class="tabs"><button data-tab="today">Today</button><button data-tab="up">My Trip</button><button data-tab="atis">D-ATIS</button><button data-tab="door" id="doorTab" aria-label="Door code" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.6" y=".9" width="11.8" height="22.2" rx="5.2" fill="#f4f5f8" stroke="#1f2430" stroke-width=".9"/><rect x="5.3" y="2.7" width="8.4" height="10.2" rx="2.1" fill="#2b2d42"/><g fill="#fff"><circle cx="7.3" cy="4.7" r=".6"/><circle cx="9.5" cy="4.7" r=".6"/><circle cx="11.7" cy="4.7" r=".6"/><circle cx="7.3" cy="6.8" r=".6"/><circle cx="9.5" cy="6.8" r=".6"/><circle cx="11.7" cy="6.8" r=".6"/><circle cx="7.3" cy="8.9" r=".6"/><circle cx="9.5" cy="8.9" r=".6"/><circle cx="11.7" cy="8.9" r=".6"/><circle cx="7.3" cy="11" r=".6"/><circle cx="9.5" cy="11" r=".6"/><circle cx="11.7" cy="11" r=".6"/></g><circle cx="9.5" cy="17.4" r="3.1" fill="#d5d8e0" stroke="#1f2430" stroke-width=".9"/><rect x="7.9" y="15.9" width="15" height="3" rx="1.5" fill="#e8e9ee" stroke="#1f2430" stroke-width=".9"/><rect x="9.6" y="16.7" width="5" height="1.1" rx=".55" fill="#fff"/></svg></button><button data-tab="calc" aria-label="Calculator"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.3" y="1.3" width="15.4" height="21.4" rx="3.2" fill="#1c1c1e" stroke="rgba(255,255,255,.35)" stroke-width=".7"/><rect x="6.9" y="3.9" width="10.2" height="4.8" rx="1.1" fill="#a1a1a6"/><circle cx="8.3" cy="12.4" r="1.4" fill="#d4d4d8"/><circle cx="12" cy="12.4" r="1.4" fill="#d4d4d8"/><circle cx="15.7" cy="12.4" r="1.4" fill="#ff9f0a"/><circle cx="8.3" cy="15.8" r="1.4" fill="#d4d4d8"/><circle cx="12" cy="15.8" r="1.4" fill="#d4d4d8"/><circle cx="15.7" cy="15.8" r="1.4" fill="#ff9f0a"/><circle cx="8.3" cy="19.2" r="1.4" fill="#d4d4d8"/><circle cx="12" cy="19.2" r="1.4" fill="#d4d4d8"/><circle cx="15.7" cy="19.2" r="1.4" fill="#ff9f0a"/></svg></button><button data-tab="set" aria-label="Settings">⚙</button></nav>
 
@@ -767,6 +775,10 @@ function flow(leg, allLegs, rel) {
   return nx ? `${esc(leg.tail)} → (my next leg) ${esc(nx.flight)} ${esc(nx.from)}→${esc(nx.to)} ${esc(nx.dep)}` : `${esc(leg.tail)} · no next-leg info`;
 }
 
+const TZ_CLOCKS = [['P', 'America/Los_Angeles'], ['M', 'America/Denver'], ['C', 'America/Chicago'], ['E', 'America/New_York']];
+const TZ_APT = (s => { const m = {}; for (let i = 0; i + 3 < s.length; i += 4) m[s.slice(i, i + 3)] = s[i + 3]; return m; })('ABEEABICABQMABRCACACACKEACTCACVPAEXCAGSEAGUCAHNEALBEALOCAMACAPNEASEMATLEATWCATYCAUSCAVLEAVPEAZOEBDLEBFFMBFLPBGMEBGREBHMCBILMBISCBJICBJXCBKGCBLIPBMICBNACBOIMBOSEBPTCBRDCBROCBTMMBTRCBTVEBUFEBURPBZNMCAEECAKECDCMCHAECHOECHSECIDCCIUECKBECLDPCLEECLLCCLTECMHECMICCMXECNYMCODMCOSMCOUCCPRMCRPCCRWECVGECYSMDAYEDCAEDDCCDECCDENMDFWCDIKMDLHCDROMDSMCDTWEDVLCEAUCECPCEGEMEKOPELHEELMEELPMERIEESCEEUGPEVVCEWREFARCFATPFAYEFCAMFLGMFMNMFNTEFODCFOECFSDCFSMCFWAEGCCMGCKCGDLCGEGPGFKCGGGCGJTMGNVEGRBCGRICGRKCGRREGSOEGSPEGTFMGTRCGUCMHDNMHIBCHLNMHMOMHOBMHOUCHRLCHSVCHYSCIADEIAHCICTCIDAMILMEIMTCINDEINLCJACMJANCJAXEJLNCJMSCJSTELAFELANELAPMLARMLASPLAWCLAXPLBBCLBFCLBLCLCHCLEXELFTCLGAELGBPLITCLNKCLNSELRDCLTOMLWBELWSPLYHEMAFCMBSEMCICMCNEMCWCMDTEMEICMEMCMFECMFRPMGMCMGWEMHHEMHKCMKECMLICMLUCMOBCMOTCMQTEMRYPMSNCMSOMMSPCMSYCMTJMMTYCMWACMYREMZTMOAJEOAKPOAXCOKCCOMACONTPORDCORFEOTHPOWBCPAHCPDXPPHLEPHXMPIACPIBCPIHMPIRCPITEPLNEPNSCPRCMPSCPPSPPPUBMPVDEPVRCPVUMPWMERAPMRDDPRDMPRDUERHICRICERIWMRKSMRNOPROAEROCEROWMRSTCSAFMSANPSATCSAVESBAPSBNESBPPSCEESDFESEAPSFOPSGFCSGUMSHDESHRMSHVCSJCPSJDMSJTCSLCMSLNCSLPCSMFPSNAPSPSCSRQESTLCSTSPSUNMSUXCSWOCSYRETEBETGZCTIJPTPAETULCTUSMTVCETWFMTYRCTYSEVCTCWYSMXNACYEGMYIPEYLWPYQRCYUMMYVRPYWGCYYCMYYJPYYZEZIHCZLOCBIHPEARCHEZCXWAC');
+const tzIcon = k => k ? `<i class="tz tz-${k}">${k}</i>` : '';
+const tzOf = apt => tzIcon(TZ_APT[apt]);
 const icao = a => /^[A-Z]{4}$/.test(a) ? a : ({ HNL: 'PHNL', OGG: 'PHOG', KOA: 'PHKO', LIH: 'PHLI', ITO: 'PHTO', ANC: 'PANC', FAI: 'PAFA', JNU: 'PAJN', KTN: 'PAKT', SIT: 'PASI' })[a] || (/^Y/.test(a) ? 'C' + a : 'K' + a);
 const LT_ICON = '<svg class="lt-ico" viewBox="0 0 40 40" aria-hidden="true"><defs><radialGradient id="ltg" cx=".5" cy=".42" r=".6"><stop offset="0" stop-color="#6cc0f2"/><stop offset="1" stop-color="#2f8fd6"/></radialGradient></defs><rect width="40" height="40" rx="10" fill="#fff"/><circle cx="20" cy="20" r="16.5" fill="url(#ltg)"/><rect x="19.3" y="5.6" width="1.4" height="3" rx=".7" fill="#fff" opacity=".9" transform="rotate(0 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(30 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(60 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="3" rx=".7" fill="#fff" opacity=".9" transform="rotate(90 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(120 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(150 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="3" rx=".7" fill="#fff" opacity=".9" transform="rotate(180 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(210 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(240 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="3" rx=".7" fill="#fff" opacity=".9" transform="rotate(270 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(300 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(330 20 20)"/><path d="M5.5 21.2 17 20h6l11.5 1.2v1.3L23 22.3h-6l-11.5.2z" fill="#fff"/><circle cx="20" cy="21.4" r="3" fill="#fff"/><path d="M19.1 12.5h1.8v7h-1.8z" fill="#fff"/><path d="M15.8 14.2h8.4v1.6h-8.4z" fill="#fff"/></svg>';
 function logtenUrl(d) {
@@ -832,7 +844,7 @@ function dayBlock(trip, d, fold) {
         const ot = legOt(l);
         return `<details class="leg"><summary>
             <span>${esc(l.flight)}${dh}${rel ? '<span class="tag">R</span>' : ''}</span>
-            <span>${esc(l.from)}→${esc(l.to)} <span class="sub">${esc(l.dep)}–${esc(l.arr)}</span></span>
+            <span>${esc(l.from)}→${esc(l.to)} <span class="sub">${tzOf(l.from)}${esc(l.dep)}–${tzOf(l.to)}${esc(l.arr)}</span></span>
             <span>${ot}</span>
             <span class="r">${l.tail ? `<span>${esc(l.tail)}</span>` : ''}<span>${esc(l.block)}</span></span>
           </summary>
@@ -912,9 +924,9 @@ function homeView() {
   const hero = n ? `
       <div class="hx-row"><div class="hx-lbl">Next flight · ${esc(n.flight)}${n.dhd ? ' · DH' : ''}${st(nf) ? ` · ${esc(st(nf))}` : ''}</div>${legOt(n)}</div>
       <div class="hx-route">
-        <div><b>${esc(n.from)}</b><span>${esc(n.dep)}</span></div>
+        <div><b>${esc(n.from)}</b><span>${tzOf(n.from)}${esc(n.dep)}</span></div>
         <div class="hx-mid"><i></i>${plane}<i></i><small>${esc(n.block || '')}</small></div>
-        <div class="r"><b>${esc(n.to)}</b><span>${esc(n.arr)}</span></div></div>
+        <div class="r"><b>${esc(n.to)}</b><span>${tzOf(n.to)}${esc(n.arr)}</span></div></div>
       <div class="hx-facts">
         <div><span>GATE</span><b>${esc(nf.depGate || '—')} → ${esc(nf.arrGate || '—')}</b></div>
         <div><span>TAIL</span><b>${esc(n.tail || '—')}</b></div>
@@ -925,7 +937,7 @@ function homeView() {
     return `<div class="tl${i === nextI ? ' next' : ''}${f.in ? ' done' : ''}">
       <span class="dot"></span>
       <div class="tl-main"><div class="tl-top"><b>${esc(l.from)} → ${esc(l.to)}</b><span class="tl-fl">${esc(l.flight)}${l.dhd ? ' DH' : ''}${state.releases[`${l.date}-${l.flight}-${l.from}`] ? ' · R' : ''}</span></div>
-        <div class="tl-sub">${esc(l.dep)}–${esc(l.arr)}${lt >= 5 ? ` · <b class="late">ETD ${esc(f.etd)}</b>` : ''}${st(f) ? ` · ${esc(st(f))}` : ''}</div></div>
+        <div class="tl-sub">${tzOf(l.from)}${esc(l.dep)}–${tzOf(l.to)}${esc(l.arr)}${lt >= 5 ? ` · <b class="late">ETD ${esc(f.etd)}</b>` : ''}${st(f) ? ` · ${esc(st(f))}` : ''}</div></div>
       <div class="tl-gate"><span>GATE</span>${esc(f.depGate || '—')}</div></div>`;
   }).join('');
   const apts = [...new Set(legs.flatMap(l => [l.from, l.to]))];
@@ -1202,7 +1214,8 @@ document.querySelector('.calc-seg').addEventListener('click', e => {
 }
 
 {
-  const z = () => { const d = new Date(); document.getElementById('zulu').textContent = `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}:${String(d.getUTCSeconds()).padStart(2, '0')}Z`; };
+  const z = () => { const d = new Date(); document.getElementById('zulu').textContent = `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}:${String(d.getUTCSeconds()).padStart(2, '0')}Z`;
+    document.getElementById('zones').innerHTML = TZ_CLOCKS.map(([k, zn]) => `<span>${tzIcon(k)}${d.toLocaleTimeString('en-GB', { timeZone: zn, hour: '2-digit', minute: '2-digit' })}</span>`).join(''); };
   z(); setInterval(z, 1000);
 }
 
