@@ -912,7 +912,6 @@ function todayView() {
 }
 
 function homeView() {
-  if (homeSync) return `<div class="card box hload"><span class="spin"></span><b>최신 정보를 받는 중…</b><div class="sub">동기화가 끝나면 오늘 비행을 보여 줍니다</div></div>`;
   const days = state.trips.flatMap(t => t.days.map(d => ({ t, d }))).sort((a, b) => a.d.date.localeCompare(b.d.date));
   const cur = days.find(x => x.d.date === today && x.d.legs.some(l => l.from !== l.to));
   if (!cur) {
@@ -1299,6 +1298,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/27', 'Home screen keeps showing your flights while it syncs (no more Loading latest card)'],
   ['10/27', 'Shared schedule page: Today · Upcoming tabs and a flight search (opens FlightAware)'],
   ['10/27', 'P · M · C · E clocks next to UTC; time-zone letter before departure and arrival times (outlined = no daylight saving: Arizona, Mexico)'],
   ['10/27', 'Share my schedule with a friend or spouse (Settings ▸ Share)'],
