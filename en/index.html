@@ -1298,6 +1298,11 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/27', 'App build 7: Apple Watch leg timer (elapsed and remaining vs block; turn the Crown to adjust; Stop locked 7 s after Start; ↺ reset)'],
+  ['10/27', 'App build 7: watch shows the Crew Brief logo; timer icon under the departure time'],
+  ['10/27', 'App build 7: sign-in opens inside the app and returns to the first screen; the sync continues behind it'],
+  ['10/27', 'App build 7: auto-sync counts from the last successful sync; start screen instead of a white screen after a long idle or while syncing on reopen'],
+  ['10/27', 'App build 7: map and FlightAware links open outside the app'],
   ['10/27', 'Home screen keeps showing your flights while it syncs (no more Loading latest card)'],
   ['10/27', 'Shared schedule page: Today · Upcoming tabs and a flight search (opens FlightAware)'],
   ['10/27', 'P · M · C · E clocks next to UTC; time-zone letter before departure and arrival times (outlined = no daylight saving: Arizona, Mexico)'],
