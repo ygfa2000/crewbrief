@@ -1299,6 +1299,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/27', 'Shared schedule page: Today · Upcoming tabs and a flight search (opens FlightAware)'],
   ['10/27', 'P · M · C · E clocks next to UTC; time-zone letter before departure and arrival times (outlined = no daylight saving: Arizona, Mexico)'],
   ['10/27', 'Share my schedule with a friend or spouse (Settings ▸ Share)'],
   ['10/27', 'Door codes can use + and & (e.g. 1+2 then 5)'],

@@ -25,7 +25,25 @@
   .keybox .msg { min-height:20px; margin-top:10px; font-size:14px; text-align:center; }
 
   /* shared schedule */
-  main { max-width:560px; margin:0 auto; padding:16px 16px 40px; }
+  main { max-width:560px; margin:0 auto; padding:16px 16px calc(110px + env(safe-area-inset-bottom)); }
+  #bar { position:fixed; left:0; right:0; bottom:calc(14px + env(safe-area-inset-bottom)); display:flex; justify-content:center; align-items:center; gap:10px; padding:0 16px; z-index:3; }
+  #bar[hidden] { display:none; }
+  #bar .tabs { display:flex; flex:1; max-width:420px; padding:5px; border-radius:30px; background:color-mix(in srgb, var(--card) 82%, transparent); -webkit-backdrop-filter:blur(18px); backdrop-filter:blur(18px); box-shadow:0 6px 24px rgba(0,0,0,.14), 0 0 0 1px var(--line); }
+  #bar .tabs button { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; border:0; background:none; color:var(--ink); padding:7px 0 6px; border-radius:24px; font-size:12px; font-weight:600; }
+  #bar .tabs button svg { width:24px; height:24px; }
+  #bar .tabs button.on { color:var(--acc); background:color-mix(in srgb, var(--acc) 12%, transparent); }
+  #sbtn { flex:none; width:60px; height:60px; border-radius:50%; border:0; color:var(--ink); background:color-mix(in srgb, var(--card) 82%, transparent); -webkit-backdrop-filter:blur(18px); backdrop-filter:blur(18px); box-shadow:0 6px 24px rgba(0,0,0,.14), 0 0 0 1px var(--line); display:grid; place-items:center; }
+  #sbtn svg { width:26px; height:26px; }
+  #sheet { position:fixed; inset:0; z-index:6; background:rgba(0,0,0,.35); display:flex; align-items:flex-end; justify-content:center; padding:16px; }
+  #sheet[hidden] { display:none; }
+  .sbox { width:100%; max-width:420px; background:var(--card); border-radius:22px; padding:20px; display:grid; gap:10px; margin-bottom:env(safe-area-inset-bottom); }
+  .sbox b { font-size:18px; }
+  .sbox input { font:700 20px ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.06em; text-transform:uppercase; padding:13px 12px; border:1px solid var(--line); border-radius:12px; background:var(--bg); color:var(--ink); }
+  .sbox button[type=submit] { padding:14px; border:0; border-radius:12px; background:var(--acc); color:#fff; font-weight:700; font-size:16px; }
+  .sbox .link { border:0; background:none; color:var(--mute); font-size:14px; }
+  .trip.up > summary { list-style:none; cursor:pointer; } .trip.up > summary::-webkit-details-marker { display:none; }
+  .trip.up > summary h2::after { content:' ▸'; color:var(--mute); font-size:14px; } .trip.up[open] > summary h2::after { content:' ▾'; }
+  .trip.up[open] > summary { margin-bottom:6px; }
   .top { display:flex; justify-content:space-between; align-items:center; gap:10px; margin:6px 0 14px; }
   .top h1 { font-size:22px; margin:0; letter-spacing:-.01em; }
   .top .sub { margin-top:2px; }
@@ -79,6 +97,22 @@
   </form>
 </div>
 <main id="view" hidden></main>
+<nav id="bar" hidden>
+  <div class="tabs">
+    <button data-pg="today"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15.5v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V8.5l-8 5v2l8-2.5V18l-2 1.5V21l3.5-1 3.5 1v-1.5L13 18v-5z" fill="currentColor" transform="rotate(45 12 12)"/></svg><span>Today</span></button>
+    <button data-pg="up"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3.5 10h17M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="14.5" r="1.3" fill="currentColor"/><circle cx="15" cy="14.5" r="1.3" fill="currentColor"/></svg><span>Upcoming</span></button>
+  </div>
+  <button id="sbtn" aria-label="Search a flight"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="m15.5 15.5 5 5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+</nav>
+<div id="sheet" hidden>
+  <form id="sform" class="sbox" autocomplete="off">
+    <b>Search a flight</b>
+    <input id="sq" placeholder="e.g. UA5269" autocapitalize="characters" spellcheck="false" enterkeyhint="search">
+    <button type="submit">Open in FlightAware</button>
+    <div class="sub" id="smsg"></div>
+    <button type="button" id="sclose" class="link">Close</button>
+  </form>
+</div>
 <script>
 const RELAY = 'https://script.google.com/macros/s/AKfycbz8uCeKdYFBjVW8HQh8tD55JFDkTQ1PNQcmtlITo76RG3Wrtn48hrcEbhpl8labYZ5Z/exec';
 const $ = id => document.getElementById(id);
@@ -186,7 +220,7 @@ function fetchShare(k) {
     return r;
   });
 }
-function open(k) {
+function openKey(k) {
   $('keyForm').hidden = true;
   fetchShare(k).then(r => {
     key = k; shared = r;
@@ -198,46 +232,70 @@ function refresh() {
   return fetchShare(key).then(r => { shared = r; show(); }).catch(() => {});
 }
 
+let page = 'today';
+try { page = sessionStorage.getItem('cbFriendPage') || 'today'; } catch (e) {}
+const dayHtml = (x, i, open) => `<details class="day${open ? ' now' : ''}"${open ? ' open' : ''}><summary class="dh"><span>Day ${i + 1} · ${md(x.date)}</span></summary>
+    ${x.legs.map(l => `<div class="leg"><span class="fl">${esc(l.flight)}${l.dhd ? ' <span class="sub">DH</span>' : ''}</span>
+      <span class="rt">${esc(l.from)} → ${esc(l.to)}<small>${esc(l.dep)}–${esc(l.arr)}</small></span>${status(Object.assign({ date: x.date }, l))}</div>`).join('')}
+    ${x.city ? `<div class="lay">Overnight in ${esc(x.city)}${x.layover ? ` · ${esc(x.layover)} layover` : ''}</div>` : ''}</details>`;
+const range = t => `${md(t.start)}${t.end !== t.start ? ` – ${md(t.end)}` : ''}`;
 function show() {
-  const v = $('view'); v.hidden = false;
+  const v = $('view'); v.hidden = false; $('bar').hidden = false;
   const d = shared.data || { trips: [] }, who = shared.name || 'Crew';
   const trip = d.trips.find(t => t.start <= today && t.end >= today) || d.trips.find(t => t.start > today);
-  const legs = trip ? trip.days.flatMap(x => x.legs.map(l => Object.assign({ date: x.date }, l))) : [];
-  const next = legs.find(l => l.date >= today && !(l.in && inAgo(l) > 60));
   const at = d.syncedAt ? (t => `${t.getMonth() + 1}/${t.getDate()} ${pad(t.getHours())}:${pad(t.getMinutes())}`)(new Date(d.syncedAt)) : '';
-  const hero = next ? `<div class="card hero"><div class="row"><span class="lbl">${next.date === today ? 'Today' : md(next.date)} · Flight ${esc(next.flight)}${next.dhd ? ' · riding' : ''}</span>${status(next)}</div>
-      <div class="route"><b>${esc(next.from)}</b><span class="mid">${esc(next.block || '')}</span><b>${esc(next.to)}</b></div>
-      <div class="times"><span>${esc(next.dep)}</span><span>${esc(next.arr)}</span></div></div>` : '';
-  const openDay = trip && (trip.days.some(x => x.date === today) ? today : trip.days[0].date);
-  const card = trip ? `<div class="card trip"><h2>${md(trip.start)}${trip.end !== trip.start ? ` – ${md(trip.end)}` : ''}</h2>
-      ${trip.days.map((x, i) => `<details class="day${x.date === openDay ? ' now' : ''}"${x.date === openDay ? ' open' : ''}><summary class="dh"><span>Day ${i + 1} · ${md(x.date)}</span></summary>
-        ${x.legs.map(l => `<div class="leg"><span class="fl">${esc(l.flight)}${l.dhd ? ' <span class="sub">DH</span>' : ''}</span>
-          <span class="rt">${esc(l.from)} → ${esc(l.to)}<small>${esc(l.dep)}–${esc(l.arr)}</small></span>${status(Object.assign({ date: x.date }, l))}</div>`).join('')}
-        ${x.city ? `<div class="lay">Overnight in ${esc(x.city)}${x.layover ? ` · ${esc(x.layover)} layover` : ''}</div>` : ''}</details>`).join('')}</div>`
-    : '<div class="card empty">No upcoming flights shared yet.</div>';
+  let body;
+  if (page === 'up') {
+    const later = d.trips.filter(t => t.start > (trip ? trip.end : today)).sort((a, b) => a.start.localeCompare(b.start));
+    body = later.length ? later.map(t => {
+      const ls = t.days.flatMap(x => x.legs), chain = ls.length ? [ls[0].from, ...ls.map(l => l.to)].join(' → ') : '';
+      return `<details class="card trip up"><summary><h2>${range(t)}</h2><div class="sub">${esc(chain)}</div></summary>${t.days.map((x, i) => dayHtml(x, i, false)).join('')}</details>`;
+    }).join('') : '<div class="card empty">No more trips shared yet.</div>';
+  } else {
+    const legs = trip ? trip.days.flatMap(x => x.legs.map(l => Object.assign({ date: x.date }, l))) : [];
+    const next = legs.find(l => l.date >= today && !(l.in && inAgo(l) > 60));
+    const hero = next ? `<div class="card hero"><div class="row"><span class="lbl">${next.date === today ? 'Today' : md(next.date)} · Flight ${esc(next.flight)}${next.dhd ? ' · riding' : ''}</span>${status(next)}</div>
+        <div class="route"><b>${esc(next.from)}</b><span class="mid">${esc(next.block || '')}</span><b>${esc(next.to)}</b></div>
+        <div class="times"><span>${esc(next.dep)}</span><span>${esc(next.arr)}</span></div></div>` : '';
+    const openDay = trip && (trip.days.some(x => x.date === today) ? today : trip.days[0].date);
+    body = hero + (trip ? `<div class="card trip"><h2>${range(trip)}</h2>${trip.days.map((x, i) => dayHtml(x, i, x.date === openDay)).join('')}</div>`
+      : '<div class="card empty">No upcoming flights shared yet.</div>');
+  }
   v.innerHTML = `<div class="top"><div><h1>${esc(who)}’s flights</h1><div class="sub">${at ? `Updated ${at} · ` : ''}local airport times</div></div><button class="refresh" id="again">↻ Refresh</button></div>
-    ${hero}${card}
+    ${body}
     <div class="foot"><button id="change">Use a different key</button></div>`;
+  document.querySelectorAll('#bar [data-pg]').forEach(b => b.classList.toggle('on', b.dataset.pg === page));
 }
 
+function search() {
+  const q = $('sq').value.toUpperCase().replace(/[\s-]/g, '');
+  if (!/^[A-Z0-9]{2,3}\d{1,4}[A-Z]?$/.test(q) || /^\d+$/.test(q)) { $('smsg').textContent = 'Add the airline code, e.g. UA5269'; return; }
+  window.open(`https://www.flightaware.com/live/flight/${encodeURIComponent(q)}`, '_blank', 'noopener');
+  $('sheet').hidden = true;
+}
+$('sform').addEventListener('submit', e => { e.preventDefault(); search(); });
 $('keyForm').addEventListener('submit', e => {
   e.preventDefault();
   const k = $('key').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
   if (k.length !== 12) { $('msg').textContent = 'The key has 12 letters and numbers'; return; }
   $('msg').textContent = '';
-  open(k);
+  openKey(k);
 });
 document.addEventListener('click', e => {
+  const pg = e.target.closest('[data-pg]');
+  if (pg) { page = pg.dataset.pg; try { sessionStorage.setItem('cbFriendPage', page); } catch (er) {} show(); scrollTo(0, 0); return; }
+  if (e.target.closest('#sbtn')) { $('sq').value = ''; $('sheet').hidden = false; $('smsg').textContent = ''; setTimeout(() => $('sq').focus(), 50); return; }   // 열 때마다 빈칸
+  if (e.target.id === 'sheet' || e.target.id === 'sclose') { $('sheet').hidden = true; return; }
   if (e.target.id === 'again') { e.target.textContent = 'Refreshing…'; refresh(); }
   if (e.target.id === 'change') {
     try { localStorage.removeItem('cbFriendKey'); } catch (er) {}
     key = ''; shared = null; $('key').value = '';
-    $('view').hidden = true; sky.run(); askKey();
+    $('view').hidden = true; $('bar').hidden = true; sky.run(); askKey();
   }
 });
 setInterval(() => { if (shared && !document.hidden && $('start').hidden) refresh(); }, 5 * 6e4);
 sky.run();
-if (key) open(key);
+if (key) openKey(key);
 else setTimeout(() => askKey(), 2300);   // after the plane has flown in
 </script>
 </body>
