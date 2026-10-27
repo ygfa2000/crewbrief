@@ -105,7 +105,7 @@
   .hero.off .hx-lbl { margin-top:0; }
   .hx-row { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:16px; } .hx-row .hx-lbl { margin-top:0; }
   .hero .ot { font-size:13px; padding:3px 9px; } .hero .ot b { display:inline; margin-left:4px; }
-  .hero .ot.ok { background:#e7f8ef; color:#0b8a5f; } .hero .ot.late { background:#ffe3e6; color:#d92d3a; }
+  .hero .ot.ok { background:#e7f8ef; color:#0b8a5f; } .hero .ot.done { background:rgba(255,255,255,.2); color:#fff; } .hero .ot.late { background:#ffe3e6; color:#d92d3a; }
   .cd { display:flex; align-items:baseline; gap:4px; margin-top:6px; font-variant-numeric:tabular-nums; }
   .cd b { font-size:56px; font-weight:800; letter-spacing:-.03em; line-height:1; }
   .cd i { font-style:normal; font-size:20px; font-weight:700; opacity:.7; margin-right:8px; }
@@ -269,6 +269,7 @@
   .ot { display:inline-block; text-align:center; line-height:1.25; font-size:11px; font-weight:700; border-radius:7px; padding:2px 7px; white-space:nowrap; }
   .ot.ok { color:#0e9f6e; background:rgba(14,159,110,.12); }
   .ot.late { color:var(--warn); background:rgba(240,68,82,.12); }
+  .ot.done { color:var(--mute); background:var(--soft); }
   .tag { border:0; background:var(--accsoft); color:var(--acc); font-weight:700; border-radius:6px; padding:1px 6px; }
   .legbody { background:var(--soft); border-radius:16px; padding:14px; margin:2px 0 12px; }
   .panel { border:1px solid var(--line); border-radius:14px; padding:16px; background:var(--card); }
@@ -796,10 +797,20 @@ function logtenUrl(d) {
   return 'logten://v2/addEntities?package=' + encodeURIComponent(JSON.stringify(pkg));
 }
 
+function inAgo(l, f) {
+  const w = x => ((x % 1440) + 1440) % 1440, nz = x => w(x + 720) - 720;
+  if (!f.stdZ || !f.sta || !/^\d+:\d{2}$/.test(l.block || '')) return l.date < today ? 1e9 : 0;
+  const depOff = nz(mins(f.std) - mins(f.stdZ)), arrOff = nz(mins(f.sta) - mins(f.stdZ) - mins(l.block));
+  const out = Date.parse(`${l.date}T00:00:00Z`) + (mins(f.std) - depOff) * 6e4;
+  const inn = out + w(mins(f.in) - arrOff - mins(f.stdZ)) * 6e4;
+  return (Date.now() - inn) / 6e4;
+}
+
 function legOt(l) {
   const ff = (((state.flows || {})[`${l.date}-${l.tail}`] || {}).flights || []).find(x => x.flight === l.flight && x.from === l.from);
   const lag = (a, b) => ((mins(a) - mins(b) + 2160) % 1440) - 720;
   const dl = !ff || !ff.std ? 0 : ff.on && ff.sta ? lag(ff.in || ff.eta || ff.on, ff.sta) : lag(ff.out || ff.etd || ff.std, ff.std);
+  if (ff && ff.in && inAgo(l, ff) > 60) return '<span class="ot done">Complete</span>';
   const ph = !ff ? '' : ff.in ? 'At gate' : ff.on ? 'Landed' : ff.off ? 'En route' : ff.out ? 'Taxiing' : dl >= 5 ? 'Delayed' : 'On time';
   return !ff || !ff.std ? '' : `<span class="ot ${dl >= 5 ? 'late' : 'ok'}">${ph}${dl >= 5 ? `<b>+${fmtHM(dl)}</b>` : ''}</span>`;
 }
