@@ -13,17 +13,12 @@
   button { font:inherit; cursor:pointer; }
 
   /* start screen: same blue and paper plane as the app's launch screen */
-  #start { position:fixed; inset:0; background:var(--blue); color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px 16px; overflow:hidden; }
+  #start { position:fixed; inset:0; background:var(--blue); background:color(display-p3 .315 .534 .891); color:#fff; overflow:hidden; z-index:5; transition:opacity .3s; }
   #start[hidden] { display:none; }
-  .sky { position:relative; width:220px; height:200px; }
-  .sky img { position:absolute; left:50%; top:50%; width:84px; margin:-42px 0 0 -42px; animation:loop 3.2s linear infinite; }
-  @keyframes loop {
-    0% { transform:rotate(0deg) translateX(58px) rotate(70deg); }
-    100% { transform:rotate(-360deg) translateX(58px) rotate(70deg); }
-  }
-  .brand { font:800 30px ui-rounded,-apple-system,system-ui,sans-serif; letter-spacing:-.01em; margin:4px 0 2px; }
-  .tag { opacity:.85; font-size:14px; margin-bottom:26px; }
-  .keybox { width:100%; max-width:340px; background:rgba(255,255,255,.16); border-radius:20px; padding:18px; }
+  #sky { position:absolute; inset:0; width:100%; height:100%; }
+  .brand { position:absolute; left:0; right:0; text-align:center; font:800 26px ui-rounded,-apple-system,system-ui,sans-serif; }
+  .keybox { position:absolute; left:16px; right:16px; margin:0 auto; max-width:340px; background:rgba(255,255,255,.16); border-radius:20px; padding:18px; transition:opacity .25s; }
+  .keybox[hidden] { display:block; opacity:0; pointer-events:none; }
   .keybox label { display:block; font-size:13px; font-weight:600; opacity:.9; margin-bottom:8px; }
   .keybox input { width:100%; font:700 22px ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.1em; text-transform:uppercase; text-align:center; padding:14px 10px; border:0; border-radius:12px; color:#191f28; background:#fff; }
   .keybox button { width:100%; margin-top:10px; padding:14px; border:0; border-radius:12px; background:#191f28; color:#fff; font-weight:700; font-size:17px; }
@@ -48,7 +43,11 @@
   .day { border-top:1px solid var(--line); padding-top:10px; margin-top:10px; }
   .day:first-of-type { border-top:0; }
   .dh { display:flex; justify-content:space-between; gap:8px; font-weight:700; font-size:15px; }
-  .day.past .dh { opacity:.4; }
+  .day > summary { list-style:none; cursor:pointer; padding:4px 0; }
+  .day > summary::-webkit-details-marker { display:none; }
+  .day > summary > span::before { content:'▸'; display:inline-block; width:1.1em; color:var(--mute); }
+  .day[open] > summary > span::before { content:'▾'; }
+  .day:not(.now) > summary { opacity:.32; }
   .day.now .dh { font-size:17px; font-weight:800; }
   .leg { display:grid; grid-template-columns:4.2em 1fr auto; gap:8px; align-items:center; padding:10px 0; border-bottom:1px solid var(--line); }
   .leg:last-of-type { border-bottom:0; }
@@ -70,10 +69,9 @@
 </head>
 <body>
 <div id="start">
-  <div class="sky"><img src="plane.png" alt=""></div>
-  <div class="brand">Crew Brief</div>
-  <div class="tag">See the flights someone shared with you</div>
-  <form class="keybox" id="keyForm" autocomplete="off">
+  <canvas id="sky"></canvas>
+  <div class="brand" id="brand">Crew Brief</div>
+  <form class="keybox" id="keyForm" autocomplete="off" hidden>
     <label for="key">Share key</label>
     <input id="key" maxlength="12" placeholder="XXXXXXXXXXXX" autocapitalize="characters" spellcheck="false">
     <button type="submit">Open</button>
@@ -112,39 +110,113 @@ function status(l) {
   return `<span class="ot ${dl >= 5 ? 'late' : 'ok'}">${ph}${dl >= 5 ? `<b>+${fmtHM(dl)}</b>` : ''}</span>`;
 }
 
-function load(k, quiet) {
-  if (!quiet) { $('msg').textContent = 'Opening…'; }
+const sky = (() => {
+  const tilt = -40 * Math.PI / 180, v = 240, R = 90, tau = 0.75, L = 560, loopY = -30;
+  const w = v / R, t1 = L / v, X = { x: Math.cos(tilt), y: Math.sin(tilt) }, Y = { x: Math.sin(tilt), y: -Math.cos(tilt) };
+  const d0 = v * tau / 2, origin = { x: -X.x * d0 - Y.x * R, y: loopY - X.y * d0 - Y.y * R };
+  const ramp = x => { x = Math.min(Math.max(x, 0), 1); return { s: x * x * (3 - 2 * x), i: x * x * x - x * x * x * x / 2 }; };
+  const cv = $('sky'), g = cv.getContext('2d'), img = new Image();
+  img.src = 'plane.png';
+  let start = 0, down = null, raf = 0, done = null;
+  function theta(t) {
+    let th = w * tau * ramp((t - t1) / tau).i + w * Math.max(t - t1 - tau, 0), rate = w * ramp((t - t1) / tau).s;
+    if (down != null && t > down) {
+      const r = ramp((t - down) / tau);
+      th -= w * Math.max(t - down, 0) - w * tau * (Math.min((t - down) / tau, 1) - r.i);
+      rate -= w * r.s;
+    }
+    return { th, rate };
+  }
+  function spot(t) {
+    const { th, rate } = theta(t);
+    let d = v * (t - t1) - R * th, dd = v - R * rate;
+    if (down != null && t > down + tau) { const u = t - down - tau; d += 450 * u * u; dd += 900 * u; }
+    const fx = d + R * Math.sin(th), fy = R * (1 - Math.cos(th));
+    const vx = dd + R * rate * Math.cos(th), vy = R * rate * Math.sin(th);
+    return { x: origin.x + X.x * fx + Y.x * fy, y: origin.y + X.y * fx + Y.y * fy, head: Math.atan2(X.y * vx + Y.y * vy, X.x * vx + Y.x * vy) };
+  }
+  function frame() {
+    const dpr = devicePixelRatio || 1, W = innerWidth, H = innerHeight;
+    if (cv.width !== W * dpr || cv.height !== H * dpr) { cv.width = W * dpr; cv.height = H * dpr; }
+    g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+    const t = (performance.now() - start) / 1000, c = { x: W / 2, y: H / 2 }, out = down != null ? Math.max(t - down - tau, 0) : 0;
+    g.lineCap = 'round';
+    for (let k = 1, n = 32; k <= n; k++) {   // contrail: the last 0.8 s, fading
+      const ta = t - 0.8 * k / n, tb = t - 0.8 * (k - 1) / n;
+      if (ta <= 0) break;
+      const p0 = spot(ta), p1 = spot(tb), a = 1 - k / n;
+      g.strokeStyle = `rgba(255,255,255,${0.4 * a})`; g.lineWidth = 1.5 + 5 * a;
+      g.beginPath(); g.moveTo(c.x + p0.x, c.y + p0.y); g.lineTo(c.x + p1.x, c.y + p1.y); g.stroke();
+    }
+    const f = spot(t), s = 0.6 * (1 + 0.4 * out);
+    if (img.complete && img.naturalWidth) {
+      g.save(); g.translate(c.x + f.x, c.y + f.y); g.rotate(f.head - tilt);
+      const iw = img.naturalWidth / 3 * s, ih = img.naturalHeight / 3 * s;
+      g.drawImage(img, -iw / 2, -ih / 2, iw, ih); g.restore();
+    }
+    const b = $('brand');
+    b.style.top = `${c.y + 160 - 16}px`;
+    b.style.opacity = Math.min(Math.max((t - 0.6) / 0.5, 0), 1) * Math.max(1 - out * 4, 0);
+    $('start').style.opacity = out < 0.4 ? 1 : Math.max(1 - (out - 0.4) / 0.3, 0);
+    raf = requestAnimationFrame(frame);
+  }
+  return {
+    run() { cancelAnimationFrame(raf); start = performance.now(); down = null; done = null; $('start').style.opacity = 1; $('start').hidden = false; frame(); },
+    leave(cb) {
+      if (down != null) return;
+      const now = (performance.now() - start) / 1000;
+      let k = 1, d;
+      do { d = t1 + tau + (2 * Math.PI * k - w * tau) / w; k++; } while (d < now);
+      down = d;
+      setTimeout(() => { cancelAnimationFrame(raf); $('start').hidden = true; cb(); }, (d + tau - now + 0.75) * 1000);
+    },
+    get inLoop() { return (performance.now() - start) / 1000 > t1; },
+  };
+})();
+function askKey(msg) {
+  const f = $('keyForm');
+  f.style.bottom = `calc(24px + env(safe-area-inset-bottom))`;
+  f.hidden = false; $('msg').textContent = msg || '';
+  if (!msg) setTimeout(() => $('key').focus(), 50);
+}
+
+function fetchShare(k) {
   return fetch(`${RELAY}?f=share&sk=${encodeURIComponent(k)}`).then(r => r.json()).then(r => {
     if (!r.ok) throw new Error(r.error === 'unknown key' ? 'That key does not work — check it with the person who shared it' : r.error);
+    return r;
+  });
+}
+function open(k) {
+  $('keyForm').hidden = true;
+  fetchShare(k).then(r => {
     key = k; shared = r;
     try { localStorage.setItem('cbFriendKey', k); } catch (e) {}
-    show();
-  }).catch(err => {
-    if (quiet && shared) return;
-    $('start').hidden = false; $('view').hidden = true;
-    $('key').value = k; $('msg').textContent = err.message;
-  });
+    sky.leave(show);
+  }).catch(err => { $('key').value = k; askKey(err.message); });
+}
+function refresh() {
+  return fetchShare(key).then(r => { shared = r; show(); }).catch(() => {});
 }
 
 function show() {
-  $('start').hidden = true;
   const v = $('view'); v.hidden = false;
   const d = shared.data || { trips: [] }, who = shared.name || 'Crew';
-  const days = d.trips.flatMap(t => t.days.map(x => ({ t, d: x })));
-  const legs = days.flatMap(({ d: x }) => x.legs.map(l => Object.assign({ date: x.date }, l)));
+  const trip = d.trips.find(t => t.start <= today && t.end >= today) || d.trips.find(t => t.start > today);
+  const legs = trip ? trip.days.flatMap(x => x.legs.map(l => Object.assign({ date: x.date }, l))) : [];
   const next = legs.find(l => l.date >= today && !(l.in && inAgo(l) > 60));
   const at = d.syncedAt ? (t => `${t.getMonth() + 1}/${t.getDate()} ${pad(t.getHours())}:${pad(t.getMinutes())}`)(new Date(d.syncedAt)) : '';
   const hero = next ? `<div class="card hero"><div class="row"><span class="lbl">${next.date === today ? 'Today' : md(next.date)} · Flight ${esc(next.flight)}${next.dhd ? ' · riding' : ''}</span>${status(next)}</div>
       <div class="route"><b>${esc(next.from)}</b><span class="mid">${esc(next.block || '')}</span><b>${esc(next.to)}</b></div>
-      <div class="times"><span>${esc(next.dep)}</span><span>${esc(next.arr)}</span></div></div>`
-    : '<div class="card empty">No upcoming flights shared yet.</div>';
-  const trips = d.trips.filter(t => t.end >= today).map(t => `<div class="card trip"><h2>${md(t.start)}${t.end !== t.start ? ` – ${md(t.end)}` : ''}</h2>
-      ${t.days.map(x => `<div class="day${x.date < today ? ' past' : x.date === today ? ' now' : ''}"><div class="dh"><span>${md(x.date)}</span><span class="sub">${x.report ? `Report ${esc(x.report)}` : ''}${x.release ? ` · Release ${esc(x.release)}` : ''}</span></div>
+      <div class="times"><span>${esc(next.dep)}</span><span>${esc(next.arr)}</span></div></div>` : '';
+  const openDay = trip && (trip.days.some(x => x.date === today) ? today : trip.days[0].date);
+  const card = trip ? `<div class="card trip"><h2>${md(trip.start)}${trip.end !== trip.start ? ` – ${md(trip.end)}` : ''}</h2>
+      ${trip.days.map((x, i) => `<details class="day${x.date === openDay ? ' now' : ''}"${x.date === openDay ? ' open' : ''}><summary class="dh"><span>Day ${i + 1} · ${md(x.date)}</span></summary>
         ${x.legs.map(l => `<div class="leg"><span class="fl">${esc(l.flight)}${l.dhd ? ' <span class="sub">DH</span>' : ''}</span>
           <span class="rt">${esc(l.from)} → ${esc(l.to)}<small>${esc(l.dep)}–${esc(l.arr)}</small></span>${status(Object.assign({ date: x.date }, l))}</div>`).join('')}
-        ${x.city ? `<div class="lay">Overnight in ${esc(x.city)}${x.layover ? ` · ${esc(x.layover)} layover` : ''}</div>` : ''}</div>`).join('')}</div>`).join('');
+        ${x.city ? `<div class="lay">Overnight in ${esc(x.city)}${x.layover ? ` · ${esc(x.layover)} layover` : ''}</div>` : ''}</details>`).join('')}</div>`
+    : '<div class="card empty">No upcoming flights shared yet.</div>';
   v.innerHTML = `<div class="top"><div><h1>${esc(who)}’s flights</h1><div class="sub">${at ? `Updated ${at} · ` : ''}local airport times</div></div><button class="refresh" id="again">↻ Refresh</button></div>
-    ${hero}${trips}
+    ${hero}${card}
     <div class="foot"><button id="change">Use a different key</button></div>`;
 }
 
@@ -152,18 +224,21 @@ $('keyForm').addEventListener('submit', e => {
   e.preventDefault();
   const k = $('key').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
   if (k.length !== 12) { $('msg').textContent = 'The key has 12 letters and numbers'; return; }
-  load(k);
+  $('msg').textContent = '';
+  open(k);
 });
 document.addEventListener('click', e => {
-  if (e.target.id === 'again') { e.target.textContent = 'Refreshing…'; load(key, true); }
+  if (e.target.id === 'again') { e.target.textContent = 'Refreshing…'; refresh(); }
   if (e.target.id === 'change') {
     try { localStorage.removeItem('cbFriendKey'); } catch (er) {}
-    key = ''; shared = null; $('key').value = ''; $('msg').textContent = '';
-    $('view').hidden = true; $('start').hidden = false;
+    key = ''; shared = null; $('key').value = '';
+    $('view').hidden = true; sky.run(); askKey();
   }
 });
-setInterval(() => { if (shared && !document.hidden) load(key, true); }, 5 * 6e4);
-if (key) { $('key').value = key; setTimeout(() => load(key), 900); }   // let the plane fly a moment first
+setInterval(() => { if (shared && !document.hidden && $('start').hidden) refresh(); }, 5 * 6e4);
+sky.run();
+if (key) open(key);
+else setTimeout(() => askKey(), 2300);   // after the plane has flown in
 </script>
 </body>
 </html>
