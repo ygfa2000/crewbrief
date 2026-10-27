@@ -1308,6 +1308,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/27', 'Friend page: the map opens right under the flight you tap; zoomed to fit both airports'],
   ['10/27', 'Friend page: tap a flight for a map with the planned route (from the Release, else the shortest path) and the live plane (open ADS-B data from adsb.lol)'],
   ['10/27', 'Friend page: flight search works with 2-letter airline codes (UA5269 opens UAL5269 on FlightAware)'],
   ['10/27', 'Friend page: P · M · C · E letter before departure and arrival times (outlined = no daylight saving)'],

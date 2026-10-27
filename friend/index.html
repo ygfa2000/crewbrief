@@ -289,7 +289,7 @@ function show() {
     ${body}
     <div class="foot"><button id="change">Use a different key</button></div>`;
   clocks();
-  if (mapKey) openMap(mapKey);
+  if (mapKey) openMap(mapKey, mapHero);
   document.querySelectorAll('#bar [data-pg]').forEach(b => b.classList.toggle('on', b.dataset.pg === page));
 }
 
@@ -316,7 +316,7 @@ setInterval(clocks, 1000);
 
 const ICAO = { UA: 'UAL', AA: 'AAL', DL: 'DAL', WN: 'SWA', AS: 'ASA', B6: 'JBU', NK: 'NKS', F9: 'FFT', G4: 'AAY', HA: 'HAL', OO: 'SKW', QX: 'QXE', YX: 'RPA',
   MQ: 'ENY', '9E': 'EDV', OH: 'JIA', YV: 'ASH', G7: 'GJS', ZW: 'AWI', PT: 'PDT', C5: 'UCA', AC: 'ACA', WS: 'WJA', AM: 'AMX' };
-let mapKey = '', mapObj = null, mapTimer = null, airports = null;
+let mapKey = '', mapHero = false, mapObj = null, mapTimer = null, airports = null;
 const trails = {};
 function loadLeaflet() {
   if (window.L) return Promise.resolve();
@@ -357,16 +357,16 @@ function closeMap() {
   const box = $('mapbox'); if (box) box.remove();
   document.querySelectorAll('[data-leg].sel').forEach(e => e.classList.remove('sel'));
 }
-function openMap(key) {
+function openMap(key, hero) {
   closeMap();
-  const el = [...document.querySelectorAll('[data-leg]')].find(e => e.dataset.leg === key), leg = findLeg(key);
+  const el = [...document.querySelectorAll('[data-leg]')].find(e => e.dataset.leg === key && e.classList.contains('hero') === !!hero), leg = findLeg(key);
   if (!el || !leg) { mapKey = ''; return; }
-  mapKey = key;
+  mapKey = key; mapHero = !!hero;
   el.classList.add('sel');
   el.insertAdjacentHTML('afterend', '<div class="mapbox" id="mapbox"><div id="map"></div><div class="mapinfo" id="mapinfo">Loading map…</div></div>');
   Promise.all([loadLeaflet(), loadAirports()]).then(() => {
     if (mapKey !== key || !$('map')) return;
-    mapObj = L.map('map', { zoomControl: false, attributionControl: true });
+    mapObj = L.map('map', { zoomControl: false, attributionControl: true, zoomSnap: 0.25 });
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 12, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · <a href="https://adsb.fi">adsb.fi</a> · <a href="https://adsb.lol">adsb.lol</a>' }).addTo(mapObj);
     const a = airports[leg.from], b = airports[leg.to], pts = [];
@@ -423,7 +423,7 @@ $('keyForm').addEventListener('submit', e => {
 });
 document.addEventListener('click', e => {
   const lg = e.target.closest('[data-leg]');
-  if (lg && !e.target.closest('summary, a, button, #mapbox')) { if (mapKey === lg.dataset.leg) { mapKey = ''; closeMap(); } else openMap(lg.dataset.leg); return; }
+  if (lg && !e.target.closest('summary, a, button, #mapbox')) { const h = lg.classList.contains('hero'); if (mapKey === lg.dataset.leg && mapHero === h) { mapKey = ''; closeMap(); } else openMap(lg.dataset.leg, h); return; }
   const pg = e.target.closest('[data-pg]');
   if (pg) { page = pg.dataset.pg; try { sessionStorage.setItem('cbFriendPage', page); } catch (er) {} show(); scrollTo(0, 0); return; }
   if (e.target.closest('#sbtn')) { $('sq').value = ''; $('sheet').hidden = false; $('smsg').textContent = ''; setTimeout(() => $('sq').focus(), 50); return; }
