@@ -368,7 +368,7 @@ function openMap(key) {
     if (mapKey !== key || !$('map')) return;
     mapObj = L.map('map', { zoomControl: false, attributionControl: true });
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 12, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · <a href="https://adsb.lol">adsb.lol</a>' }).addTo(mapObj);
+      maxZoom: 12, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · <a href="https://adsb.fi">adsb.fi</a> · <a href="https://adsb.lol">adsb.lol</a>' }).addTo(mapObj);
     const a = airports[leg.from], b = airports[leg.to], pts = [];
     const plan = Array.isArray(leg.route) && leg.route.length >= 2 ? leg.route.map(x => [x[1], x[2]]) : null;
     if (plan || (a && b)) L.polyline(plan || arc(a, b), { color: '#3182f6', weight: 2.5, dashArray: '6 7', opacity: .9 }).addTo(mapObj);
