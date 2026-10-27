@@ -250,6 +250,8 @@
   .day.fold > summary.dayhead > span:first-child::before { content:'▸'; display:inline-block; width:1.1em; color:var(--mute); }
   .day.fold[open] > summary.dayhead > span:first-child::before { content:'▾'; }
   .day.fold:not([open]) { padding-bottom:4px; }
+  .day.fold:not(.now) > summary.dayhead { opacity:.32; }
+  .day.fold.now > summary.dayhead { font-size:17px; font-weight:800; }
   .logten { display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:12px;
     padding:5px 14px 5px 5px; font-weight:700; text-decoration:none; font-size:14px; margin:4px 0 6px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
   .logten .lt-ico { width:30px; height:30px; border-radius:7px; box-shadow:0 0 0 1px rgba(0,0,0,.08); }
@@ -789,7 +791,7 @@ function dayBlock(trip, d, fold) {
   const allLegs = trip.days.flatMap(x => x.legs);
   const head = `<span>${fold ? `Day ${trip.days.indexOf(d) + 1} · ` : ''}${md(d.date)}</span><span class="sub">Report ${esc(d.report)} · Release ${esc(d.release)}${d.duty ? ` · Duty ${esc(d.duty)}` : ''}</span>`;
   return `
-    ${fold ? `<details class="day fold"${fold === 'open' ? ' open' : ''}><summary class="dayhead">${head}</summary>` : `<div class="day">
+    ${fold ? `<details class="day fold${fold === 'open' ? ' now" open' : '"'}><summary class="dayhead">${head}</summary>` : `<div class="day">
       <div class="dayhead">${head}</div>`}
       ${(u => u ? `<a class="logten" href="${u}">${LT_ICON}<span>LogTen</span></a>` : '')(logtenUrl(d))}
       ${d.legs.map(l => {
