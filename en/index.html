@@ -247,6 +247,9 @@
   .day { border-top:0; padding:4px 22px 16px; }
   .dayhead { font-weight:700; font-size:15px; padding:10px 0 6px; border-top:1px solid var(--line); }
   .day:first-of-type .dayhead { border-top:0; }
+  .day.fold > summary.dayhead > span:first-child::before { content:'▸'; display:inline-block; width:1.1em; color:var(--mute); }
+  .day.fold[open] > summary.dayhead > span:first-child::before { content:'▾'; }
+  .day.fold:not([open]) { padding-bottom:4px; }
   .logten { display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:12px;
     padding:5px 14px 5px 5px; font-weight:700; text-decoration:none; font-size:14px; margin:4px 0 6px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
   .logten .lt-ico { width:30px; height:30px; border-radius:7px; box-shadow:0 0 0 1px rgba(0,0,0,.08); }
@@ -782,11 +785,12 @@ function logtenUrl(d) {
   return 'logten://v2/addEntities?package=' + encodeURIComponent(JSON.stringify(pkg));
 }
 
-function dayBlock(trip, d) {
+function dayBlock(trip, d, fold) {
   const allLegs = trip.days.flatMap(x => x.legs);
+  const head = `<span>${fold ? `Day ${trip.days.indexOf(d) + 1} · ` : ''}${md(d.date)}</span><span class="sub">Report ${esc(d.report)} · Release ${esc(d.release)}${d.duty ? ` · Duty ${esc(d.duty)}` : ''}</span>`;
   return `
-    <div class="day">
-      <div class="dayhead"><span>${md(d.date)}</span><span class="sub">Report ${esc(d.report)} · Release ${esc(d.release)}${d.duty ? ` · Duty ${esc(d.duty)}` : ''}</span></div>
+    ${fold ? `<details class="day fold"${fold === 'open' ? ' open' : ''}><summary class="dayhead">${head}</summary>` : `<div class="day">
+      <div class="dayhead">${head}</div>`}
       ${(u => u ? `<a class="logten" href="${u}">${LT_ICON}<span>LogTen</span></a>` : '')(logtenUrl(d))}
       ${d.legs.map(l => {
         const rel = state.releases[`${l.date}-${l.flight}-${l.from}`];
@@ -814,7 +818,7 @@ function dayBlock(trip, d) {
           </div></details>`;
       }).join('')}
       ${d.hotel ? `<div class="hotel">🏨 ${esc(d.hotel)} · layover ${esc(d.layover)}</div>` : ''}
-    </div>`;
+    ${fold ? '</details>' : '</div>'}`;
 }
 
 const tripTitle = trip => `${esc(trip.pairing)} · ${md(trip.start)}${trip.end !== trip.start ? ` – ${md(trip.end)}` : ''}`;
@@ -839,7 +843,7 @@ function todayView() {
     <div class="box" style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline">
       <b style="font-size:17px">${esc(trip.pairing)} · Day ${i + 1}/${trip.days.length}</b>
       <span class="sub">${tripTitle(trip)}</span></div>
-    ${dayBlock(trip, trip.days[i])}</div>`;
+    ${trip.days.map(d => dayBlock(trip, d, d.date === today ? 'open' : 'closed')).join('')}</div>`;
 }
 
 function homeView() {
@@ -1339,15 +1343,18 @@ document.addEventListener('toggle', e => {
 const rwyPad = x => x.replace(/^(\d)(?=[LRC]?$)/, '0$1');
 function depRwys(text) {
   const out = [];
-  const re = /\b(?:DEPG|DEPTG|DEPARTING|DEPARTURES?|DEPS?)\b([^.]*)/g;
+  const re = /\b(?:DEPG|DEPTG|DEPART|DEPARTING|DEPARTURES?|DEPS?)\b([^.]*)/g;
   let m;
   while ((m = re.exec(text || ''))) {
-    const k = m[1].search(/\b(?:RWYS?|RYS?|RUNWAYS?)(?=\s*\d)/);
-    if (k < 0) continue;
-    for (const t of m[1].slice(k).replace(/\b(?:RWYS?|RYS?|RUNWAYS?)\s*/g, ' ').split(/[\s,&]+/)) {
-      if (!t || t === 'AND') continue;
-      if (!/^\d{1,2}[LRC]?$/.test(t)) break;
-      const x = rwyPad(t);
+    let s = m[1].replace(/\b(\d) (\d)(?= (?:RIGHT|LEFT|CENTER)\b)/g, '$1$2').replace(/\b(\d{1,2}) (RIGHT|LEFT|CENTER)\b/g, (x, n, w) => n + w[0]);
+    const k = s.search(/\b(?:RWYS?|RYS?|RUNWAYS?)(?=\s*\d)/);
+    if (k < 0) { const d = /^\s*(\d{1,2}[LRC]?)(?=[\s,]|$)/.exec(s); if (d) s = d[1]; else continue; } else s = s.slice(k);
+    const t = s.replace(/\d{1,2},\s*\d{3}/g, ' ').replace(/\b(?:RWYS?|RYS?|RUNWAYS?)\s*/g, ' ').split(/[\s,&;]+/).filter(Boolean);
+    for (let i = 0; i < t.length; i++) {
+      if (/^(?:ARR|ARRS|ARVL|ARVLS|ARRIVALS?|ARRIVING|LNDG|LANDING|APCHS?|APPROACH(?:ES)?|ILS|VISUAL|RNAV)$/.test(t[i])) break;
+      if (!/^\d{1,2}[LRC]?$/.test(t[i])) continue;
+      if (/^(?:FT|FEET|KT|KTS|SM|NM|MI|MILES?|MIN|MINS|DEG|THOUSAND|HUNDRED)$/.test(t[i + 1] || '') || /^(?:[A-Z]|TWY|TAXIWAY|HDG|HEADING)$/.test(t[i - 1] || '')) continue;
+      const x = rwyPad(t[i]);
       if (!out.includes(x)) out.push(x);
     }
   }
