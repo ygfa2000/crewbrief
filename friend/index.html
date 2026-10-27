@@ -94,6 +94,9 @@
   .zones > span { white-space:nowrap; }
   .tz { display:inline-block; width:12px; height:12px; border-radius:3px; margin:0 3px 0 2px; vertical-align:-1px; font:800 8.5px/12px -apple-system,system-ui,sans-serif; font-style:normal; text-align:center; color:#fff; }
   .tz-P { background:#8b5cf6; } .tz-M { background:#f08c00; } .tz-C { background:#0ca678; } .tz-E { background:#3182f6; }
+  .tz.tz-nd { background:transparent; box-shadow:inset 0 0 0 1.5px currentColor; } .tz-nd.tz-P { color:#8b5cf6; } .tz-nd.tz-M { color:#f08c00; } .tz-nd.tz-C { color:#0ca678; } .tz-nd.tz-E { color:#3182f6; }
+  .hero .tz { width:14px; height:14px; font-size:10px; line-height:14px; margin-right:4px; vertical-align:1px; box-shadow:0 0 0 1px rgba(255,255,255,.5); }
+  .hero .tz.tz-nd { color:#fff; box-shadow:inset 0 0 0 1.5px #fff; }
 </style>
 </head>
 <body>
@@ -247,7 +250,7 @@ let page = 'today';
 try { page = sessionStorage.getItem('cbFriendPage') || 'today'; } catch (e) {}
 const dayHtml = (x, i, open) => `<details class="day${open ? ' now' : ''}"${open ? ' open' : ''}><summary class="dh"><span>Day ${i + 1} · ${md(x.date)}</span></summary>
     ${x.legs.map(l => `<div class="leg"><span class="fl">${esc(l.flight)}${l.dhd ? ' <span class="sub">DH</span>' : ''}</span>
-      <span class="rt">${esc(l.from)} → ${esc(l.to)}<small>${esc(l.dep)}–${esc(l.arr)}</small></span>${status(Object.assign({ date: x.date }, l))}</div>`).join('')}
+      <span class="rt">${esc(l.from)} → ${esc(l.to)}<small>${tzOf(l.from)}${esc(l.dep)}–${tzOf(l.to)}${esc(l.arr)}</small></span>${status(Object.assign({ date: x.date }, l))}</div>`).join('')}
     ${x.city ? `<div class="lay">Overnight in ${esc(x.city)}${x.layover ? ` · ${esc(x.layover)} layover` : ''}</div>` : ''}</details>`;
 const range = t => `${md(t.start)}${t.end !== t.start ? ` – ${md(t.end)}` : ''}`;
 function show() {
@@ -267,7 +270,7 @@ function show() {
     const next = legs.find(l => l.date >= today && !(l.in && inAgo(l) > 60));
     const hero = next ? `<div class="card hero"><div class="row"><span class="lbl">${next.date === today ? 'Today' : md(next.date)} · Flight ${esc(next.flight)}${next.dhd ? ' · riding' : ''}</span>${status(next)}</div>
         <div class="route"><b>${esc(next.from)}</b><span class="mid">${esc(next.block || '')}</span><b>${esc(next.to)}</b></div>
-        <div class="times"><span>${esc(next.dep)}</span><span>${esc(next.arr)}</span></div></div>` : '';
+        <div class="times"><span>${tzOf(next.from)}${esc(next.dep)}</span><span>${tzOf(next.to)}${esc(next.arr)}</span></div></div>` : '';
     const openDay = trip && (trip.days.some(x => x.date === today) ? today : trip.days[0].date);
     body = hero + (trip ? `<div class="card trip"><h2>${range(trip)}</h2>${trip.days.map((x, i) => dayHtml(x, i, x.date === openDay)).join('')}</div>`
       : '<div class="card empty">No upcoming flights shared yet.</div>');
@@ -281,9 +284,22 @@ function show() {
 
 const HDR = `<header class="hdr"><span class="logo"><svg class="mark" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="cbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5aa5ff"/><stop offset="1" stop-color="#1b64da"/></linearGradient></defs><rect width="40" height="40" rx="12" fill="url(#cbg)"/><path d="M9 27c6-1 14-5 22-14" stroke="rgba(255,255,255,.35)" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M10.5 21.5 30 12.5l-6.2 16.2-4.3-5.6z" fill="#fff"/><path d="m19.5 23.1 10.5-10.6-12.2 8.9z" fill="#cfe2ff"/></svg><span class="word"><span class="wt">Crew <em>Brief</em></span><small>For Friend</small></span></span><div class="zones" id="zones"></div></header>`;
 const TZ_CLOCKS = [['P', 'America/Los_Angeles'], ['M', 'America/Denver'], ['C', 'America/Chicago'], ['E', 'America/New_York']];
+const TZ_APT = (s => { const m = {}; for (let i = 0; i + 3 < s.length; i += 4) m[s.slice(i, i + 3)] = s[i + 3]; return m; })('ABEEABICABQMABRCACACACKEACTCACVPAEXCAGSEAGUCAHNEALBEALOCAMACAPNEASEMATLEATWCATYCAUSCAVLEAVPEAZOEBDLEBFFMBFLPBGMEBGREBHMCBILMBISCBJICBJXCBKGCBLIPBMICBNACBOIMBOSEBPTCBRDCBROCBTMMBTRCBTVEBUFEBURPBZNMCAEECAKECDCMCHAECHOECHSECIDCCIUECKBECLDPCLEECLLCCLTECMHECMICCMXECNYMCODMCOSMCOUCCPRMCRPCCRWECVGECYSMDAYEDCAEDDCCDECCDENMDFWCDIKMDLHCDROMDSMCDTWEDVLCEAUCECPCEGEMEKOPELHEELMEELPMERIEESCEEUGPEVVCEWREFARCFATPFAYEFCAMFLGMFMNMFNTEFODCFOECFSDCFSMCFWAEGCCMGCKCGDLCGEGPGFKCGGGCGJTMGNVEGRBCGRICGRKCGRREGSOEGSPEGTFMGTRCGUCMHDNMHIBCHLNMHMOMHOBMHOUCHRLCHSVCHYSCIADEIAHCICTCIDAMILMEIMTCINDEINLCJACMJANCJAXEJLNCJMSCJSTELAFELANELAPMLARMLASPLAWCLAXPLBBCLBFCLBLCLCHCLEXELFTCLGAELGBPLITCLNKCLNSELRDCLTOMLWBELWSPLYHEMAFCMBSEMCICMCNEMCWCMDTEMEICMEMCMFECMFRPMGMCMGWEMHHEMHKCMKECMLICMLUCMOBCMOTCMQTEMRYPMSNCMSOMMSPCMSYCMTJMMTYCMWACMYREMZTMOAJEOAKPOAXCOKCCOMACONTPORDCORFEOTHPOWBCPAHCPDXPPHLEPHXMPIACPIBCPIHMPIRCPITEPLNEPNSCPRCMPSCPPSPPPUBMPVDEPVRCPVUMPWMERAPMRDDPRDMPRDUERHICRICERIWMRKSMRNOPROAEROCEROWMRSTCSAFMSANPSATCSAVESBAPSBNESBPPSCEESDFESEAPSFOPSGFCSGUMSHDESHRMSHVCSJCPSJDMSJTCSLCMSLNCSLPCSMFPSNAPSPSCSRQESTLCSTSPSUNMSUXCSWOCSYRETEBETGZCTIJPTPAETULCTUSMTVCETWFMTYRCTYSEVCTCWYSMXNACYEGMYIPEYLWPYQRCYUMMYVRPYWGCYYCMYYJPYYZEZIHCZLOCBIHPEARCHEZCXWAC');
+const tzIcon = k => k ? `<i class="tz tz-${k}">${k}</i>` : '';
+const TZ_NODST = new Set('PHX TUS FLG YUM PRC IFP GCN ACA AGU BJX GDL HMO LAP LTO MTY MZT OAX PVR SJD SLP TGZ ZIH ZLO CUN MEX QRO'.split(' '));
+const TZ_MODE = 'clock';
+const TZ_STD = { P: -8, M: -7, C: -6, E: -5 };
+const usDst = () => /GMT-4/.test(new Date().toLocaleString('en-US', { timeZone: 'America/New_York', timeZoneName: 'shortOffset' }));   // 지금 미국이 서머타임인가 (동부가 UTC-4)
+const tzOf = apt => {
+  const k = TZ_APT[apt];
+  if (!k || !TZ_NODST.has(apt)) return tzIcon(k);
+  if (TZ_MODE === 'star') return `<i class="tz tz-${k}">${k}</i><i class="tz-star">*</i>`;
+  const cur = Object.keys(TZ_STD).find(x => TZ_STD[x] + (usDst() ? 1 : 0) === TZ_STD[k]) || k;   // 서머타임 동안은 한 칸 서쪽 시계와 같다
+  return `<i class="tz tz-nd tz-${cur}" title="No daylight saving time">${cur}</i>`;
+};
 function clocks() {
   const el = document.getElementById('zones'), d = new Date();
-  if (el) el.innerHTML = TZ_CLOCKS.map(([k, zn]) => `<span><i class="tz tz-${k}">${k}</i>${d.toLocaleTimeString('en-GB', { timeZone: zn, hour: '2-digit', minute: '2-digit' })}</span>`).join('');
+  if (el) el.innerHTML = TZ_CLOCKS.map(([k, zn]) => `<span>${tzIcon(k)}${d.toLocaleTimeString('en-GB', { timeZone: zn, hour: '2-digit', minute: '2-digit' })}</span>`).join('');
 }
 setInterval(clocks, 1000);
 

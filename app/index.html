@@ -1298,6 +1298,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/27', 'Friend page: P · M · C · E letter before departure and arrival times (outlined = no daylight saving)'],
   ['10/27', 'Friend page: Crew Brief logo with For Friend at the top left; P · M · C · E clocks at the top right'],
   ['10/27', 'App build 7: Apple Watch leg timer (elapsed and remaining vs block; turn the Crown to adjust; Stop locked 7 s after Start; ↺ reset)'],
   ['10/27', 'App build 7: watch shows the Crew Brief logo; timer icon under the departure time'],
