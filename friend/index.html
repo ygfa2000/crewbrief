@@ -284,7 +284,7 @@ $('keyForm').addEventListener('submit', e => {
 document.addEventListener('click', e => {
   const pg = e.target.closest('[data-pg]');
   if (pg) { page = pg.dataset.pg; try { sessionStorage.setItem('cbFriendPage', page); } catch (er) {} show(); scrollTo(0, 0); return; }
-  if (e.target.closest('#sbtn')) { $('sq').value = ''; $('sheet').hidden = false; $('smsg').textContent = ''; setTimeout(() => $('sq').focus(), 50); return; }   // 열 때마다 빈칸
+  if (e.target.closest('#sbtn')) { $('sq').value = ''; $('sheet').hidden = false; $('smsg').textContent = ''; setTimeout(() => $('sq').focus(), 50); return; }
   if (e.target.id === 'sheet' || e.target.id === 'sclose') { $('sheet').hidden = true; return; }
   if (e.target.id === 'again') { e.target.textContent = 'Refreshing…'; refresh(); }
   if (e.target.id === 'change') {
