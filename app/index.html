@@ -289,6 +289,14 @@
   .seg button.on { background:var(--accsoft); color:var(--acc); border-color:var(--acc); }
   .frow { border-bottom:1px solid var(--line); }
   .frow.mine { background:var(--accsoft); }
+  /* Flow 의 안 끝난 편마다 지도: 경로(Release 계획 경로, 없으면 최단 경로) · 날고 있으면 실시간 위치(공개 ADS-B) */
+  .fmap { margin:6px 0 10px; border-radius:12px; overflow:hidden; border:1px solid var(--line); }
+  .fmap-m { height:240px; background:#dfe6ee; }
+  @media (prefers-color-scheme: dark) { .fmap-m .leaflet-tile-pane { filter:invert(1) hue-rotate(180deg) brightness(.85) contrast(.9); } }
+  .fmap-i { padding:8px 10px; font-size:12.5px; color:var(--ink2,var(--mute)); display:flex; justify-content:space-between; gap:8px; }
+  .fmap-i b { color:var(--ink); }
+  .plane-ic svg { width:28px; height:28px; filter:drop-shadow(0 1px 2px rgba(0,0,0,.45)); }
+  .apt-ic { font:700 11px -apple-system,system-ui,sans-serif; color:#fff; background:#1b4fd0; padding:2px 5px; border-radius:6px; white-space:nowrap; box-shadow:0 1px 3px rgba(0,0,0,.3); }
   .hotel { color:var(--ink2); background:var(--soft); border-radius:12px; padding:10px 12px; margin-top:8px; }
   .atis-in input, #calc input, .door-top input { border:0; background:var(--soft); border-radius:12px; }
   .atis-in button, .bm { background:var(--acc); border:0; border-radius:12px; font-weight:700; }
@@ -778,7 +786,7 @@ function flowPanel(leg, fl) {
       <span><b>${esc(f.flight)}</b> ${esc(f.from)}→${esc(f.to)}${i === mine - 1 ? ' <span class="tag">인바운드</span>' : ''}
         <span class="sub">${times}${late >= 5 ? ` <b style="color:var(--warn)">+${fmtHM(late)}</b>` : ''}</span>
         ${f.delayReason && late >= 5 ? `<div class="sub" style="color:var(--warn)">${esc(f.delayReason)}</div>` : ''}</span>
-      <span class="r">${esc(f.depGate || '—')}→${esc(f.arrGate || '—')}</span>${ooo}</div>`;
+      <span class="r">${esc(f.depGate || '—')}→${esc(f.arrGate || '—')}</span>${ooo}</div>${f.in || !leg.tail ? '' : fmapBox(leg, f)}`;
   }).join('');
   const at = new Date(fl.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   return `<div class="panel"><h4>FLOW · ${esc(leg.tail)} <span style="display:block;font-weight:400;font-size:12px;white-space:nowrap;margin-top:2px">(${at} 기준 · 현지시각 · 게이트)</span></h4>${rows || '<span class="sub">편 정보 없음</span>'}</div>`;
@@ -1308,6 +1316,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/27', 'Flow: a map under each flight not yet finished: planned route from the Release (else the shortest path); the flight in the air shows the plane live'],
   ['10/27', 'Friend page: the map opens right under the flight you tap; zoomed to fit both airports'],
   ['10/27', 'Friend page: tap a flight for a map with the planned route (from the Release, else the shortest path) and the live plane (open ADS-B data from adsb.lol)'],
   ['10/27', 'Friend page: flight search works with 2-letter airline codes (UA5269 opens UAL5269 on FlightAware)'],
@@ -1417,6 +1426,75 @@ fetch(SCRIPT_URL, { cache: 'no-store' }).then(r => r.text()).then(t => {
   installDone();
   if (tab === 'set') render();
 }).catch(() => {});
+
+function fmapBox(leg, f) { return `<div class="fmap" data-date="${esc(leg.date)}" data-flight="${esc(f.flight)}" data-from="${esc(f.from)}" data-to="${esc(f.to)}" data-tail="${esc(leg.tail)}"${f.out ? ' data-live="1"' : ''}><div class="fmap-m"></div><div class="fmap-i">지도 불러오는 중…</div></div>`; }
+let leafletP = null, airportsP = null;
+const fmaps = [];
+function loadLeaflet() {
+  return leafletP = leafletP || new Promise((ok, fail) => {
+    const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; document.head.appendChild(css);
+    const js = document.createElement('script'); js.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'; js.onload = ok; js.onerror = fail; document.head.appendChild(js);
+  });
+}
+function loadAirports() {
+  return airportsP = airportsP || fetch(PAGES + 'friend/airports.txt').then(r => r.text()).then(t => {
+    const a = {};
+    t.split(';').forEach(x => { if (x.length > 3) { const [la, lo] = x.slice(3).split(',').map(Number); a[x.slice(0, 3)] = [la, lo]; } });
+    return a;
+  });
+}
+function gcArc(a, b, n = 64) {
+  const r = Math.PI / 180, [p1, l1, p2, l2] = [a[0] * r, a[1] * r, b[0] * r, b[1] * r];
+  const d = 2 * Math.asin(Math.sqrt(Math.sin((p2 - p1) / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin((l2 - l1) / 2) ** 2));
+  if (!d) return [a, b];
+  const out = [];
+  for (let i = 0; i <= n; i++) {
+    const f = i / n, A = Math.sin((1 - f) * d) / Math.sin(d), B = Math.sin(f * d) / Math.sin(d);
+    const x = A * Math.cos(p1) * Math.cos(l1) + B * Math.cos(p2) * Math.cos(l2), y = A * Math.cos(p1) * Math.sin(l1) + B * Math.cos(p2) * Math.sin(l2), z = A * Math.sin(p1) + B * Math.sin(p2);
+    out.push([Math.atan2(z, Math.sqrt(x * x + y * y)) / r, Math.atan2(y, x) / r]);
+  }
+  return out;
+}
+function fmapInit(box) {
+  box.dataset.init = '1';
+  const { date, flight, from, to, tail } = box.dataset, live = !!box.dataset.live;
+  const info = t => { const i = box.querySelector('.fmap-i'); if (i) i.innerHTML = t; };
+  Promise.all([loadLeaflet(), loadAirports()]).then(([, apt]) => {
+    if (!document.contains(box)) return;
+    const map = L.map(box.querySelector('.fmap-m'), { zoomControl: false, zoomSnap: 0.25 });
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 12,
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · <a href="https://adsb.fi">adsb.fi</a> · <a href="https://adsb.lol">adsb.lol</a>' }).addTo(map);
+    const fixes = ((state.releases || {})[`${date}-${flight}-${from}`] || {}).fixes;
+    const plan = fixes && fixes.length >= 2 ? fixes.map(x => [x[1], x[2]]) : null;
+    const path = plan || (apt[from] && apt[to] ? gcArc(apt[from], apt[to]) : []);
+    if (path.length) L.polyline(path, { color: '#3182f6', weight: 2.5, dashArray: '6 7' }).addTo(map);
+    [from, to].forEach(c => { if (apt[c]) L.marker(apt[c], { icon: L.divIcon({ className: '', html: `<span class="apt-ic">${esc(c)}</span>`, iconSize: null }) }).addTo(map); });
+    const bounds = path.concat([apt[from], apt[to]].filter(Boolean));
+    if (bounds.length) map.fitBounds(bounds, { padding: [30, 30] }); else map.setView([39, -98], 3);
+    const what = plan ? 'Release 계획 경로' : '최단 경로';
+    if (!live) return info(`<span>${what}</span>`);
+    const trail = [], line = L.polyline(trail, { color: '#f08c00', weight: 3 }).addTo(map);
+    let plane = null, fitted = false;
+    const tick = () => {
+      if (!document.contains(box)) { clearInterval(timer); map.remove(); return; }
+      if (document.hidden || !box.offsetParent) return;
+      fetch(`${RELAY}?f=pos&reg=${encodeURIComponent(tail)}&cs=${encodeURIComponent('SKW' + String(flight).replace(/\D/g, ''))}`).then(r => r.json()).then(r => {
+        const ac = r.ok && r.ac;
+        if (!ac) { if (plane) { plane.remove(); plane = null; } info(r.ok ? `<span><b>${esc(tail)}</b> 지금 비행 중 아님</span>` : '위치를 지금 못 받음'); return; }
+        const p = [ac.lat, ac.lon], last = trail[trail.length - 1];
+        if (!last || last[0] !== p[0] || last[1] !== p[1]) { trail.push(p); line.setLatLngs(trail); }
+        const icon = L.divIcon({ className: 'plane-ic', iconSize: [28, 28], iconAnchor: [14, 14],
+          html: `<svg viewBox="0 0 24 24" style="transform:rotate(${ac.track || 0}deg)"><path fill="#f08c00" stroke="#fff" stroke-width="1" d="M12 2c.8 0 1.4.9 1.4 2v5.2l7.6 4.4v2.1l-7.6-2.3v4.9l2.2 1.6v1.7L12 20.6l-3.6 1v-1.7l2.2-1.6v-4.9L3 15.7v-2.1l7.6-4.4V4c0-1.1.6-2 1.4-2z"/></svg>` });
+        if (plane) plane.setLatLng(p).setIcon(icon); else plane = L.marker(p, { icon }).addTo(map);
+        if (!fitted) { fitted = true; map.fitBounds(bounds.concat([p]), { padding: [30, 30] }); }
+        const alt = ac.alt === 'ground' ? 'GND' : ac.alt != null ? (ac.alt >= 18000 ? `FL${String(Math.round(ac.alt / 100)).padStart(3, '0')}` : `${Math.round(ac.alt / 100) * 100} ft`) : '';
+        info(`<span><b>${esc(tail)}</b>${ac.cs ? ` · ${esc(ac.cs)}` : ''}${alt ? ` · ${alt}` : ''}${ac.gs != null ? ` · ${Math.round(ac.gs)} kt` : ''}</span><span>실시간</span>`);
+      }).catch(() => info('위치를 지금 못 받음'));
+    };
+    const timer = setInterval(tick, 15000); tick();
+  }).catch(() => info('지도를 못 불러옴'));
+}
+setInterval(() => document.querySelectorAll('.fmap:not([data-init])').forEach(b => { if (b.offsetParent) fmapInit(b); }), 700);
 
 let legTab = 'rel';
 function legTabs(relHtml, flowHtml, key) {
