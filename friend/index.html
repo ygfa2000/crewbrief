@@ -83,6 +83,17 @@
   .empty { text-align:center; color:var(--mute); padding:30px 10px; }
   .foot { text-align:center; margin-top:18px; }
   .foot button { border:0; background:none; color:var(--mute); font-size:13px; text-decoration:underline; }
+  /* header: same logo as the app, "For Friend" under the name, P · M · C · E clocks on the right */
+  .hdr { display:flex; justify-content:space-between; align-items:center; gap:12px; margin:4px 0 12px; }
+  .logo { display:inline-flex; align-items:center; gap:10px; }
+  .mark { width:36px; height:36px; flex:none; filter:drop-shadow(0 4px 10px rgba(49,130,246,.35)); }
+  .word { display:inline-grid; font-size:23px; font-weight:800; letter-spacing:-.04em; line-height:1; }
+  .word .wt { white-space:nowrap; } .word em { font-style:normal; color:var(--acc); }
+  .word small { justify-self:center; white-space:nowrap; font-size:10px; font-weight:600; letter-spacing:.06em; color:var(--mute); margin-top:5px; }
+  .zones { display:grid; grid-template-columns:auto auto; column-gap:7px; row-gap:4px; font-size:11px; font-weight:600; line-height:1.25; color:var(--ink2); font-variant-numeric:tabular-nums; }
+  .zones > span { white-space:nowrap; }
+  .tz { display:inline-block; width:12px; height:12px; border-radius:3px; margin:0 3px 0 2px; vertical-align:-1px; font:800 8.5px/12px -apple-system,system-ui,sans-serif; font-style:normal; text-align:center; color:#fff; }
+  .tz-P { background:#8b5cf6; } .tz-M { background:#f08c00; } .tz-C { background:#0ca678; } .tz-E { background:#3182f6; }
 </style>
 </head>
 <body>
@@ -261,11 +272,20 @@ function show() {
     body = hero + (trip ? `<div class="card trip"><h2>${range(trip)}</h2>${trip.days.map((x, i) => dayHtml(x, i, x.date === openDay)).join('')}</div>`
       : '<div class="card empty">No upcoming flights shared yet.</div>');
   }
-  v.innerHTML = `<div class="top"><div><h1>${esc(who)}’s flights</h1><div class="sub">${at ? `Updated ${at} · ` : ''}local airport times</div></div><button class="refresh" id="again">↻ Refresh</button></div>
+  v.innerHTML = `${HDR}<div class="top"><div><h1>${esc(who)}’s flights</h1><div class="sub">${at ? `Updated ${at} · ` : ''}local airport times</div></div><button class="refresh" id="again">↻ Refresh</button></div>
     ${body}
     <div class="foot"><button id="change">Use a different key</button></div>`;
+  clocks();
   document.querySelectorAll('#bar [data-pg]').forEach(b => b.classList.toggle('on', b.dataset.pg === page));
 }
+
+const HDR = `<header class="hdr"><span class="logo"><svg class="mark" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="cbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5aa5ff"/><stop offset="1" stop-color="#1b64da"/></linearGradient></defs><rect width="40" height="40" rx="12" fill="url(#cbg)"/><path d="M9 27c6-1 14-5 22-14" stroke="rgba(255,255,255,.35)" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M10.5 21.5 30 12.5l-6.2 16.2-4.3-5.6z" fill="#fff"/><path d="m19.5 23.1 10.5-10.6-12.2 8.9z" fill="#cfe2ff"/></svg><span class="word"><span class="wt">Crew <em>Brief</em></span><small>For Friend</small></span></span><div class="zones" id="zones"></div></header>`;
+const TZ_CLOCKS = [['P', 'America/Los_Angeles'], ['M', 'America/Denver'], ['C', 'America/Chicago'], ['E', 'America/New_York']];
+function clocks() {
+  const el = document.getElementById('zones'), d = new Date();
+  if (el) el.innerHTML = TZ_CLOCKS.map(([k, zn]) => `<span><i class="tz tz-${k}">${k}</i>${d.toLocaleTimeString('en-GB', { timeZone: zn, hour: '2-digit', minute: '2-digit' })}</span>`).join('');
+}
+setInterval(clocks, 1000);
 
 function search() {
   const q = $('sq').value.toUpperCase().replace(/[\s-]/g, '');
