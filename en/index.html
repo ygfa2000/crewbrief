@@ -1124,7 +1124,7 @@ function render() {
 let tripTab = 'up';
 function myTripView() {
   const seg = `<div class="seg trip-seg"><button data-tt="up"${tripTab === 'up' ? ' class="on"' : ''}>Upcoming</button><button data-tt="past"${tripTab === 'past' ? ' class="on"' : ''}>Past Trips</button>${skedIn() ? `<button data-tt="sked"${tripTab === 'sked' ? ' class="on"' : ''}>Sked+</button>` : '<button data-tt="sked">Sked+ ↗</button>'}</div>`;
-  if (tripTab === 'sked' && skedIn()) return seg + '<div class="sk-nav"><button data-skc="back">‹ Back</button><button data-skc="reload">↻</button></div><div id="skedSlot"></div>';
+  if (tripTab === 'sked' && skedIn()) return seg + `<div class="sk-nav"><button data-skc="back">‹ Back</button>${document.documentElement.dataset.cbSkedHome ? '<button data-skc="home">⌂ Home</button>' : ''}<button data-skc="reload">↻</button></div><div id="skedSlot"></div>`;
   if (tripTab === 'up') {
     const next = state.trips.filter(x => x.start > today).sort((a, b) => a.start.localeCompare(b.start))[0];
     return seg + (next ? tripCard(next, false) : '<div class="empty">No upcoming trips.</div>');
@@ -1365,6 +1365,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/28', 'Sked+: Home button to go back to the first schedule page (shows with the next app build)'],
   ['10/28', 'Settings: Share is now Schedule share; new Share app tab explains TestFlight and lets crew request an invite'],
   ['10/28', 'Time zone letters follow each flight’s date (daylight saving ends 11/1); Arizona and other no-DST airports show the plain letter for that day (app and friend page)'],
   ['10/28', 'Reload button is more see-through, so the text under it shows'],
