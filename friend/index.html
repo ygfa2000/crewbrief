@@ -198,10 +198,10 @@ try { key = localStorage.getItem('cbFriendKey') || ''; } catch (e) {}
 const hk = /#sk=([A-Za-z0-9]{12})/.exec(location.hash);
 if (hk) { key = hk[1].toUpperCase(); history.replaceState(null, '', location.pathname); }
 
-const aptOff = a => { const k = TZ_APT[a]; return k ? (TZ_STD[k] + (TZ_NODST.has(a) ? 0 : usDst() ? 1 : 0)) * 60 : null; };
+const aptOff = (a, date) => { const k = TZ_APT[a]; return k ? (TZ_STD[k] + (TZ_NODST.has(a) ? 0 : usDst(date) ? 1 : 0)) * 60 : null; };
 function inAgo(l) {
   const w = x => ((x % 1440) + 1440) % 1440, nz = x => w(x + 720) - 720;
-  const fo = aptOff(l.from), ao = aptOff(l.to), dep = l.out || l.std || l.dep;
+  const fo = aptOff(l.from, l.date), ao = aptOff(l.to, l.date), dep = l.out || l.std || l.dep;
   if (fo != null && ao != null && l.in && dep) {
     const base = Date.parse(`${l.date}T00:00:00Z`), depU = base + (mins(dep) - fo) * 6e4;
     let inU = base + (mins(l.in) - ao) * 6e4;
@@ -250,7 +250,7 @@ let page = 'today';
 try { page = sessionStorage.getItem('cbFriendPage') || 'today'; } catch (e) {}
 const dayHtml = (x, i, open) => `<details class="day${open ? ' now' : ''}"${open ? ' open' : ''}><summary class="dh"><span>Day ${i + 1} · ${md(x.date)}</span></summary>
     ${x.legs.map(l => `<div class="leg" data-leg="${esc(x.date + '|' + l.flight + '|' + l.from)}"><span class="fl">${esc(l.flight)}${l.dhd ? ' <span class="sub">DH</span>' : ''}</span>
-      <span class="rt">${esc(l.from)} → ${esc(l.to)}<small>${tzOf(l.from)}${esc(l.dep)}–${tzOf(l.to)}${esc(l.arr)}</small></span>${status(Object.assign({ date: x.date }, l))}</div>`).join('')}
+      <span class="rt">${esc(l.from)} → ${esc(l.to)}<small>${tzOf(l.from, x.date)}${esc(l.dep)}–${tzOf(l.to, x.date)}${esc(l.arr)}</small></span>${status(Object.assign({ date: x.date }, l))}</div>`).join('')}
 </details>`;
 const range = t => `${md(t.start)}${t.end !== t.start ? ` – ${md(t.end)}` : ''}`;
 const SEG_PLANE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15.5v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V8.5l-8 5v2l8-2.5V18l-2 1.5V21l3.5-1 3.5 1v-1.5L13 18v-5z" fill="currentColor"/></svg>';
@@ -272,7 +272,7 @@ function show() {
       const home = t.days[0] && t.days[0].legs[0] ? t.days[0].legs[0].from : '';
       const days = t.days.map((x, di) => { const dt = new Date(x.date + 'T12:00:00');
         const ap = x.legs.length ? [x.legs[0].from, ...x.legs.map(l => l.to)] : [];
-        const tm = i => { const z = tzOf(ap[i]);
+        const tm = i => { const z = tzOf(ap[i], x.date);
           return `<small>${z}<span class="tt">${i ? `<span class="a">${esc(x.legs[i - 1].arr || '')}</span>` : ''}${i < x.legs.length ? `<span>${esc(x.legs[i].dep || '')}</span>` : ''}</span></small>`; };
         const rail = ap.length ? `<div class="rail${ap.length >= 5 ? ' dense' : ''}">${ap.map((c, i) => `${i ? `<span class="seg">${SEG_PLANE}</span>` : ''}<span class="stop${c === home ? ' home' : i === ap.length - 1 && di < t.days.length - 1 ? ' night' : ''}"><i></i><b>${esc(c)}</b>${tm(i)}</span>`).join('')}</div>` : '<span class="sub">No flights</span>';
         return `<div class="ud"><span class="udd"><b>${DOW[dt.getDay()].toUpperCase()}</b><span>${dt.getMonth() + 1}/${dt.getDate()}</span></span>${rail}</div>`; }).join('');
@@ -284,7 +284,7 @@ function show() {
     const next = legs.find(l => l.date >= today && !(l.in && inAgo(l) > 60));
     const hero = next ? `<div class="card hero"><div class="row"><span class="lbl">${next.date === today ? 'Today' : md(next.date)} · Flight ${esc(next.flight)}${next.dhd ? ' · riding' : ''}</span>${status(next)}</div>
         <div class="route"><b>${esc(next.from)}</b><span class="mid">${esc(next.block || '')}</span><b>${esc(next.to)}</b></div>
-        <div class="times"><span>${tzOf(next.from)}${esc(next.dep)}</span><span>${tzOf(next.to)}${esc(next.arr)}</span></div></div>` : '';
+        <div class="times"><span>${tzOf(next.from, next.date)}${esc(next.dep)}</span><span>${tzOf(next.to, next.date)}${esc(next.arr)}</span></div></div>` : '';
     const openDay = trip && (trip.days.some(x => x.date === today) ? today : trip.days[0].date);
     body = hero + (trip ? `<div class="card trip"><h2>${range(trip)}</h2>${trip.days.map((x, i) => dayHtml(x, i, x.date === openDay)).join('')}</div>`
       : '<div class="card empty">No upcoming flights shared yet.</div>');
@@ -304,13 +304,13 @@ const tzIcon = k => k ? `<i class="tz tz-${k}">${k}</i>` : '';
 const TZ_NODST = new Set('PHX TUS FLG YUM PRC IFP GCN ACA AGU BJX GDL HMO LAP LTO MTY MZT OAX PVR SJD SLP TGZ ZIH ZLO CUN MEX QRO'.split(' '));
 const TZ_MODE = 'clock';
 const TZ_STD = { P: -8, M: -7, C: -6, E: -5 };
-const usDst = () => /GMT-4/.test(new Date().toLocaleString('en-US', { timeZone: 'America/New_York', timeZoneName: 'shortOffset' }));   // 지금 미국이 서머타임인가 (동부가 UTC-4)
-const tzOf = apt => {
+const usDst = d => /GMT-4/.test((d ? new Date(d + 'T12:00:00Z') : new Date()).toLocaleString('en-US', { timeZone: 'America/New_York', timeZoneName: 'shortOffset' }));
+const tzOf = (apt, date) => {
   const k = TZ_APT[apt];
   if (!k || !TZ_NODST.has(apt)) return tzIcon(k);
   if (TZ_MODE === 'star') return `<i class="tz tz-${k}">${k}</i><i class="tz-star">*</i>`;
-  const cur = Object.keys(TZ_STD).find(x => TZ_STD[x] + (usDst() ? 1 : 0) === TZ_STD[k]) || k;   // 서머타임 동안은 한 칸 서쪽 시계와 같다
-  return `<i class="tz tz-nd tz-${cur}" title="No daylight saving time">${cur}</i>`;
+  const cur = Object.keys(TZ_STD).find(x => TZ_STD[x] + (usDst(date) ? 1 : 0) === TZ_STD[k]) || k;   // 서머타임 동안은 한 칸 서쪽 시계와 같다
+  return tzIcon(cur);   // 서머타임 없는 공항(애리조나 등)도 그날 실제로 맞는 시계 글자를 보통 모양으로
 };
 function clocks() {
   const el = document.getElementById('zones'), d = new Date();

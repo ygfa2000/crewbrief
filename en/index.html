@@ -829,13 +829,13 @@ const tzIcon = k => k ? `<i class="tz tz-${k}">${k}</i>` : '';
 const TZ_NODST = new Set('PHX TUS FLG YUM PRC IFP GCN ACA AGU BJX GDL HMO LAP LTO MTY MZT OAX PVR SJD SLP TGZ ZIH ZLO CUN MEX QRO'.split(' '));
 const TZ_MODE = 'clock';
 const TZ_STD = { P: -8, M: -7, C: -6, E: -5 };
-const usDst = () => /GMT-4/.test(new Date().toLocaleString('en-US', { timeZone: 'America/New_York', timeZoneName: 'shortOffset' }));
-const tzOf = apt => {
+const usDst = d => /GMT-4/.test((d ? new Date(d + 'T12:00:00Z') : new Date()).toLocaleString('en-US', { timeZone: 'America/New_York', timeZoneName: 'shortOffset' }));
+const tzOf = (apt, date) => {
   const k = TZ_APT[apt];
   if (!k || !TZ_NODST.has(apt)) return tzIcon(k);
   if (TZ_MODE === 'star') return `<i class="tz tz-${k}">${k}</i><i class="tz-star">*</i>`;
-  const cur = Object.keys(TZ_STD).find(x => TZ_STD[x] + (usDst() ? 1 : 0) === TZ_STD[k]) || k;
-  return `<i class="tz tz-nd tz-${cur}" title="No daylight saving time">${cur}</i>`;
+  const cur = Object.keys(TZ_STD).find(x => TZ_STD[x] + (usDst(date) ? 1 : 0) === TZ_STD[k]) || k;
+  return tzIcon(cur);
 };
 const icao = a => /^[A-Z]{4}$/.test(a) ? a : ({ HNL: 'PHNL', OGG: 'PHOG', KOA: 'PHKO', LIH: 'PHLI', ITO: 'PHTO', ANC: 'PANC', FAI: 'PAFA', JNU: 'PAJN', KTN: 'PAKT', SIT: 'PASI' })[a] || (/^Y/.test(a) ? 'C' + a : 'K' + a);
 const LT_ICON = '<svg class="lt-ico" viewBox="0 0 40 40" aria-hidden="true"><defs><radialGradient id="ltg" cx=".5" cy=".42" r=".6"><stop offset="0" stop-color="#6cc0f2"/><stop offset="1" stop-color="#2f8fd6"/></radialGradient></defs><rect width="40" height="40" rx="10" fill="#fff"/><circle cx="20" cy="20" r="16.5" fill="url(#ltg)"/><rect x="19.3" y="5.6" width="1.4" height="3" rx=".7" fill="#fff" opacity=".9" transform="rotate(0 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(30 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(60 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="3" rx=".7" fill="#fff" opacity=".9" transform="rotate(90 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(120 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(150 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="3" rx=".7" fill="#fff" opacity=".9" transform="rotate(180 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(210 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(240 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="3" rx=".7" fill="#fff" opacity=".9" transform="rotate(270 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(300 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(330 20 20)"/><path d="M5.5 21.2 17 20h6l11.5 1.2v1.3L23 22.3h-6l-11.5.2z" fill="#fff"/><circle cx="20" cy="21.4" r="3" fill="#fff"/><path d="M19.1 12.5h1.8v7h-1.8z" fill="#fff"/><path d="M15.8 14.2h8.4v1.6h-8.4z" fill="#fff"/></svg>';
@@ -871,10 +871,10 @@ function logtenUrl(d) {
   return 'logten://v2/addEntities?package=' + encodeURIComponent(JSON.stringify(pkg));
 }
 
-const aptOff = a => { const k = TZ_APT[a]; return k ? (TZ_STD[k] + (TZ_NODST.has(a) ? 0 : usDst() ? 1 : 0)) * 60 : null; };
+const aptOff = (a, date) => { const k = TZ_APT[a]; return k ? (TZ_STD[k] + (TZ_NODST.has(a) ? 0 : usDst(date) ? 1 : 0)) * 60 : null; };
 function inAgo(l, f) {
   const w = x => ((x % 1440) + 1440) % 1440, nz = x => w(x + 720) - 720;
-  const fo = aptOff(l.from), ao = aptOff(l.to), dep = f.out || f.std || l.dep;
+  const fo = aptOff(l.from, l.date), ao = aptOff(l.to, l.date), dep = f.out || f.std || l.dep;
   if (fo != null && ao != null && f.in && dep) {
     const base = Date.parse(`${l.date}T00:00:00Z`), depU = base + (mins(dep) - fo) * 6e4;
     let inU = base + (mins(f.in) - ao) * 6e4;
@@ -910,7 +910,7 @@ function dayBlock(trip, d, fold) {
         const ot = legOt(l);
         return `<details class="leg"><summary>
             <span>${esc(l.flight)}${dh}${rel && !l.dhd ? '<span class="tag">R</span>' : ''}</span>
-            <span>${esc(l.from)}→${esc(l.to)} <span class="sub">${tzOf(l.from)}${esc(l.dep)}–${tzOf(l.to)}${esc(l.arr)}</span></span>
+            <span>${esc(l.from)}→${esc(l.to)} <span class="sub">${tzOf(l.from, l.date)}${esc(l.dep)}–${tzOf(l.to, l.date)}${esc(l.arr)}</span></span>
             <span>${ot}</span>
             <span class="r">${l.tail ? `<span>${esc(l.tail)}</span>` : ''}<span>${esc(l.block)}</span></span>
           </summary>
@@ -988,9 +988,9 @@ function homeView() {
   const hero = n ? `
       <div class="hx-row"><div class="hx-lbl">Next flight · ${esc(n.flight)}${n.dhd ? ' · DH' : ''}${st(nf) ? ` · ${esc(st(nf))}` : ''}</div>${legOt(n)}</div>
       <div class="hx-route">
-        <div><b>${esc(n.from)}</b><span>${tzOf(n.from)}${esc(n.dep)}</span></div>
+        <div><b>${esc(n.from)}</b><span>${tzOf(n.from, n.date)}${esc(n.dep)}</span></div>
         <div class="hx-mid"><i></i>${plane}<i></i><small>${esc(n.block || '')}</small></div>
-        <div class="r"><b>${esc(n.to)}</b><span>${tzOf(n.to)}${esc(n.arr)}</span></div></div>
+        <div class="r"><b>${esc(n.to)}</b><span>${tzOf(n.to, n.date)}${esc(n.arr)}</span></div></div>
       <div class="hx-facts">
         <div><span>GATE</span><b>${esc(nf.depGate || '—')} → ${esc(nf.arrGate || '—')}</b></div>
         <div><span>TAIL</span><b>${esc(n.tail || '—')}</b></div>
@@ -1001,7 +1001,7 @@ function homeView() {
     return `<div class="tl${i === nextI ? ' next' : ''}${f.in ? ' done' : ''}">
       <span class="dot"></span>
       <div class="tl-main"><div class="tl-top"><b>${esc(l.from)} → ${esc(l.to)}</b><span class="tl-fl">${esc(l.flight)}${!l.dhd && state.releases[`${l.date}-${l.flight}-${l.from}`] ? ' · R' : ''}</span></div>
-        <div class="tl-sub">${tzOf(l.from)}${esc(l.dep)}–${tzOf(l.to)}${esc(l.arr)}${lt >= 5 ? ` · <b class="late">ETD ${esc(f.etd)}</b>` : ''}${st(f) ? ` · ${esc(st(f))}` : ''}</div></div>
+        <div class="tl-sub">${tzOf(l.from, l.date)}${esc(l.dep)}–${tzOf(l.to, l.date)}${esc(l.arr)}${lt >= 5 ? ` · <b class="late">ETD ${esc(f.etd)}</b>` : ''}${st(f) ? ` · ${esc(st(f))}` : ''}</div></div>
       <span class="tl-dh">${l.dhd ? '<span class="tag">DH</span>' : ''}</span>
       <div class="tl-gate"><span>GATE</span>${esc(f.depGate || '—')}</div></div>`;
   }).join('');
@@ -1364,6 +1364,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/28', 'Time zone letters follow each flight’s date (daylight saving ends 11/1); Arizona and other no-DST airports show the plain letter for that day (app and friend page)'],
   ['10/28', 'Reload button is more see-through, so the text under it shows'],
   ['10/28', 'Reload button: a see-through round button at the bottom right (same as pulling down)'],
   ['10/28', 'Door codes are now called Jet bridge code'],
