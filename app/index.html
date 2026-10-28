@@ -334,6 +334,7 @@
   /* 위쪽(로고·시계·탭)은 스크롤해도 그대로 — 아래 내용만 움직인다 */
   .pin { position:sticky; top:0; z-index:5; background:var(--bg); margin:-16px -16px 0; padding:16px 16px 0; }
   .pin .tabs { position:static; }
+  .secret { flex:1; align-self:stretch; min-width:24px; -webkit-tap-highlight-color:transparent; }
   .fab { position:fixed; right:16px; bottom:calc(20px + env(safe-area-inset-bottom)); z-index:6; width:46px; height:46px; border-radius:50%; border:1.5px solid color-mix(in srgb, var(--ink) 35%, transparent); background:color-mix(in srgb, var(--card) 18%, transparent); color:var(--ink); opacity:.6; display:grid; place-items:center; cursor:pointer; padding:0; }
   .fab svg { width:22px; height:22px; }
   .fab:active { transform:scale(.92); }
@@ -368,6 +369,7 @@
 <button class="fab" id="fab" aria-label="Reload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v4.5h-4.5"/></svg></button>
 <div class="pin">
 <header class="hdr"><h1 class="head"><a id="home" target="_top" style="color:inherit;text-decoration:none"><svg class="mark" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="cbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5aa5ff"/><stop offset="1" stop-color="#1b64da"/></linearGradient></defs><rect width="40" height="40" rx="12" fill="url(#cbg)"/><path d="M9 27c6-1 14-5 22-14" stroke="rgba(255,255,255,.35)" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M10.5 21.5 30 12.5l-6.2 16.2-4.3-5.6z" fill="#fff"/><path d="m19.5 23.1 10.5-10.6-12.2 8.9z" fill="#cfe2ff"/></svg><span class="word"><span class="wt">Crew <em>Brief</em></span><small>Flight Deck Tool</small></span></a></h1>
+  <span class="secret" id="secret" aria-hidden="true"></span>
   <a class="upd" target="_top" href="#cbsync" data-u="aHR0cHM6Ly93d3cuc2t5d2VzdG9ubGluZS5jb20vU0tZVy9Ta2VkUGx1cy9NeVNjaGVkdWxlLmFzcHg="><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3.2h-3.2"/></svg></span>업데이트</a></header>
 <div class="status"><div class="utcbox"><div class="utc1"><span class="k">UTC</span><span class="zulu" id="zulu"></span></div><div class="zones" id="zones"></div></div><div><span class="k">마지막 동기화</span><span class="sub" id="synced"></span></div></div>
 <button class="script-warn" id="scriptWarn" hidden></button>
@@ -758,7 +760,7 @@ function settingsView() {
     const [v, sub] = f ? f(r) : id === 'seproc' ? [esc((r.acarsRwys || []).filter(x => !x.ix).map(x => `${x.rwy} ${x.efp}`).join(' · ') || '—')] : [esc(id === 'route' ? r.route || '—' : ((id === 'remarks' ? r.remarks : r.mel)[0] || '없음').slice(0, 40))];
     return `<label class="setrow"><input type="checkbox" data-f="${id}"${relShow.includes(id) ? ' checked' : ''}><span class="k">${k}</span><span class="v">${v}${sub ? ` <small>${sub}</small>` : ''}</span>${num(i)}</label>`;
   }).join('');
-  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release 항목</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>${IN_APP ? 'Update history' : '업데이트'}${scriptOld() ? ' ●' : ''}</button><button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>도어 키</button>${doorKey && !IN_APP ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}${doorKey ? `<button data-st="fb"${setTab === 'fb' ? ' class="on"' : ''}>피드백</button>` : ''}<button data-st="share"${setTab === 'share' ? ' class="on"' : ''}>Schedule share</button><button data-st="app"${setTab === 'app' ? ' class="on"' : ''}>Share app</button></div>`;
+  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release 항목</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>${IN_APP ? 'Update history' : '업데이트'}${scriptOld() ? ' ●' : ''}</button>${setTab === 'key' ? `<button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>도어 키</button>` : ''}${doorKey && !IN_APP ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}${doorKey ? `<button data-st="fb"${setTab === 'fb' ? ' class="on"' : ''}>피드백</button>` : ''}<button data-st="share"${setTab === 'share' ? ' class="on"' : ''}>Schedule share</button><button data-st="app"${setTab === 'app' ? ' class="on"' : ''}>Share app</button></div>`;
   if (setTab === 'upd') return seg + scriptBox();
   if (setTab === 'watch' && doorKey && !IN_APP) return seg + watchBox(); // 앱 설정에는 Apple Watch 안내를 두지 않는다
   if (setTab === 'key') return seg + keyBox();   // 웹에서도 키만 지우거나 넣을 수 있게
@@ -1367,6 +1369,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/28', 'Settings: Door key is no longer in the list (use your setup link)'],
   ['10/28', 'Home: Jet bridge code card for everyone (shared list without a door key); airports with no code show No code yet'],
   ['10/28', 'Reload keeps your place: the same tab and Settings section, scroll position and D-ATIS airports'],
   ['10/28', 'Sked+: Home button to go back to the first schedule page (shows with the next app build)'],
@@ -2025,6 +2028,8 @@ if (tab === 'atis' && Array.isArray(restoreAtis) && restoreAtis.length) { docume
 if (restoreY) requestAnimationFrame(() => scrollTo(0, restoreY));
 </script>
 <script>
+{ let n = 0, t = 0;
+  document.getElementById('secret').addEventListener('click', () => { const now = Date.now(); n = now - t < 2000 ? n + 1 : 1; t = now; if (n >= 5) { n = 0; tab = 'set'; setTab = 'key'; render(); scrollTo(0, 0); } }); }
 document.getElementById('fab').addEventListener('click', e => { e.currentTarget.classList.add('spin'); location.reload(); });
 </script>
 </body>
