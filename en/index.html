@@ -1318,6 +1318,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/27', 'Maps: the orange line now shows the whole path flown so far; Leaflet label removed'],
   ['10/27', 'Flow: tap a flight to fold or unfold its map (remembers your choice)'],
   ['10/27', 'Flow: a map under each flight not yet finished: planned route from the Release (else the shortest path); the flight in the air shows the plane live'],
   ['10/27', 'Friend page: the map opens right under the flight you tap; zoomed to fit both airports'],
@@ -1472,8 +1473,9 @@ function fmapInit(box) {
   Promise.all([loadLeaflet(), loadAirports()]).then(([, apt]) => {
     if (!document.contains(box)) return;
     const map = L.map(box.querySelector('.fmap-m'), { zoomControl: false, zoomSnap: 0.25 });
+    map.attributionControl.setPrefix(false);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 12,
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · <a href="https://adsb.fi">adsb.fi</a> · <a href="https://adsb.lol">adsb.lol</a>' }).addTo(map);
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · <a href="https://adsb.fi">adsb.fi</a> · <a href="https://adsb.lol">adsb.lol</a> · <a href="https://opensky-network.org">OpenSky</a>' }).addTo(map);
     const fixes = ((state.releases || {})[`${date}-${flight}-${from}`] || {}).fixes;
     const plan = fixes && fixes.length >= 2 ? fixes.map(x => [x[1], x[2]]) : null;
     const path = plan || (apt[from] && apt[to] ? gcArc(apt[from], apt[to]) : []);
@@ -1484,7 +1486,7 @@ function fmapInit(box) {
     const what = plan ? 'Planned route (Release)' : 'Shortest path (no Release)';
     if (!live) return info(`<span>${what}</span>`);
     const trail = [], line = L.polyline(trail, { color: '#f08c00', weight: 3 }).addTo(map);
-    let plane = null, fitted = false;
+    let plane = null, fitted = false, past = false;
     const tick = () => {
       if (!document.contains(box)) { clearInterval(timer); map.remove(); return; }
       if (document.hidden || !box.querySelector('.fmap-m').offsetParent) return;
@@ -1493,6 +1495,9 @@ function fmapInit(box) {
         if (!ac) { if (plane) { plane.remove(); plane = null; } info(r.ok ? `<span><b>${esc(tail)}</b> not flying right now</span>` : 'Live position not available right now'); return; }
         const p = [ac.lat, ac.lon], last = trail[trail.length - 1];
         if (!last || last[0] !== p[0] || last[1] !== p[1]) { trail.push(p); line.setLatLngs(trail); }
+        if (!past && ac.hex) { past = true; fetch(`${RELAY}?f=trk&hex=${ac.hex}`).then(r => r.json()).then(t => {
+          if (t.ok && t.path && t.path.length && t.cs === ac.cs) { trail.unshift(...t.path); line.setLatLngs(trail); }
+        }).catch(() => {}); }
         const icon = L.divIcon({ className: 'plane-ic', iconSize: [28, 28], iconAnchor: [14, 14],
           html: `<svg viewBox="0 0 24 24" style="transform:rotate(${ac.track || 0}deg)"><path fill="#f08c00" stroke="#fff" stroke-width="1" d="M12 2c.8 0 1.4.9 1.4 2v5.2l7.6 4.4v2.1l-7.6-2.3v4.9l2.2 1.6v1.7L12 20.6l-3.6 1v-1.7l2.2-1.6v-4.9L3 15.7v-2.1l7.6-4.4V4c0-1.1.6-2 1.4-2z"/></svg>` });
         if (plane) plane.setLatLng(p).setIcon(icon); else plane = L.marker(p, { icon }).addTo(map);

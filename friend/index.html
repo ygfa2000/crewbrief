@@ -367,8 +367,9 @@ function openMap(key, hero) {
   Promise.all([loadLeaflet(), loadAirports()]).then(() => {
     if (mapKey !== key || !$('map')) return;
     mapObj = L.map('map', { zoomControl: false, attributionControl: true, zoomSnap: 0.25 });
+    mapObj.attributionControl.setPrefix(false);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 12, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · <a href="https://adsb.fi">adsb.fi</a> · <a href="https://adsb.lol">adsb.lol</a>' }).addTo(mapObj);
+      maxZoom: 12, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · <a href="https://adsb.fi">adsb.fi</a> · <a href="https://adsb.lol">adsb.lol</a> · <a href="https://opensky-network.org">OpenSky</a>' }).addTo(mapObj);
     const a = airports[leg.from], b = airports[leg.to], pts = [];
     const plan = Array.isArray(leg.route) && leg.route.length >= 2 ? leg.route.map(x => [x[1], x[2]]) : null;
     if (plan || (a && b)) L.polyline(plan || arc(a, b), { color: '#3182f6', weight: 2.5, dashArray: '6 7', opacity: .9 }).addTo(mapObj);
@@ -376,7 +377,7 @@ function openMap(key, hero) {
     if (plan) mapObj.fitBounds(plan.concat(pts), { padding: [36, 36] }); else if (pts.length === 2) mapObj.fitBounds(pts, { padding: [36, 36] }); else if (pts.length) mapObj.setView(pts[0], 7); else mapObj.setView([39, -98], 3);
     const trail = trails[key] = trails[key] || [];
     const line = L.polyline(trail, { color: '#f08c00', weight: 3 }).addTo(mapObj);
-    let plane = null, fitted = false;
+    let plane = null, fitted = false, past = trail.length > 1;
     const info = t => { const i = $('mapinfo'); if (i) i.innerHTML = t; };
     const tick = () => {
       if (document.hidden || mapKey !== key) return;
@@ -394,6 +395,9 @@ function openMap(key, hero) {
         const p = [ac.lat, ac.lon];
         const last = trail[trail.length - 1];
         if (!last || last[0] !== p[0] || last[1] !== p[1]) { trail.push(p); line.setLatLngs(trail); }
+        if (!past && ac.hex) { past = true; fetch(`${RELAY}?f=trk&hex=${ac.hex}`).then(r => r.json()).then(t => {
+          if (mapKey === key && t.ok && t.path && t.path.length && t.cs === ac.cs) { trail.unshift(...t.path); line.setLatLngs(trail); }
+        }).catch(() => {}); }
         const svg = `<svg viewBox="0 0 24 24" style="transform:rotate(${ac.track || 0}deg)"><path fill="#f08c00" stroke="#fff" stroke-width="1" d="M12 2c.8 0 1.4.9 1.4 2v5.2l7.6 4.4v2.1l-7.6-2.3v4.9l2.2 1.6v1.7L12 20.6l-3.6 1v-1.7l2.2-1.6v-4.9L3 15.7v-2.1l7.6-4.4V4c0-1.1.6-2 1.4-2z"/></svg>`;
         const icon = L.divIcon({ className: 'plane-ic', html: svg, iconSize: [30, 30], iconAnchor: [15, 15] });
         if (plane) plane.setLatLng(p).setIcon(icon); else plane = L.marker(p, { icon }).addTo(mapObj);
