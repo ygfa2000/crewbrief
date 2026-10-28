@@ -83,6 +83,17 @@ function parseFlowBoard(html) {
   return flights;
 }
 
+function parseCheckIn(html) {
+  const text = html.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ');
+  const me = /(\d{6})\s+[A-Za-z' .-]+?\s+-\s+[A-Z]{3}\s+\S+\s+(?:CA|FO|FA)\b/.exec(text);
+  const crew = html.search(/Crewmembers for Each Flight/i);
+  if (!me || crew < 0) return null;
+  const at = html.indexOf(me[1], crew);
+  if (at < 0) return null;
+  const cell = html.slice(html.lastIndexOf('<td', at), at);   // 그 칸의 사번 앞부분 (체크 그림·* 표시만, 이름 없음)
+  return { checked: /<img|✓|&#10003;|check/i.test(cell), cell: cell.slice(-200) };
+}
+
 function parseOpenTime(html) {
   const cell = s => s.replace(/<[^>]+>/g, '').replace(/&nbsp;| /g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
   const when = s => { const m = /(\d+)\/(\d+)\/(\d+) (\d+:\d+)/.exec(s); return m ? [`20${m[3]}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`, m[4]] : ['', '']; };
@@ -405,6 +416,15 @@ async function run() {
       flows[`${date}-${tail}`] = { at: new Date().toISOString(), flights: parseFlowBoard(await get(`${atob('L1NLWVcvRmxpZ2h0U2NyZWVuL0Zsb3dCb2FyZC5hc3B4')}?${q}`)) };
     }
 
+    const checkin = {};
+    for (const t of trips.filter(t => t.start === ymd(now))) {
+      try {
+        say(`Check-in (${t.pairing})`);
+        const r = parseCheckIn(await get(`${atob('L1NLWVcvU2tlZFBsdXMvVHJpcERldGFpbC5hc3B4')}?PairingName=${encodeURIComponent(t.pairing)}&PairingDate=${t.start.replace(/-/g, '')}&OTPosition=&SBID=0`));
+        if (r) checkin[`${t.pairing}|${t.start}`] = r;
+      } catch (e) {}
+    }
+
     let opentime = null;
     try {
       say('Open Time 읽는 중');
@@ -420,7 +440,7 @@ async function run() {
     } catch (e) { opentime = { at: new Date().toISOString(), trips: [], err: String(e.message || e).slice(0, 80) }; }
 
     if (typeof CB_DONE === 'function') CB_DONE();
-    const payload = { syncedAt: now.toISOString(), trips, releases, flows, raws, opentime, script: typeof CB_SCRIPT_VER === 'string' ? CB_SCRIPT_VER : 'bookmark' };
+    const payload = { syncedAt: now.toISOString(), trips, releases, flows, raws, opentime, checkin, script: typeof CB_SCRIPT_VER === 'string' ? CB_SCRIPT_VER : 'bookmark' };
     if (!CB_EXEC) {
       say(`완료 — 트립 ${trips.length}개, Release ${Object.keys(releases).length}건, Flow ${Object.keys(flows).length}대 · 앱으로 돌아갑니다…`);
       const d = await pack(payload);

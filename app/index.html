@@ -110,6 +110,8 @@
   .cd b { font-size:56px; font-weight:800; letter-spacing:-.03em; line-height:1; }
   .cd i { font-style:normal; font-size:20px; font-weight:700; opacity:.7; margin-right:8px; }
   .hx-when { margin-top:10px; font-size:15px; font-weight:600; opacity:.85; font-variant-numeric:tabular-nums; }
+  .ckin { display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; margin:12px 0 0; padding:14px 18px; border:0; border-radius:18px; background:#2fb344; color:#fff; font:inherit; text-align:left; cursor:pointer; }
+  .ckin b { font-size:18px; } .ckin span { font-size:13px; opacity:.9; }
   .duty { display:grid; grid-template-columns:repeat(3,1fr); background:var(--card); border:1px solid var(--line); border-radius:18px; }
   .duty > div { display:grid; gap:2px; padding:12px 14px; }
   .duty > div + div { border-left:1px solid var(--line); }
@@ -639,7 +641,7 @@ const api = (fn, arg) => fetch(`${RELAY}?f=atis&ids=${arg.join(',')}`)
     Object.keys(p.raws || {}).forEach(k => { try { localStorage.setItem('cbRaw:' + k, p.raws[k]); if (!rk.includes(k)) rk.push(k); } catch (e) {} });
     rk.sort();
     while (rk.length > 8) { try { localStorage.removeItem('cbRaw:' + rk.shift()); } catch (e) { rk.shift(); } }
-    state = { rawKeys: rk, syncedAt: p.syncedAt, script: p.script || '', trips: p.trips, releases: keep(state.releases, p.releases), flows: keep(state.flows, p.flows), opentime: p.opentime || state.opentime || null };
+    state = { rawKeys: rk, syncedAt: p.syncedAt, script: p.script || '', trips: p.trips, releases: keep(state.releases, p.releases), flows: keep(state.flows, p.flows), opentime: p.opentime || state.opentime || null, checkin: p.checkin || null };
     try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {}
     render();
   } catch (e) { alert('Crew Brief: ' + e.message); }
@@ -987,6 +989,7 @@ function homeView() {
     <div class="duty"><div><span>REPORT</span><b>${esc(d.report || '—')}</b></div><div><span>RELEASE</span><b>${esc(d.release || '—')}</b></div><div><span>DUTY</span><b>${esc(d.duty || '—')}</b></div></div>
     <div class="card hcard"><div class="hc-h">${legs.length} LEGS</div>${rows}</div>
     </div>
+    ${d.date === trip.start && !((state.checkin || {})[`${trip.pairing}|${trip.start}`] || {}).checked ? `<button class="ckin" data-pairing="${esc(trip.pairing)}" data-start="${esc(trip.start)}"><b>Check In</b><span>${esc(trip.pairing)} · opens Trip Detail</span></button>` : ''}
     ${doors ? `<div class="card hcard"><div class="hc-h">DOOR CODES</div>${doors}</div>` : ''}`;
 }
 function incentiveCard() {
@@ -1045,6 +1048,13 @@ setInterval(() => document.querySelectorAll('.hero.off').forEach(el => {
   const [date, hm] = el.dataset.at.split('T');
   el.querySelector('.cd').innerHTML = countdown(date, hm);
 }), 30e3);
+document.addEventListener('click', e => {
+  const b = e.target.closest?.('.ckin');
+  if (!b) return;
+  const u = new URL(document.querySelector('.upd').href);
+  const url = `${u.origin}${u.pathname.replace(/[^/]+$/, 'TripDetail.aspx')}?PairingName=${encodeURIComponent(b.dataset.pairing)}&PairingDate=${b.dataset.start.replace(/-/g, '')}&OTPosition=&SBID=0`;
+  if (document.documentElement.dataset.cbApp) location.href = url; else window.open(url, '_blank');
+});
 document.addEventListener('click', e => {
   const h = e.target.closest?.('.home');
   if (h) { tab = h.dataset.go; render(); scrollTo(0, 0); }
@@ -1318,6 +1328,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/27', 'Home: Check In button on the first day of a trip (opens Trip Detail); hides once you are checked in'],
   ['10/27', 'Friend page: tapping the big blue card no longer opens the map (tap a flight below instead)'],
   ['10/27', 'Schedule codes like REF, RSC and ADJ no longer show as DH'],
   ['10/27', 'Home screen: hotel removed (still in Today and My Trip)'],
