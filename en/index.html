@@ -334,6 +334,10 @@
   /* 위쪽(로고·시계·탭)은 스크롤해도 그대로 — 아래 내용만 움직인다 */
   .pin { position:sticky; top:0; z-index:5; background:var(--bg); margin:-16px -16px 0; padding:16px 16px 0; }
   .pin .tabs { position:static; }
+  .invbtns { display:flex; gap:8px; flex-wrap:wrap; }
+  .invbtns button { flex:1; min-width:90px; display:inline-flex; align-items:center; justify-content:center; gap:6px; font:600 15px -apple-system,system-ui,sans-serif; padding:11px 10px; border:1px solid var(--line); border-radius:12px; background:var(--card); color:var(--ink); cursor:pointer; }
+  .invbtns button[data-inv="share"] { background:var(--acc); border-color:var(--acc); color:#fff; }
+  .invbtns svg { width:18px; height:18px; }
   .secret { flex:1; align-self:stretch; min-width:24px; -webkit-tap-highlight-color:transparent; }
   .fab { position:fixed; right:16px; bottom:calc(20px + env(safe-area-inset-bottom)); z-index:6; width:46px; height:46px; border-radius:50%; border:1.5px solid color-mix(in srgb, var(--ink) 35%, transparent); background:color-mix(in srgb, var(--card) 18%, transparent); color:var(--ink); opacity:.6; display:grid; place-items:center; cursor:pointer; padding:0; }
   .fab svg { width:22px; height:22px; }
@@ -1369,6 +1373,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/28', 'Share app: Invite a friend with Share, Text or Email (sends the sign-up link)'],
   ['10/28', 'New page to request the iPhone app (TestFlight) by link: ygfa2000.github.io/crewbrief/join/'],
   ['10/28', 'Settings: Door key is no longer in the list (use your setup link)'],
   ['10/28', 'Home: Jet bridge code card for everyone (shared list without a door key); airports with no code show No code yet'],
@@ -1916,6 +1921,9 @@ document.addEventListener('click', e => {
 });
 
 let appMsg = '', appReqs = null;
+const JOIN_URL = 'https://ygfa2000.github.io/crewbrief/join/';
+const JOIN_TEXT = 'Want to try the Crew Brief iPhone app? Send your Apple ID here and I’ll add you on TestFlight:';
+const SHARE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7.5 7.5 4.5-4.5 4.5 4.5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>';
 function appReqLoad() {
   if (!doorKey || appReqs) return;
   appReqs = { list: [] };
@@ -1933,6 +1941,9 @@ function appBox() {
       <li>On your iPhone, open the email, tap <b>View in TestFlight</b>, then <b>Install</b>.</li>
       <li>Updates come through TestFlight. Each build works for 90 days, and a new one comes before that.</li>
     </ol></div>
+  <div class="card box"><b>Invite a friend</b>
+    <p class="sub" style="margin:4px 0 10px">Send them the sign-up link. They enter their Apple ID there to get a TestFlight invite.</p>
+    <div class="invbtns">${navigator.share ? `<button data-inv="share">${SHARE_ICON}Share</button>` : ''}<button data-inv="sms">💬 Text</button><button data-inv="mail">✉️ Email</button></div></div>
   <div class="card box"><b>Request an invite</b>
     <p class="sub" style="margin:4px 0 10px">Use the email of the Apple ID on your iPhone (Settings › your name).</p>
     <input id="arEmail" class="kin" type="email" placeholder="Apple ID email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="80" style="margin-bottom:8px">
@@ -1946,6 +1957,14 @@ function appBox() {
 }
 document.addEventListener('click', e => {
   const say = t => { appMsg = t; const m = document.getElementById('arMsg'); if (m) m.textContent = t; };
+  const inv = e.target.closest('[data-inv]');
+  if (inv) {
+    const k = inv.dataset.inv;
+    if (k === 'share') navigator.share({ title: 'Crew Brief iPhone app', text: JOIN_TEXT, url: JOIN_URL }).catch(() => {});
+    if (k === 'sms') location.href = `sms:&body=${encodeURIComponent(`${JOIN_TEXT} ${JOIN_URL}`)}`;
+    if (k === 'mail') location.href = `mailto:?subject=${encodeURIComponent('Crew Brief iPhone app')}&body=${encodeURIComponent(`${JOIN_TEXT}\n${JOIN_URL}`)}`;
+    return;
+  }
   if (e.target.id === 'arSend') {
     const v = id => document.getElementById(id).value.trim();
     const body = { f: 'appReq', email: v('arEmail'), first: v('arFirst'), last: v('arLast') };
