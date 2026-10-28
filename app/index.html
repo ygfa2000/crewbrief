@@ -1062,6 +1062,14 @@ setInterval(() => document.querySelectorAll('.hero.off').forEach(el => {
   const [date, hm] = el.dataset.at.split('T');
   el.querySelector('.cd').innerHTML = countdown(date, hm);
 }), 30e3);
+let otSig = '';
+setInterval(() => {
+  if (document.hidden || (tab !== 'home' && tab !== 'today')) return;
+  const y = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+  const sig = state.trips.flatMap(t => t.days).filter(d => d.date >= y && d.date <= today).flatMap(d => d.legs).map(legOt).join('|');
+  if (otSig && sig !== otSig) render();
+  otSig = sig;
+}, 6e4);
 document.addEventListener('click', e => {
   const b = e.target.closest?.('.ckin');
   if (!b) return;
@@ -1342,6 +1350,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/28', 'Flight status updates on its own (At gate turns to Complete an hour after IN, no refresh needed)'],
   ['10/28', 'Friend page Upcoming: new trip cards with a route line per day, times with time zone letters, base and overnight marks; only the nearest trip opens'],
   ['10/28', 'Friend page: no plane animation at the start; the key screen shows the logo, For Friend and Please enter your share key'],
   ['10/28', 'Update history: grouped by date and folded (tap a date to open); Share keys are Family or Friend'],
