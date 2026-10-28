@@ -405,7 +405,9 @@ async function run() {
     }
 
     const flows = {};
-    const tails = [...new Set(legs.filter(l => l.tail).map(l => `${l.date}|${l.tail}`))];
+    const flowTo = new Date(now); flowTo.setDate(flowTo.getDate() + 2);
+    const flowLegs = trips.flatMap(t => t.days.flatMap(d => d.legs)).filter(l => l.date >= ymd(from) && l.date <= ymd(flowTo));
+    const tails = [...new Set(flowLegs.filter(l => l.tail).map(l => `${l.date}|${l.tail}`))];
     i = 0;
     for (const dt of tails) {
       const [date, tail] = dt.split('|');

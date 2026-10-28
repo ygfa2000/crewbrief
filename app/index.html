@@ -1328,6 +1328,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/27', 'Flow now loads up to 2 days ahead (was yesterday and today only)'],
   ['10/27', 'Home: Check In button on the first day of a trip (opens Trip Detail); hides once you are checked in'],
   ['10/27', 'Friend page: tapping the big blue card no longer opens the map (tap a flight below instead)'],
   ['10/27', 'Schedule codes like REF, RSC and ADJ no longer show as DH'],
