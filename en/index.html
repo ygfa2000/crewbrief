@@ -940,8 +940,7 @@ function homeView() {
     const nd = nx.t.days.filter(d => d.date >= nx.d.date).map(d => {
       const ls = d.legs.filter(l => l.from !== l.to), chain = ls.length ? [ls[0].from, ...ls.map(l => l.to)].join(' → ') : '—';
       return `<div class="nt-day"><span class="nt-d">${md(d.date)}</span><div><b>${esc(chain)}</b>
-        <div class="tl-sub">Report ${esc(d.report || '—')} · Release ${esc(d.release || '—')}${ls[0] ? ` · ${esc(ls[0].flight)} ${esc(ls[0].dep)}` : ''}</div>
-        ${d.hotel ? `<div class="tl-sub">🏨 ${esc(d.hotel)}</div>` : ''}</div></div>`;
+        <div class="tl-sub">Report ${esc(d.report || '—')} · Release ${esc(d.release || '—')}${ls[0] ? ` · ${esc(ls[0].flight)} ${esc(ls[0].dep)}` : ''}</div></div></div>`;
     }).join('');
     return `<div class="home" data-go="up"><div class="hero off" data-at="${esc(nx.d.date)}T${esc(nx.d.report.padStart(5, '0'))}">
       <div class="hx-lbl">Next report in</div><div class="cd">${countdown(nx.d.date, nx.d.report)}</div>
@@ -987,7 +986,7 @@ function homeView() {
       ${hero}</div>
     <div class="duty"><div><span>REPORT</span><b>${esc(d.report || '—')}</b></div><div><span>RELEASE</span><b>${esc(d.release || '—')}</b></div><div><span>DUTY</span><b>${esc(d.duty || '—')}</b></div></div>
     <div class="card hcard"><div class="hc-h">${legs.length} LEGS</div>${rows}</div>
-    ${d.hotel ? `<div class="card hcard hotel2"><div class="hc-h">HOTEL</div><b>${esc(d.hotel)}</b><span class="sub">Layover ${esc(d.layover)}</span></div>` : ''}</div>
+    </div>
     ${doors ? `<div class="card hcard"><div class="hc-h">DOOR CODES</div>${doors}</div>` : ''}`;
 }
 function incentiveCard() {
@@ -1318,6 +1317,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/27', 'Home screen: hotel removed (still in Today and My Trip)'],
   ['10/27', 'Maps: the orange line now shows the whole path flown so far; Leaflet label removed'],
   ['10/27', 'Flow: tap a flight to fold or unfold its map (remembers your choice)'],
   ['10/27', 'Flow: a map under each flight not yet finished: planned route from the Release (else the shortest path); the flight in the air shows the plane live'],
