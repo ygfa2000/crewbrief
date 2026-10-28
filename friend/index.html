@@ -138,7 +138,7 @@
   </form>
 </div>
 <script>
-const RELAY = 'https://script.google.com/macros/s/AKfycbz8uCeKdYFBjVW8HQh8tD55JFDkTQ1PNQcmtlITo76RG3Wrtn48hrcEbhpl8labYZ5Z/exec';
+const RELAY = 'https://crewbrief-share.bidpeek.workers.dev/';   // share · pos · trk (Cloudflare)
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const mins = t => { const [h, m] = (t || '').split(':').map(Number); return h * 60 + m; };
