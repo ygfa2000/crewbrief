@@ -1342,6 +1342,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/28', 'Friend page: no plane animation at the start; the key screen shows the logo, For Friend and Please enter your share key'],
   ['10/28', 'Update history: grouped by date and folded (tap a date to open); Share keys are Family or Friend'],
   ['10/28', 'Share works for everyone now: your own share code is made the first time you tap Make key (up to 2 keys). Old keys stop updating, so make new ones'],
   ['10/28', 'Home leg list: no R tag on deadhead flights, and DH now sits between the flight and the gate'],

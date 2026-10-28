@@ -12,17 +12,20 @@
   body { margin:0; background:var(--bg); color:var(--ink); font:16px -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
   button { font:inherit; cursor:pointer; }
 
-  /* start screen: same blue and paper plane as the app's launch screen */
-  #start { position:fixed; inset:0; background:var(--blue); background:color(display-p3 .315 .534 .891); color:#fff; overflow:hidden; z-index:5; transition:opacity .3s; }
+  /* start screen (key entry): the app's blue */
+  #start { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:var(--blue); background:color(display-p3 .315 .534 .891); color:#fff; overflow:hidden; z-index:5; transition:opacity .3s; }
+  .startin { width:100%; max-width:372px; padding:0 16px; display:grid; justify-items:center; margin-top:-8vh; }
+  .smark { width:76px; height:76px; filter:drop-shadow(0 8px 18px rgba(0,0,0,.18)); }
   #start[hidden] { display:none; }
-  #sky { position:absolute; inset:0; width:100%; height:100%; }
-  .brand { position:absolute; left:0; right:0; text-align:center; font:800 26px ui-rounded,-apple-system,system-ui,sans-serif; }
-  .keybox { position:absolute; left:16px; right:16px; margin:0 auto; max-width:340px; background:rgba(255,255,255,.16); border-radius:20px; padding:18px; transition:opacity .25s; }
+  .brand { margin-top:16px; text-align:center; font:800 28px ui-rounded,-apple-system,system-ui,sans-serif; letter-spacing:-.02em; line-height:1; }
+  .brand small { display:block; margin-top:8px; font:600 13px -apple-system,system-ui,sans-serif; letter-spacing:.12em; text-transform:uppercase; opacity:.85; }
+  .keybox { width:100%; margin-top:32px; background:rgba(255,255,255,.16); border-radius:20px; padding:18px; transition:opacity .25s; }
   .keybox[hidden] { display:block; opacity:0; pointer-events:none; }
-  .keybox label { display:block; font-size:13px; font-weight:600; opacity:.9; margin-bottom:8px; }
+  .keybox label { display:block; text-align:center; font-size:15px; font-weight:600; margin-bottom:12px; }
   .keybox input { width:100%; font:700 22px ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.1em; text-transform:uppercase; text-align:center; padding:14px 10px; border:0; border-radius:12px; color:#191f28; background:#fff; }
   .keybox button { width:100%; margin-top:10px; padding:14px; border:0; border-radius:12px; background:#191f28; color:#fff; font-weight:700; font-size:17px; }
   .keybox .msg { min-height:20px; margin-top:10px; font-size:14px; text-align:center; }
+  .keybox .msg:empty { display:none; }
 
   /* shared schedule */
   main { max-width:560px; margin:0 auto; padding:16px 16px calc(110px + env(safe-area-inset-bottom)); }
@@ -111,14 +114,16 @@
 </head>
 <body>
 <div id="start">
-  <canvas id="sky"></canvas>
-  <div class="brand" id="brand">Crew Brief</div>
+  <div class="startin">
+  <svg class="smark" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#fff"/><path d="M9 27c6-1 14-5 22-14" stroke="rgba(49,130,246,.3)" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M10.5 21.5 30 12.5l-6.2 16.2-4.3-5.6z" fill="#3182f6"/><path d="m19.5 23.1 10.5-10.6-12.2 8.9z" fill="#1b64da"/></svg>
+  <div class="brand" id="brand">Crew Brief<small>For Friend</small></div>
   <form class="keybox" id="keyForm" autocomplete="off" hidden>
-    <label for="key">Share key</label>
+    <label for="key">Please enter your share key</label>
     <input id="key" maxlength="12" placeholder="XXXXXXXXXXXX" autocapitalize="characters" spellcheck="false">
     <button type="submit">Open</button>
     <div class="msg" id="msg"></div>
   </form>
+  </div>
 </div>
 <main id="view" hidden></main>
 <nav id="bar" hidden>
@@ -168,72 +173,8 @@ function status(l) {
   return `<span class="ot ${dl >= 5 ? 'late' : 'ok'}">${ph}${dl >= 5 ? `<b>+${fmtHM(dl)}</b>` : ''}</span>`;
 }
 
-const sky = (() => {
-  const tilt = -40 * Math.PI / 180, v = 240, R = 90, tau = 0.75, L = 560, loopY = -30;
-  const w = v / R, t1 = L / v, X = { x: Math.cos(tilt), y: Math.sin(tilt) }, Y = { x: Math.sin(tilt), y: -Math.cos(tilt) };
-  const d0 = v * tau / 2, origin = { x: -X.x * d0 - Y.x * R, y: loopY - X.y * d0 - Y.y * R };
-  const ramp = x => { x = Math.min(Math.max(x, 0), 1); return { s: x * x * (3 - 2 * x), i: x * x * x - x * x * x * x / 2 }; };
-  const cv = $('sky'), g = cv.getContext('2d'), img = new Image();
-  img.src = 'plane.png';
-  let start = 0, down = null, raf = 0, done = null;
-  function theta(t) {
-    let th = w * tau * ramp((t - t1) / tau).i + w * Math.max(t - t1 - tau, 0), rate = w * ramp((t - t1) / tau).s;
-    if (down != null && t > down) {
-      const r = ramp((t - down) / tau);
-      th -= w * Math.max(t - down, 0) - w * tau * (Math.min((t - down) / tau, 1) - r.i);
-      rate -= w * r.s;
-    }
-    return { th, rate };
-  }
-  function spot(t) {
-    const { th, rate } = theta(t);
-    let d = v * (t - t1) - R * th, dd = v - R * rate;
-    if (down != null && t > down + tau) { const u = t - down - tau; d += 450 * u * u; dd += 900 * u; }
-    const fx = d + R * Math.sin(th), fy = R * (1 - Math.cos(th));
-    const vx = dd + R * rate * Math.cos(th), vy = R * rate * Math.sin(th);
-    return { x: origin.x + X.x * fx + Y.x * fy, y: origin.y + X.y * fx + Y.y * fy, head: Math.atan2(X.y * vx + Y.y * vy, X.x * vx + Y.x * vy) };
-  }
-  function frame() {
-    const dpr = devicePixelRatio || 1, W = innerWidth, H = innerHeight;
-    if (cv.width !== W * dpr || cv.height !== H * dpr) { cv.width = W * dpr; cv.height = H * dpr; }
-    g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
-    const t = (performance.now() - start) / 1000, c = { x: W / 2, y: H / 2 }, out = down != null ? Math.max(t - down - tau, 0) : 0;
-    g.lineCap = 'round';
-    for (let k = 1, n = 32; k <= n; k++) {   // contrail: the last 0.8 s, fading
-      const ta = t - 0.8 * k / n, tb = t - 0.8 * (k - 1) / n;
-      if (ta <= 0) break;
-      const p0 = spot(ta), p1 = spot(tb), a = 1 - k / n;
-      g.strokeStyle = `rgba(255,255,255,${0.4 * a})`; g.lineWidth = 1.5 + 5 * a;
-      g.beginPath(); g.moveTo(c.x + p0.x, c.y + p0.y); g.lineTo(c.x + p1.x, c.y + p1.y); g.stroke();
-    }
-    const f = spot(t), s = 0.6 * (1 + 0.4 * out);
-    if (img.complete && img.naturalWidth) {
-      g.save(); g.translate(c.x + f.x, c.y + f.y); g.rotate(f.head - tilt);
-      const iw = img.naturalWidth / 3 * s, ih = img.naturalHeight / 3 * s;
-      g.drawImage(img, -iw / 2, -ih / 2, iw, ih); g.restore();
-    }
-    const b = $('brand');
-    b.style.top = `${c.y + 160 - 16}px`;
-    b.style.opacity = Math.min(Math.max((t - 0.6) / 0.5, 0), 1) * Math.max(1 - out * 4, 0);
-    $('start').style.opacity = out < 0.4 ? 1 : Math.max(1 - (out - 0.4) / 0.3, 0);
-    raf = requestAnimationFrame(frame);
-  }
-  return {
-    run() { cancelAnimationFrame(raf); start = performance.now(); down = null; done = null; $('start').style.opacity = 1; $('start').hidden = false; frame(); },
-    leave(cb) {
-      if (down != null) return;
-      const now = (performance.now() - start) / 1000;
-      let k = 1, d;
-      do { d = t1 + tau + (2 * Math.PI * k - w * tau) / w; k++; } while (d < now);
-      down = d;
-      setTimeout(() => { cancelAnimationFrame(raf); $('start').hidden = true; cb(); }, (d + tau - now + 0.75) * 1000);
-    },
-    get inLoop() { return (performance.now() - start) / 1000 > t1; },
-  };
-})();
 function askKey(msg) {
   const f = $('keyForm');
-  f.style.bottom = `calc(24px + env(safe-area-inset-bottom))`;
   f.hidden = false; $('msg').textContent = msg || '';
   if (!msg) setTimeout(() => $('key').focus(), 50);
 }
@@ -249,8 +190,8 @@ function openKey(k) {
   fetchShare(k).then(r => {
     key = k; shared = r;
     try { localStorage.setItem('cbFriendKey', k); } catch (e) {}
-    sky.leave(show);
-  }).catch(err => { $('key').value = k; askKey(err.message); });
+    $('start').hidden = true; show();
+  }).catch(err => { $('key').value = k; $('start').hidden = false; askKey(err.message); });
 }
 function refresh() {
   return fetchShare(key).then(r => { shared = r; show(); }).catch(() => {});
@@ -441,13 +382,12 @@ document.addEventListener('click', e => {
   if (e.target.id === 'change') {
     try { localStorage.removeItem('cbFriendKey'); } catch (er) {}
     key = ''; shared = null; $('key').value = '';
-    $('view').hidden = true; $('bar').hidden = true; sky.run(); askKey();
+    $('view').hidden = true; $('bar').hidden = true; $('start').hidden = false; askKey();
   }
 });
 setInterval(() => { if (shared && !document.hidden && $('start').hidden) refresh(); }, 5 * 6e4);
-sky.run();
-if (key) openKey(key);
-else setTimeout(() => askKey(), 2300);   // after the plane has flown in
+if (key) { $('start').hidden = true; openKey(key); }
+else askKey();
 </script>
 </body>
 </html>
