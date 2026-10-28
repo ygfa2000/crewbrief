@@ -278,7 +278,7 @@ function show() {
   } else {
     const legs = trip ? trip.days.flatMap(x => x.legs.map(l => Object.assign({ date: x.date }, l))) : [];
     const next = legs.find(l => l.date >= today && !(l.in && inAgo(l) > 60));
-    const hero = next ? `<div class="card hero" data-leg="${esc(next.date + '|' + next.flight + '|' + next.from)}"><div class="row"><span class="lbl">${next.date === today ? 'Today' : md(next.date)} · Flight ${esc(next.flight)}${next.dhd ? ' · riding' : ''}</span>${status(next)}</div>
+    const hero = next ? `<div class="card hero"><div class="row"><span class="lbl">${next.date === today ? 'Today' : md(next.date)} · Flight ${esc(next.flight)}${next.dhd ? ' · riding' : ''}</span>${status(next)}</div>
         <div class="route"><b>${esc(next.from)}</b><span class="mid">${esc(next.block || '')}</span><b>${esc(next.to)}</b></div>
         <div class="times"><span>${tzOf(next.from)}${esc(next.dep)}</span><span>${tzOf(next.to)}${esc(next.arr)}</span></div></div>` : '';
     const openDay = trip && (trip.days.some(x => x.date === today) ? today : trip.days[0].date);
