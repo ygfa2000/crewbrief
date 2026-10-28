@@ -119,12 +119,14 @@
   .duty b { font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
   .home > .card, .hcard { margin-top:0; } .hcard { padding:14px 16px 6px; border-radius:18px; }
   .hc-h { margin-bottom:4px; }
-  .tl { position:relative; display:grid; grid-template-columns:18px 1fr auto; gap:10px; align-items:center; padding:10px 0; }
+  .tl { position:relative; display:grid; grid-template-columns:18px auto 1fr auto; gap:10px; align-items:center; padding:10px 0; }
   .tl + .tl::before { content:""; position:absolute; left:8px; top:-12px; height:24px; border-left:2px solid var(--line); }
   .tl .dot { width:12px; height:12px; border-radius:50%; border:2px solid var(--mute); background:var(--card); justify-self:center; position:relative; z-index:1; }
   .tl.done .dot { background:var(--mute); }
   .tl.next .dot { border-color:var(--acc); background:var(--acc); box-shadow:0 0 0 4px var(--accsoft); }
-  .tl.done .tl-main, .tl.done .tl-gate { opacity:.5; }
+  .tl.done .tl-main, .tl.done .tl-dh, .tl.done .tl-gate { opacity:.5; }
+  .tl-dh { justify-self:center; }
+  .tl-dh .tag { margin:0; }
   .tl-top { display:flex; align-items:baseline; gap:8px; }
   .tl-top b { font-size:17px; font-weight:800; letter-spacing:-.01em; }
   .tl.next .tl-top b { color:var(--acc); }
@@ -978,8 +980,9 @@ function homeView() {
     const f = fl(l), lt = late(f);
     return `<div class="tl${i === nextI ? ' next' : ''}${f.in ? ' done' : ''}">
       <span class="dot"></span>
-      <div class="tl-main"><div class="tl-top"><b>${esc(l.from)} → ${esc(l.to)}</b><span class="tl-fl">${esc(l.flight)}${l.dhd ? ' DH' : ''}${state.releases[`${l.date}-${l.flight}-${l.from}`] ? ' · R' : ''}</span></div>
+      <div class="tl-main"><div class="tl-top"><b>${esc(l.from)} → ${esc(l.to)}</b><span class="tl-fl">${esc(l.flight)}${!l.dhd && state.releases[`${l.date}-${l.flight}-${l.from}`] ? ' · R' : ''}</span></div>
         <div class="tl-sub">${tzOf(l.from)}${esc(l.dep)}–${tzOf(l.to)}${esc(l.arr)}${lt >= 5 ? ` · <b class="late">ETD ${esc(f.etd)}</b>` : ''}${st(f) ? ` · ${esc(st(f))}` : ''}</div></div>
+      <span class="tl-dh">${l.dhd ? '<span class="tag">DH</span>' : ''}</span>
       <div class="tl-gate"><span>GATE</span>${esc(f.depGate || '—')}</div></div>`;
   }).join('');
   const apts = [...new Set(legs.flatMap(l => [l.from, l.to]))];
@@ -1333,6 +1336,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/28', 'Home leg list: no R tag on deadhead flights, and DH now sits between the flight and the gate'],
   ['10/28', 'Deadhead flights no longer show the R (release) tag'],
   ['10/28', 'The top (logo, Update, clocks, Last sync and tabs) now stays in place when you scroll'],
   ['10/28', 'Maps: the orange line now stays when you leave the page and come back (app and friend page)'],
