@@ -117,7 +117,6 @@
   .leg .fl { color:var(--ink2); font-weight:600; font-size:14px; }
   .leg .rt { font-weight:700; font-size:17px; }
   .leg .rt small { display:block; font-weight:500; font-size:13px; color:var(--mute); }
-  .lay { margin-top:8px; padding:8px 12px; border-radius:12px; background:var(--soft); font-size:14px; color:var(--ink2); }
   .ot { display:inline-block; text-align:center; line-height:1.25; font-size:12px; font-weight:700; border-radius:7px; padding:3px 8px; white-space:nowrap; }
   .ot b { display:block; }
   .ot.ok { color:#0e9f6e; background:rgba(14,159,110,.12); }
@@ -244,7 +243,7 @@ try { page = sessionStorage.getItem('cbFriendPage') || 'today'; } catch (e) {}
 const dayHtml = (x, i, open) => `<details class="day${open ? ' now' : ''}"${open ? ' open' : ''}><summary class="dh"><span>Day ${i + 1} · ${md(x.date)}</span></summary>
     ${x.legs.map(l => `<div class="leg" data-leg="${esc(x.date + '|' + l.flight + '|' + l.from)}"><span class="fl">${esc(l.flight)}${l.dhd ? ' <span class="sub">DH</span>' : ''}</span>
       <span class="rt">${esc(l.from)} → ${esc(l.to)}<small>${tzOf(l.from)}${esc(l.dep)}–${tzOf(l.to)}${esc(l.arr)}</small></span>${status(Object.assign({ date: x.date }, l))}</div>`).join('')}
-    ${x.city ? `<div class="lay">Overnight in ${esc(x.city)}${x.layover ? ` · ${esc(x.layover)} layover` : ''}</div>` : ''}</details>`;
+</details>`;
 const range = t => `${md(t.start)}${t.end !== t.start ? ` – ${md(t.end)}` : ''}`;
 const SEG_PLANE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15.5v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V8.5l-8 5v2l8-2.5V18l-2 1.5V21l3.5-1 3.5 1v-1.5L13 18v-5z" fill="currentColor"/></svg>';
 const calIcon = iso => { const d = new Date(iso + 'T12:00:00');

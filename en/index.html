@@ -1350,6 +1350,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/28', 'Friend page: layover details (city and length) are no longer sent or shown'],
   ['10/28', 'Flight status updates on its own (At gate turns to Complete an hour after IN, no refresh needed)'],
   ['10/28', 'Friend page Upcoming: new trip cards with a route line per day, times with time zone letters, base and overnight marks; only the nearest trip opens'],
   ['10/28', 'Friend page: no plane animation at the start; the key screen shows the logo, For Friend and Please enter your share key'],
@@ -1806,7 +1807,7 @@ function sharePayload() {
   const lo = new Date(Date.now() - 2 * 864e5).toISOString().slice(0, 10), hi = new Date(Date.now() + 45 * 864e5).toISOString().slice(0, 10);
   const trips = state.trips.filter(t => t.end >= lo && t.start <= hi).map(t => ({ pairing: t.pairing, start: t.start, end: t.end,
     days: t.days.map(d => { const ls = d.legs.filter(l => l.from !== l.to);
-      return { date: d.date, report: d.report, release: d.release, layover: d.hotel ? d.layover : '', city: d.hotel && ls.length ? ls[ls.length - 1].to : '',
+      return { date: d.date, report: d.report, release: d.release,
         legs: ls.map(l => { const f = legFlow(l);
           return { flight: l.flight, from: l.from, to: l.to, dep: l.dep, arr: l.arr, block: l.block, dhd: !!l.dhd,
             std: f.std, sta: f.sta, stdZ: f.stdZ, etd: f.etd, eta: f.eta, out: f.out, off: f.off, on: f.on, in: f.in, tail: l.tail, route: ((state.releases || {})[`${l.date}-${l.flight}-${l.from}`] || {}).fixes }; }) }; }) }));
