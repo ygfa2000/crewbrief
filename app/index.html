@@ -323,6 +323,9 @@
   .upd .ico svg { width:14px; height:14px; }
   .upd:active { transform:translateY(1px); }
   @media (prefers-color-scheme: dark) { .upd { color:#191f28; background:linear-gradient(180deg,#ffffff,#dfe3e8); box-shadow:inset 0 1px 0 #fff, 0 6px 16px rgba(0,0,0,.4); } }
+  /* 위쪽(로고·시계·탭)은 스크롤해도 그대로 — 아래 내용만 움직인다 */
+  .pin { position:sticky; top:0; z-index:5; background:var(--bg); margin:-16px -16px 0; padding:16px 16px 0; }
+  .pin .tabs { position:static; }
   .hdr { display:flex; justify-content:space-between; align-items:center; gap:12px; margin:10px 2px 12px; }
   .hdr h1.head { margin:0; }
   .status { display:grid; grid-template-columns:auto minmax(0,1fr); background:var(--card); border:1px solid var(--line); border-radius:16px; padding:12px 0; margin-bottom:2px; }
@@ -349,11 +352,13 @@
 </style>
 </head>
 <body>
+<div class="pin">
 <header class="hdr"><h1 class="head"><a id="home" target="_top" style="color:inherit;text-decoration:none"><svg class="mark" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="cbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5aa5ff"/><stop offset="1" stop-color="#1b64da"/></linearGradient></defs><rect width="40" height="40" rx="12" fill="url(#cbg)"/><path d="M9 27c6-1 14-5 22-14" stroke="rgba(255,255,255,.35)" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M10.5 21.5 30 12.5l-6.2 16.2-4.3-5.6z" fill="#fff"/><path d="m19.5 23.1 10.5-10.6-12.2 8.9z" fill="#cfe2ff"/></svg><span class="word"><span class="wt">Crew <em>Brief</em></span><small>Flight Deck Tool</small></span></a></h1>
   <a class="upd" target="_top" href="#cbsync" data-u="aHR0cHM6Ly93d3cuc2t5d2VzdG9ubGluZS5jb20vU0tZVy9Ta2VkUGx1cy9NeVNjaGVkdWxlLmFzcHg="><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3.2h-3.2"/></svg></span>업데이트</a></header>
 <div class="status"><div class="utcbox"><div class="utc1"><span class="k">UTC</span><span class="zulu" id="zulu"></span></div><div class="zones" id="zones"></div></div><div><span class="k">마지막 동기화</span><span class="sub" id="synced"></span></div></div>
 <button class="script-warn" id="scriptWarn" hidden></button>
 <nav class="tabs"><button data-tab="today">오늘</button><button data-tab="up">내 트립</button><button data-tab="atis">D-ATIS</button><button data-tab="door" id="doorTab" aria-label="Door code" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.6" y=".9" width="11.8" height="22.2" rx="5.2" fill="#f4f5f8" stroke="#1f2430" stroke-width=".9"/><rect x="5.3" y="2.7" width="8.4" height="10.2" rx="2.1" fill="#2b2d42"/><g fill="#fff"><circle cx="7.3" cy="4.7" r=".6"/><circle cx="9.5" cy="4.7" r=".6"/><circle cx="11.7" cy="4.7" r=".6"/><circle cx="7.3" cy="6.8" r=".6"/><circle cx="9.5" cy="6.8" r=".6"/><circle cx="11.7" cy="6.8" r=".6"/><circle cx="7.3" cy="8.9" r=".6"/><circle cx="9.5" cy="8.9" r=".6"/><circle cx="11.7" cy="8.9" r=".6"/><circle cx="7.3" cy="11" r=".6"/><circle cx="9.5" cy="11" r=".6"/><circle cx="11.7" cy="11" r=".6"/></g><circle cx="9.5" cy="17.4" r="3.1" fill="#d5d8e0" stroke="#1f2430" stroke-width=".9"/><rect x="7.9" y="15.9" width="15" height="3" rx="1.5" fill="#e8e9ee" stroke="#1f2430" stroke-width=".9"/><rect x="9.6" y="16.7" width="5" height="1.1" rx=".55" fill="#fff"/></svg></button><button data-tab="calc" aria-label="계산기"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.3" y="1.3" width="15.4" height="21.4" rx="3.2" fill="#1c1c1e" stroke="rgba(255,255,255,.35)" stroke-width=".7"/><rect x="6.9" y="3.9" width="10.2" height="4.8" rx="1.1" fill="#a1a1a6"/><circle cx="8.3" cy="12.4" r="1.4" fill="#d4d4d8"/><circle cx="12" cy="12.4" r="1.4" fill="#d4d4d8"/><circle cx="15.7" cy="12.4" r="1.4" fill="#ff9f0a"/><circle cx="8.3" cy="15.8" r="1.4" fill="#d4d4d8"/><circle cx="12" cy="15.8" r="1.4" fill="#d4d4d8"/><circle cx="15.7" cy="15.8" r="1.4" fill="#ff9f0a"/><circle cx="8.3" cy="19.2" r="1.4" fill="#d4d4d8"/><circle cx="12" cy="19.2" r="1.4" fill="#d4d4d8"/><circle cx="15.7" cy="19.2" r="1.4" fill="#ff9f0a"/></svg></button><button data-tab="set" aria-label="설정">⚙</button></nav>
+</div>
 
 
 
@@ -1328,6 +1333,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/28', 'The top (logo, Update, clocks, Last sync and tabs) now stays in place when you scroll'],
   ['10/28', 'Maps: the orange line now stays when you leave the page and come back (app and friend page)'],
   ['10/27', 'Flow: only your flight’s map opens at first; tap another flight to open its map'],
   ['10/27', 'Flow now loads up to 2 days ahead (was yesterday and today only)'],
