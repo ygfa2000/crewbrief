@@ -45,7 +45,8 @@ function parseTxtDet(text) {
       day.legs.push({
         no: legNo, date: day.date, flight: c.Flight, tail: c.Tail || null, from: c.Org, to: c.Dest,
         dep: c.Dep, arr: c.Arr, pax: c.Pax, block: c.Block, credit: c.Credit,
-        dpu: c['D/PU'] || null, dhd: c.Dhd || null, turn: c.Turn || null,
+        dpu: c['D/PU'] || null, turn: c.Turn || null,
+        dhd: c.Dhd && c.Dhd !== 'N' && /\d/.test(c.Flight || '') ? c.Dhd : null,
       });
     } else if (day && (m = /Day Total:\s*(\S+)\s+(\S+)\s+Duty:\s*(\S+)/.exec(line))) {
       Object.assign(day, { dayBlock: m[1], dayCredit: m[2], duty: m[3] });

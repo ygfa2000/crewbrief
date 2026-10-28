@@ -1052,6 +1052,7 @@ document.addEventListener('click', e => {
 
 let tab = 'home';
 function render() {
+  (state.trips || []).forEach(t => t.days.forEach(d => d.legs.forEach(l => { if (l.dhd && (l.dhd === 'N' || !/\d/.test(l.flight || ''))) l.dhd = null; })));
   try { sessionStorage.setItem('cbView', JSON.stringify({ tab, tripTab })); } catch (e) {}
   try { shareUp(); } catch (e) {}
   document.getElementById('synced').textContent = state.syncedAt
@@ -1317,6 +1318,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/27', 'Schedule codes like REF, RSC and ADJ no longer show as DH'],
   ['10/27', 'Home screen: hotel removed (still in Today and My Trip)'],
   ['10/27', 'Maps: the orange line now shows the whole path flown so far; Leaflet label removed'],
   ['10/27', 'Flow: tap a flight to fold or unfold its map (remembers your choice)'],
