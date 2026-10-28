@@ -317,7 +317,12 @@ setInterval(clocks, 1000);
 const ICAO = { UA: 'UAL', AA: 'AAL', DL: 'DAL', WN: 'SWA', AS: 'ASA', B6: 'JBU', NK: 'NKS', F9: 'FFT', G4: 'AAY', HA: 'HAL', OO: 'SKW', QX: 'QXE', YX: 'RPA',
   MQ: 'ENY', '9E': 'EDV', OH: 'JIA', YV: 'ASH', G7: 'GJS', ZW: 'AWI', PT: 'PDT', C5: 'UCA', AC: 'ACA', WS: 'WJA', AM: 'AMX' };
 let mapKey = '', mapHero = false, mapObj = null, mapTimer = null, airports = null;
-const trails = {};
+const trails = (() => { try { return JSON.parse(localStorage.getItem('cbFriendTrails')) || {}; } catch (e) { return {}; } })();
+function trailSave() {
+  const old = new Date(Date.now() - 2 * 864e5).toISOString().slice(0, 10);
+  Object.keys(trails).forEach(k => { if (k.slice(0, 10) < old) delete trails[k]; });
+  try { localStorage.setItem('cbFriendTrails', JSON.stringify(trails)); } catch (e) {}
+}
 function loadLeaflet() {
   if (window.L) return Promise.resolve();
   return new Promise((ok, fail) => {
@@ -394,9 +399,9 @@ function openMap(key, hero) {
         }
         const p = [ac.lat, ac.lon];
         const last = trail[trail.length - 1];
-        if (!last || last[0] !== p[0] || last[1] !== p[1]) { trail.push(p); line.setLatLngs(trail); }
+        if (!last || last[0] !== p[0] || last[1] !== p[1]) { trail.push(p); line.setLatLngs(trail); trailSave(); }
         if (!past && ac.hex) { past = true; fetch(`${RELAY}?f=trk&hex=${ac.hex}`).then(r => r.json()).then(t => {
-          if (mapKey === key && t.ok && t.path && t.path.length && t.cs === ac.cs) { trail.unshift(...t.path); line.setLatLngs(trail); }
+          if (mapKey === key && t.ok && t.path && t.path.length && t.cs === ac.cs) { trail.unshift(...t.path); line.setLatLngs(trail); trailSave(); }
         }).catch(() => {}); }
         const svg = `<svg viewBox="0 0 24 24" style="transform:rotate(${ac.track || 0}deg)"><path fill="#f08c00" stroke="#fff" stroke-width="1" d="M12 2c.8 0 1.4.9 1.4 2v5.2l7.6 4.4v2.1l-7.6-2.3v4.9l2.2 1.6v1.7L12 20.6l-3.6 1v-1.7l2.2-1.6v-4.9L3 15.7v-2.1l7.6-4.4V4c0-1.1.6-2 1.4-2z"/></svg>`;
         const icon = L.divIcon({ className: 'plane-ic', html: svg, iconSize: [30, 30], iconAnchor: [15, 15] });
