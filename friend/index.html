@@ -198,8 +198,16 @@ try { key = localStorage.getItem('cbFriendKey') || ''; } catch (e) {}
 const hk = /#sk=([A-Za-z0-9]{12})/.exec(location.hash);
 if (hk) { key = hk[1].toUpperCase(); history.replaceState(null, '', location.pathname); }
 
+const aptOff = a => { const k = TZ_APT[a]; return k ? (TZ_STD[k] + (TZ_NODST.has(a) ? 0 : usDst() ? 1 : 0)) * 60 : null; };
 function inAgo(l) {
   const w = x => ((x % 1440) + 1440) % 1440, nz = x => w(x + 720) - 720;
+  const fo = aptOff(l.from), ao = aptOff(l.to), dep = l.out || l.std || l.dep;
+  if (fo != null && ao != null && l.in && dep) {
+    const base = Date.parse(`${l.date}T00:00:00Z`), depU = base + (mins(dep) - fo) * 6e4;
+    let inU = base + (mins(l.in) - ao) * 6e4;
+    while (inU < depU) inU += 864e5;
+    return (Date.now() - inU) / 6e4;
+  }
   if (!l.stdZ || !l.sta || !/^\d+:\d{2}$/.test(l.block || '')) return l.date < today ? 1e9 : 0;
   const depOff = nz(mins(l.std) - mins(l.stdZ)), arrOff = nz(mins(l.sta) - mins(l.stdZ) - mins(l.block));
   const out = Date.parse(`${l.date}T00:00:00Z`) + (mins(l.std) - depOff) * 6e4;
