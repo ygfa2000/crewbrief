@@ -1100,7 +1100,7 @@ document.addEventListener('click', e => {
 let tab = 'home';
 function render() {
   (state.trips || []).forEach(t => t.days.forEach(d => d.legs.forEach(l => { if (l.dhd && (l.dhd === 'N' || !/\d/.test(l.flight || ''))) l.dhd = null; })));
-  try { sessionStorage.setItem('cbView', JSON.stringify({ tab, tripTab })); } catch (e) {}
+  try { sessionStorage.setItem('cbView', JSON.stringify({ tab, tripTab, setTab })); } catch (e) {}
   try { shareUp(); } catch (e) {}
   document.getElementById('synced').textContent = state.syncedAt
     ? (t => `${t.getMonth() + 1}/${t.getDate()} ${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`)(new Date(state.syncedAt)) : 'Not yet';
@@ -1365,6 +1365,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/28', 'Reload keeps your place: the same tab and Settings section, scroll position and D-ATIS airports'],
   ['10/28', 'Sked+: Home button to go back to the first schedule page (shows with the next app build)'],
   ['10/28', 'Settings: Share is now Schedule share; new Share app tab explains TestFlight and lets crew request an invite'],
   ['10/28', 'Time zone letters follow each flight’s date (daylight saving ends 11/1); Arizona and other no-DST airports show the plain letter for that day (app and friend page)'],
@@ -2008,11 +2009,17 @@ document.addEventListener('click', e => {
   navigator.clipboard.writeText(watchUrl()).then(() => done('✓ Copied'), () => { prompt('Copy this', watchUrl()); });
 });
 
+addEventListener('pagehide', () => { try { sessionStorage.setItem('cbScroll', String(scrollY)); sessionStorage.setItem('cbAtis', JSON.stringify(atisLast ? atisLast.ids : null)); } catch (e) {} });
+let restoreY = 0, restoreAtis = null;
 try {
   const v = JSON.parse(sessionStorage.getItem('cbView') || 'null');
-  if (v && v.tab) { tab = v.tab; tripTab = v.tripTab || tripTab; if (tab === 'door' && doorData) doorLoad(); }
+  if (v && v.tab) { tab = v.tab; tripTab = v.tripTab || tripTab; setTab = v.setTab || setTab; if (tab === 'door' && doorData) doorLoad(); }
+  restoreY = Number(sessionStorage.getItem('cbScroll')) || 0; restoreAtis = JSON.parse(sessionStorage.getItem('cbAtis') || 'null');
+  sessionStorage.removeItem('cbScroll'); sessionStorage.removeItem('cbAtis');
 } catch (e) {}
 render();
+if (tab === 'atis' && Array.isArray(restoreAtis) && restoreAtis.length) { document.getElementById('aIn').value = restoreAtis.join(' '); atisLoad(restoreAtis, true); }
+if (restoreY) requestAnimationFrame(() => scrollTo(0, restoreY));
 </script>
 <script>
 document.getElementById('fab').addEventListener('click', e => { e.currentTarget.classList.add('spin'); location.reload(); });
