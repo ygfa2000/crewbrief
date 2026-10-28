@@ -1007,9 +1007,11 @@ function homeView() {
       <div class="tl-gate"><span>GATE</span>${esc(f.depGate || '—')}</div></div>`;
   }).join('');
   const apts = [...new Set(legs.flatMap(l => [l.from, l.to]))];
-  const doors = doorKey && doorData ? apts.filter(a => doorData.doors?.[a]).map(a => {
-    const c = doorData.doors[a];
-    return `<div class="hdoor"><b>${esc(a)}</b><div>${DOOR_CARRIERS.filter(k => c[k]).map(k => `<span class="chip"><i>${k}</i>${esc(c[k])}</span>`).join('') || '—'}</div></div>`;
+  if (!doorData && !doorTried) { doorTried = true; doorLoad(); }
+  const doors = doorData ? apts.map(a => {
+    const c = (doorData.doors || {})[a] || {};
+    const chips = DOOR_CARRIERS.filter(k => c[k]).map(k => `<span class="chip"><i>${k}</i>${esc(c[k])}</span>`).join('');
+    return `<div class="hdoor"><b>${esc(a)}</b><div>${chips || '<span class="sub">No code yet</span>'}</div></div>`;
   }).join('') : '';
   return `<div class="home" data-go="today">
     <div class="hero">
@@ -1365,6 +1367,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/28', 'Home: Jet bridge code card for everyone (shared list without a door key); airports with no code show No code yet'],
   ['10/28', 'Reload keeps your place: the same tab and Settings section, scroll position and D-ATIS airports'],
   ['10/28', 'Sked+: Home button to go back to the first schedule page (shows with the next app build)'],
   ['10/28', 'Settings: Share is now Schedule share; new Share app tab explains TestFlight and lets crew request an invite'],
@@ -1708,7 +1711,7 @@ function doorLoad() {
     doorKeep({ doors: r.doors, who: r.who, at: Date.now() });
     doorMsg = '';
   }).catch(err => { doorMsg = doorData ? `Couldn't update (${esc(err.message)}) — showing the saved list` : `Couldn't load (${esc(err.message)})`; })
-    .then(() => { if (tab === 'door' && !doorEdit) render(); });
+    .then(() => { if ((tab === 'door' && !doorEdit) || tab === 'home') render(); });
 }
 function doorSave(apt, codes) {
   doorMsg = 'Saving…'; render();
