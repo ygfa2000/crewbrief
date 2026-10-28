@@ -887,7 +887,7 @@ function dayBlock(trip, d, fold) {
         const dh = l.dhd ? '<span class="tag">DH</span>' : '';
         const ot = legOt(l);
         return `<details class="leg"><summary>
-            <span>${esc(l.flight)}${dh}${rel ? '<span class="tag">R</span>' : ''}</span>
+            <span>${esc(l.flight)}${dh}${rel && !l.dhd ? '<span class="tag">R</span>' : ''}</span>
             <span>${esc(l.from)}→${esc(l.to)} <span class="sub">${tzOf(l.from)}${esc(l.dep)}–${tzOf(l.to)}${esc(l.arr)}</span></span>
             <span>${ot}</span>
             <span class="r">${l.tail ? `<span>${esc(l.tail)}</span>` : ''}<span>${esc(l.block)}</span></span>
@@ -1333,6 +1333,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/28', 'Deadhead flights no longer show the R (release) tag'],
   ['10/28', 'The top (logo, Update, clocks, Last sync and tabs) now stays in place when you scroll'],
   ['10/28', 'Maps: the orange line now stays when you leave the page and come back (app and friend page)'],
   ['10/27', 'Flow: only your flight’s map opens at first; tap another flight to open its map'],
