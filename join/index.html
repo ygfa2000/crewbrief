@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#5088e3">
+<title>Crew Brief · iPhone app test</title>
+<meta property="og:title" content="Crew Brief · iPhone app test">
+<meta property="og:description" content="Send your Apple ID to get a TestFlight invite.">
+<meta property="og:image" content="https://ygfa2000.github.io/crewbrief/join/plane.png">
+<style>
+  :root { --bg:#f2f4f6; --card:#fff; --ink:#191f28; --ink2:#4e5968; --mute:#8b95a1; --line:#e5e8eb; --acc:#3182f6; --warn:#f04452; --blue:#5088e3; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#101013; --card:#1d1d22; --ink:#ececf0; --ink2:#b0b8c1; --mute:#7e8590; --line:#33333b; --acc:#4b96ff; --warn:#ff6b75; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  .top { background:var(--blue); background:color(display-p3 .315 .534 .891); color:#fff; text-align:center; padding:calc(36px + env(safe-area-inset-top)) 16px 64px; }
+  .mark { width:68px; height:68px; filter:drop-shadow(0 8px 18px rgba(0,0,0,.18)); }
+  .brand { margin-top:14px; font:800 28px ui-rounded,-apple-system,system-ui,sans-serif; letter-spacing:-.02em; line-height:1; }
+  .brand small { display:block; margin-top:8px; font:600 13px -apple-system,system-ui,sans-serif; letter-spacing:.12em; text-transform:uppercase; opacity:.85; }
+  main { max-width:520px; margin:-40px auto 0; padding:0 16px calc(32px + env(safe-area-inset-bottom)); }
+  .card { background:var(--card); border-radius:20px; padding:20px; margin-bottom:12px; box-shadow:0 1px 2px rgba(0,0,0,.04), 0 10px 28px -16px rgba(49,130,246,.45); }
+  h2 { margin:0 0 6px; font-size:19px; letter-spacing:-.02em; }
+  p { margin:0; color:var(--ink2); font-size:15px; line-height:1.5; }
+  ol { margin:12px 0 0; padding-left:22px; display:grid; gap:7px; color:var(--ink2); font-size:15px; line-height:1.45; }
+  b { color:var(--ink); }
+  input { width:100%; font:inherit; font-size:16px; padding:13px 14px; border:1px solid var(--line); border-radius:12px; background:var(--bg); color:var(--ink); margin-top:10px; }
+  input:focus { outline:2px solid var(--acc); outline-offset:-1px; }
+  button { width:100%; margin-top:14px; padding:15px; border:0; border-radius:12px; background:var(--acc); color:#fff; font:700 17px -apple-system,system-ui,sans-serif; cursor:pointer; }
+  button:disabled { opacity:.6; }
+  .msg { min-height:22px; margin-top:10px; font-size:14px; text-align:center; color:var(--ink2); }
+  .msg.bad { color:var(--warn); }
+  .done { text-align:center; padding:8px 0 4px; }
+  .done .ok { width:52px; height:52px; border-radius:50%; background:#0ca678; color:#fff; display:grid; place-items:center; margin:0 auto 12px; font-size:28px; font-weight:800; }
+</style>
+</head>
+<body>
+<header class="top">
+  <svg class="mark" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#fff"/><path d="M9 27c6-1 14-5 22-14" stroke="rgba(49,130,246,.3)" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M10.5 21.5 30 12.5l-6.2 16.2-4.3-5.6z" fill="#3182f6"/><path d="m19.5 23.1 10.5-10.6-12.2 8.9z" fill="#1b64da"/></svg>
+  <div class="brand">Crew Brief<small>iPhone app test</small></div>
+</header>
+<main>
+  <section class="card">
+    <h2>Get the iPhone app</h2>
+    <p>The iPhone app is shared through <b>TestFlight</b>, Apple’s free app for trying apps before they are on the App Store. It works like a normal app, with the home screen widget and Apple Watch.</p>
+    <ol>
+      <li>Send your Apple ID email and name below.</li>
+      <li>When you are added, Apple emails you an invite from TestFlight (usually within a day or two).</li>
+      <li>Install <b>TestFlight</b> from the App Store.</li>
+      <li>On your iPhone, open the email, tap <b>View in TestFlight</b>, then <b>Install</b>.</li>
+      <li>Updates come through TestFlight. Each build works for 90 days, and a new one comes before that.</li>
+    </ol>
+  </section>
+  <section class="card" id="formCard">
+    <h2>Request an invite</h2>
+    <p>Use the email of the Apple ID on your iPhone (Settings › your name).</p>
+    <form id="f" autocomplete="on">
+      <input id="email" type="email" placeholder="Apple ID email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="80">
+      <input id="first" placeholder="First name" autocomplete="given-name" maxlength="40">
+      <input id="last" placeholder="Last name" autocomplete="family-name" maxlength="40">
+      <button type="submit" id="send">Send</button>
+      <div class="msg" id="msg"></div>
+    </form>
+  </section>
+</main>
+<script>
+const RELAY = 'https://script.google.com/macros/s/AKfycbz8uCeKdYFBjVW8HQh8tD55JFDkTQ1PNQcmtlITo76RG3Wrtn48hrcEbhpl8labYZ5Z/exec';
+const $ = id => document.getElementById(id);
+const say = (t, bad) => { $('msg').textContent = t; $('msg').className = 'msg' + (bad ? ' bad' : ''); };
+$('f').addEventListener('submit', e => {
+  e.preventDefault();
+  const body = { f: 'appReq', email: $('email').value.trim(), first: $('first').value.trim(), last: $('last').value.trim() };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) return say('Check the email', true);
+  if (!body.first || !body.last) return say('Enter first and last name', true);
+  $('send').disabled = true; say('Sending…');
+  fetch(RELAY, { method: 'POST', body: JSON.stringify(body) }).then(r => r.json()).then(r => {
+    if (!r.ok) throw new Error(r.error);
+    $('formCard').innerHTML = '<div class="done"><div class="ok">✓</div><h2>Request sent</h2><p>You’ll get a TestFlight email once you’re added.</p></div>';
+  }).catch(err => { $('send').disabled = false; say(`Failed: ${err.message}`, true); });
+});
+</script>
+</body>
+</html>
