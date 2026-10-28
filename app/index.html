@@ -64,7 +64,14 @@
   .pmhelp img { display:block; width:100%; max-width:420px; margin-top:6px; border-radius:10px; border:1px solid var(--line); }
   .ver { display:grid; grid-template-columns:auto 1fr; gap:2px 10px; margin-top:8px; font-variant-numeric:tabular-nums; }
   .kin { width:100%; box-sizing:border-box; font:inherit; font-size:16px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:var(--card, #fff); color:inherit; margin-bottom:10px; }
-  .hist { display:grid; grid-template-columns:auto 1fr; gap:6px 12px; margin-top:10px; font-size:14px; }
+  .histv { border-top:1px solid var(--line); }
+  .histv:first-of-type { margin-top:10px; }
+  .histv summary { display:flex; align-items:baseline; gap:10px; padding:10px 0; cursor:pointer; list-style:none; }
+  .histv summary::-webkit-details-marker { display:none; }
+  .histv summary::before { content:"▸"; color:var(--mute); font-size:12px; transition:transform .15s; }
+  .histv[open] summary::before { transform:rotate(90deg); }
+  .histv summary b { font-variant-numeric:tabular-nums; }
+  .histv ul { margin:0 0 10px; padding-left:22px; display:grid; gap:5px; font-size:14px; }
   .fb-seg { margin:0 0 10px; }
   #fbIn { resize:vertical; min-height:96px; }
   .fbl { display:grid; gap:10px; margin-top:10px; }
@@ -74,7 +81,6 @@
   .fbk.good { background:rgba(46,160,67,.14); color:#2ea043; }
   .fbk.bad { background:rgba(240,140,0,.16); color:#d97706; }
   .fbt { white-space:pre-wrap; overflow-wrap:anywhere; }
-  .hist span:nth-child(odd) { color:var(--mute); font-variant-numeric:tabular-nums; }
   .home { cursor:pointer; display:grid; gap:10px; margin-top:12px; }
   .hload { display:grid; justify-items:center; gap:8px; padding:36px 16px; text-align:center; }
   .spin { width:26px; height:26px; border-radius:50%; border:3px solid var(--line); border-top-color:var(--acc); animation:spin .8s linear infinite; }
@@ -746,7 +752,7 @@ function settingsView() {
     const [v, sub] = f ? f(r) : id === 'seproc' ? [esc((r.acarsRwys || []).filter(x => !x.ix).map(x => `${x.rwy} ${x.efp}`).join(' · ') || '—')] : [esc(id === 'route' ? r.route || '—' : ((id === 'remarks' ? r.remarks : r.mel)[0] || '없음').slice(0, 40))];
     return `<label class="setrow"><input type="checkbox" data-f="${id}"${relShow.includes(id) ? ' checked' : ''}><span class="k">${k}</span><span class="v">${v}${sub ? ` <small>${sub}</small>` : ''}</span>${num(i)}</label>`;
   }).join('');
-  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release 항목</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>업데이트${scriptOld() ? ' ●' : ''}</button><button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>도어 키</button>${doorKey && !IN_APP ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}${doorKey ? `<button data-st="fb"${setTab === 'fb' ? ' class="on"' : ''}>피드백</button>` : ''}<button data-st="share"${setTab === 'share' ? ' class="on"' : ''}>Share</button></div>`;
+  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release 항목</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>${IN_APP ? 'Update history' : '업데이트'}${scriptOld() ? ' ●' : ''}</button><button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>도어 키</button>${doorKey && !IN_APP ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}${doorKey ? `<button data-st="fb"${setTab === 'fb' ? ' class="on"' : ''}>피드백</button>` : ''}<button data-st="share"${setTab === 'share' ? ' class="on"' : ''}>Share</button></div>`;
   if (setTab === 'upd') return seg + scriptBox();
   if (setTab === 'watch' && doorKey && !IN_APP) return seg + watchBox(); // 앱 설정에는 Apple Watch 안내를 두지 않는다
   if (setTab === 'key') return seg + keyBox();   // 웹에서도 키만 지우거나 넣을 수 있게
@@ -1336,6 +1342,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/28', 'Update history: grouped by date and folded (tap a date to open); Share keys are Family or Friend'],
   ['10/28', 'Share works for everyone now: your own share code is made the first time you tap Make key (up to 2 keys). Old keys stop updating, so make new ones'],
   ['10/28', 'Home leg list: no R tag on deadhead flights, and DH now sits between the flight and the gate'],
   ['10/28', 'Deadhead flights no longer show the R (release) tag'],
@@ -1396,9 +1403,15 @@ const CHANGES = [
   ['10/22', 'LogTen export after the day\'s last leg is in'],
   ['10/22', 'Apple Watch door code shortcut'],
 ];
+function histGroups() {
+  return [...new Set(CHANGES.map(c => c[0]))].map(d => {
+    const ts = CHANGES.filter(c => c[0] === d).map(c => c[1]);
+    return `<details class="histv"><summary><b>${d}</b><span class="sub">${ts.length} update${ts.length > 1 ? 's' : ''}</span></summary><ul>${ts.map(t => `<li>${t}</li>`).join('')}</ul></details>`;
+  }).join('');
+}
 function scriptBox() {
   if (IN_APP) return `<div class="card box"><b>Update history</b> <span class="sub">App ${esc(IN_APP)}</span>
-    <div class="hist">${CHANGES.map(([d, t]) => `<span>${d}</span><span>${t}</span>`).join('')}</div></div>`;
+    ${histGroups()}</div>`;
   const v = scriptCur();
   const cur = v === 'bookmark' ? '북마크 (CB 동기화)' : v || (state.syncedAt ? '알 수 없음 (예전 스크립트)' : '아직 동기화 전');
   const st = !v && !state.syncedAt ? '' : v === 'bookmark' ? '<span class="ok-tag">북마크는 늘 최신</span>'
@@ -1811,13 +1824,13 @@ function shareBox() {
   if (shareCode && !shareData && !shareMsg) { shareMsg = 'Loading…'; shareCall({ f: 'shareList' }).then(() => { shareMsg = ''; }, err => { shareMsg = `Could not load: ${err.message}`; }).then(() => { if (tab === 'set' && setTab === 'share') render(); }); }
   const keys = (shareData || {}).keys || [], full = keys.length >= SHARE_MAX;
   return `<div class="card box"><b>Share my schedule</b>
-    <p class="sub" style="margin:4px 0 10px">Make a key for a friend or your spouse (up to ${SHARE_MAX}). They open <b>${esc(FRIEND_URL.replace('https://', ''))}</b> and enter the key. They see your trips, flights, times and live status (on time · delayed · taxiing · en route · landed · at gate). Never crew names, releases, hotels or door codes.</p>
+    <p class="sub" style="margin:4px 0 10px">Make a key for family or a friend (up to ${SHARE_MAX}). They open <b>${esc(FRIEND_URL.replace('https://', ''))}</b> and enter the key. They see your trips, flights, times and live status (on time · delayed · taxiing · en route · landed · at gate). Never crew names, releases, hotels or door codes.</p>
     ${shareCode ? '' : '<input id="shMe" class="kin" placeholder="Your name (friends see it, e.g. Chris)" maxlength="30" autocomplete="off" style="margin-bottom:8px">'}
     ${full ? '' : `<input id="shName" class="kin" placeholder="Their name (e.g. Mom, Jane)" maxlength="30" autocomplete="off">
-    <div class="seg sh-seg" style="margin-top:8px"><button data-shk="friend"${shareKind === 'friend' ? ' class="on"' : ''}>Friend</button><button data-shk="spouse"${shareKind === 'spouse' ? ' class="on"' : ''}>Spouse</button></div>`}
+    <div class="seg sh-seg" style="margin-top:8px"><button data-shk="spouse"${shareKind === 'spouse' ? ' class="on"' : ''}>Family</button><button data-shk="friend"${shareKind === 'friend' ? ' class="on"' : ''}>Friend</button></div>`}
     <div class="setbtns">${full ? '' : '<button id="shNew" class="on">Make key</button>'}<span class="sub" id="shMsg">${esc(shareMsg || (full ? `You have ${SHARE_MAX} keys. Delete one to make another.` : ''))}</span></div></div>
   ${keys.length ? `<div class="card box"><b>Keys</b> <span class="sub">${keys.length} / ${SHARE_MAX}</span>
-    ${keys.map(k => `<div class="shk"><div><b>${esc(k.label)}</b> <span class="sub">${k.kind === 'spouse' ? 'Spouse' : 'Friend'}</span><div class="shcode">${esc(k.sk)}</div></div>
+    ${keys.map(k => `<div class="shk"><div><b>${esc(k.label)}</b> <span class="sub">${k.kind === 'spouse' ? 'Family' : 'Friend'}</span><div class="shcode">${esc(k.sk)}</div></div>
       <div class="shbtn"><button data-shcopy="${esc(k.sk)}">Copy link</button><button data-shdel="${esc(k.sk)}">Delete</button></div></div>`).join('')}
     <p class="sub" style="margin:8px 0 0">Your schedule is sent each time you sync. Delete a key to stop sharing with that person.</p></div>` : ''}
   ${shareCode ? `<div class="card box"><b>My share code</b>
