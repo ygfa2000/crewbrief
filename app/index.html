@@ -758,12 +758,13 @@ function settingsView() {
     const [v, sub] = f ? f(r) : id === 'seproc' ? [esc((r.acarsRwys || []).filter(x => !x.ix).map(x => `${x.rwy} ${x.efp}`).join(' · ') || '—')] : [esc(id === 'route' ? r.route || '—' : ((id === 'remarks' ? r.remarks : r.mel)[0] || '없음').slice(0, 40))];
     return `<label class="setrow"><input type="checkbox" data-f="${id}"${relShow.includes(id) ? ' checked' : ''}><span class="k">${k}</span><span class="v">${v}${sub ? ` <small>${sub}</small>` : ''}</span>${num(i)}</label>`;
   }).join('');
-  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release 항목</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>${IN_APP ? 'Update history' : '업데이트'}${scriptOld() ? ' ●' : ''}</button><button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>도어 키</button>${doorKey && !IN_APP ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}${doorKey ? `<button data-st="fb"${setTab === 'fb' ? ' class="on"' : ''}>피드백</button>` : ''}<button data-st="share"${setTab === 'share' ? ' class="on"' : ''}>Share</button></div>`;
+  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release 항목</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>${IN_APP ? 'Update history' : '업데이트'}${scriptOld() ? ' ●' : ''}</button><button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>도어 키</button>${doorKey && !IN_APP ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}${doorKey ? `<button data-st="fb"${setTab === 'fb' ? ' class="on"' : ''}>피드백</button>` : ''}<button data-st="share"${setTab === 'share' ? ' class="on"' : ''}>Schedule share</button><button data-st="app"${setTab === 'app' ? ' class="on"' : ''}>Share app</button></div>`;
   if (setTab === 'upd') return seg + scriptBox();
   if (setTab === 'watch' && doorKey && !IN_APP) return seg + watchBox(); // 앱 설정에는 Apple Watch 안내를 두지 않는다
   if (setTab === 'key') return seg + keyBox();   // 웹에서도 키만 지우거나 넣을 수 있게
   if (setTab === 'fb' && doorKey) return seg + fbBox();
   if (setTab === 'share') return seg + shareBox();   // 도어 키 없이도 — 내 공유 코드로
+  if (setTab === 'app') return seg + appBox();
   return `${seg}<div class="card box"><b>Release 항목</b>
     <p class="sub" style="margin:4px 0 10px">체크한 항목만 Release 칸에 보입니다. 오른쪽 번호로 순서를 정하고 저장하세요. 값은 ${src}.</p>
     <div class="setlist">${rows}</div>
@@ -1364,6 +1365,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/28', 'Settings: Share is now Schedule share; new Share app tab explains TestFlight and lets crew request an invite'],
   ['10/28', 'Time zone letters follow each flight’s date (daylight saving ends 11/1); Arizona and other no-DST airports show the plain letter for that day (app and friend page)'],
   ['10/28', 'Reload button is more see-through, so the text under it shows'],
   ['10/28', 'Reload button: a see-through round button at the bottom right (same as pulling down)'],
@@ -1901,6 +1903,54 @@ document.addEventListener('click', e => {
   if (e.target.dataset?.shcopy) {
     const u = `${FRIEND_URL}#sk=${e.target.dataset.shcopy}`;
     (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => say('Link copied'), () => { prompt('Copy this link', u); });
+  }
+});
+
+let appMsg = '', appReqs = null;
+function appReqLoad() {
+  if (!doorKey || appReqs) return;
+  appReqs = { list: [] };
+  fetch(`${RELAY}?f=appReqs&dk=${encodeURIComponent(doorKey)}`).then(r => r.json()).then(r => { if (r.ok) { appReqs = r; if (tab === 'set' && setTab === 'app') render(); } }).catch(() => {});
+}
+function appBox() {
+  appReqLoad();
+  const list = (appReqs || {}).list || [];
+  return `<div class="card box"><b>Get the Crew Brief iPhone app</b>
+    <p class="sub" style="margin:6px 0 8px">The iPhone app is shared through <b>TestFlight</b>, Apple’s free app for trying apps before they are on the App Store. It works like a normal app, with the home screen widget and Apple Watch.</p>
+    <ol class="sub" style="margin:0;padding-left:20px;display:grid;gap:5px">
+      <li>Send your Apple ID email and name below.</li>
+      <li>When you are added, Apple emails you an invite from TestFlight (usually within a day or two).</li>
+      <li>Install <b>TestFlight</b> from the App Store.</li>
+      <li>On your iPhone, open the email, tap <b>View in TestFlight</b>, then <b>Install</b>.</li>
+      <li>Updates come through TestFlight. Each build works for 90 days, and a new one comes before that.</li>
+    </ol></div>
+  <div class="card box"><b>Request an invite</b>
+    <p class="sub" style="margin:4px 0 10px">Use the email of the Apple ID on your iPhone (Settings › your name).</p>
+    <input id="arEmail" class="kin" type="email" placeholder="Apple ID email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="80" style="margin-bottom:8px">
+    <input id="arFirst" class="kin" placeholder="First name" autocomplete="given-name" maxlength="40" style="margin-bottom:8px">
+    <input id="arLast" class="kin" placeholder="Last name" autocomplete="family-name" maxlength="40">
+    <div class="setbtns"><button id="arSend" class="on">Send</button><span class="sub" id="arMsg">${esc(appMsg)}</span></div></div>
+  ${list.length ? `<div class="card box"><b>Invite requests</b> <span class="sub">${list.length}</span>
+    ${list.map(x => `<div class="shk"><div><b>${esc(x.first)} ${esc(x.last)}</b><div class="sub">${esc(x.email)} · ${esc(x.at.slice(5, 10).replace('-', '/'))}</div></div>
+      <div class="shbtn"><button data-arcopy="${esc(x.email)}">Copy</button><button data-ardone="${esc(x.email)}">Done</button></div></div>`).join('')}
+    <p class="sub" style="margin:8px 0 0">Add them in App Store Connect › TestFlight, then tap Done.</p></div>` : ''}`;
+}
+document.addEventListener('click', e => {
+  const say = t => { appMsg = t; const m = document.getElementById('arMsg'); if (m) m.textContent = t; };
+  if (e.target.id === 'arSend') {
+    const v = id => document.getElementById(id).value.trim();
+    const body = { f: 'appReq', email: v('arEmail'), first: v('arFirst'), last: v('arLast') };
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) return say('Check the email');
+    if (!body.first || !body.last) return say('Enter first and last name');
+    say('Sending…');
+    fetch(RELAY, { method: 'POST', body: JSON.stringify(body) }).then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(r.error); ['arEmail', 'arFirst', 'arLast'].forEach(id => { document.getElementById(id).value = ''; }); say('Sent. You’ll get a TestFlight email once you’re added.'); })
+      .catch(err => say(`Failed: ${err.message}`));
+  }
+  if (e.target.dataset?.arcopy) { const t = e.target.dataset.arcopy; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => { e.target.textContent = 'Copied'; }, () => prompt('Copy', t)); }
+  if (e.target.dataset?.ardone) {
+    fetch(RELAY, { method: 'POST', body: JSON.stringify({ f: 'appReqDone', dk: doorKey, email: e.target.dataset.ardone }) }).then(r => r.json())
+      .then(r => { if (r.ok) { appReqs = r; render(); } });
   }
 });
 
