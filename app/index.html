@@ -119,6 +119,11 @@
   .cd b { font-size:56px; font-weight:800; letter-spacing:-.03em; line-height:1; }
   .cd i { font-style:normal; font-size:20px; font-weight:700; opacity:.7; margin-right:8px; }
   .hx-when { margin-top:10px; font-size:15px; font-weight:600; opacity:.85; font-variant-numeric:tabular-nums; }
+  .rp-mine { opacity:.75; font-weight:500; white-space:nowrap; }
+  .rp-mine .tz { margin-left:0; }
+  .rp { display:inline-flex; align-items:center; }
+  .rp .tz { vertical-align:0; }
+  .duty .rp-mine { display:block; font-size:12px; letter-spacing:0; color:inherit; }
   .ckin { display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; margin:12px 0 0; padding:14px 18px; border:0; border-radius:18px; background:#2fb344; color:#fff; font:inherit; text-align:left; cursor:pointer; }
   .ckin b { font-size:18px; } .ckin span { font-size:13px; opacity:.9; }
   .duty { display:grid; grid-template-columns:repeat(3,1fr); background:var(--card); border:1px solid var(--line); border-radius:18px; }
@@ -917,6 +922,30 @@ function logtenUrl(d) {
 }
 
 const aptOff = (a, date) => { const k = TZ_APT[a]; return k ? (TZ_STD[k] + (TZ_NODST.has(a) ? 0 : usDst(date) ? 1 : 0)) * 60 : null; };
+const zoneOffAt = (zn, x) => { const q = {}; new Intl.DateTimeFormat('en-US', { timeZone: zn, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' }).formatToParts(new Date(x)).forEach(o => { q[o.type] = +o.value; }); return (Date.UTC(q.year, q.month - 1, q.day, q.hour % 24, q.minute) - x) / 6e4; };
+const aptMs = (apt, date, hm) => {
+  const k = TZ_APT[apt]; if (!k) return null;
+  const [y, m, dd] = date.split('-').map(Number), [h, mi] = hm.split(':').map(Number), g = Date.UTC(y, m - 1, dd, h, mi);
+  if (TZ_NODST.has(apt)) return g - TZ_STD[k] * 36e5;
+  const zn = TZ_CLOCKS.find(c => c[0] === k)[1];
+  return g - zoneOffAt(zn, g - zoneOffAt(zn, g) * 6e4) * 6e4;
+};
+const reportMs = d => {
+  const x = aptMs(d.legs[0]?.from, d.date, d.report);
+  if (x != null) return x;
+  const [y, m, dd] = d.date.split('-').map(Number), [h, mi] = d.report.split(':').map(Number);
+  return zoneMs(y, m, dd, h, mi);
+};
+const reportAt = d => {
+  if (!/^\d{1,2}:\d{2}$/.test(d.report || '')) return esc(d.report || '—');
+  const apt = d.legs[0]?.from, main = `<span class="rp">${tzOf(apt, d.date)}${esc(d.report)}</span>`, x = aptMs(apt, d.date, d.report);
+  if (x == null) return main;
+  const p = loc(x), mine = (Date.UTC(p.year, p.month - 1, p.day, p.hour % 24, p.minute) - x) / 6e4;
+  if (p.hour % 24 === +d.report.split(':')[0] && p.minute === +d.report.split(':')[1]) return main;   // 내 시계와 같으면 괄호 없음
+  const k = (TZ_CLOCKS.find(([, zn]) => zoneOffAt(zn, x) === mine) || [])[0];
+  const hm = `${String(p.hour % 24).padStart(2, '0')}:${String(p.minute).padStart(2, '0')}`;
+  return `${main} <span class="rp-mine">(${ymd(x) !== d.date ? `${p.month}/${p.day} ` : ''}<span class="rp">${tzIcon(k)}${hm}</span>)</span>`;
+};
 function inAgo(l, f) {
   const w = x => ((x % 1440) + 1440) % 1440, nz = x => w(x + 720) - 720;
   const fo = aptOff(l.from, l.date), ao = aptOff(l.to, l.date), dep = f.out || f.std || l.dep;
@@ -944,7 +973,7 @@ function legOt(l) {
 
 function dayBlock(trip, d, fold) {
   const allLegs = trip.days.flatMap(x => x.legs);
-  const head = `<span>${fold ? `Day ${trip.days.indexOf(d) + 1} · ` : ''}${md(d.date)}</span><span class="sub">Report ${esc(d.report)} · Release ${esc(d.release)}${d.duty ? ` · Duty ${esc(d.duty)}` : ''}</span>`;
+  const head = `<span>${fold ? `Day ${trip.days.indexOf(d) + 1} · ` : ''}${md(d.date)}</span><span class="sub">Report ${reportAt(d)} · Release ${esc(d.release)}${d.duty ? ` · Duty ${esc(d.duty)}` : ''}</span>`;
   return `
     ${fold ? `<details class="day fold${fold === 'open' ? ' now" open' : '"'}><summary class="dayhead">${head}</summary>` : `<div class="day">
       <div class="dayhead">${head}</div>`}
@@ -996,7 +1025,7 @@ function todayView() {
   if (!trip) {
     const next = state.trips.find(t => t.start > today);
     return `<div class="card box"><b>오늘 비행 없음</b>${next
-      ? `<div class="sub" style="margin-top:4px">다음 트립: ${tripTitle(next)} · Report ${esc(next.days[0].report)}</div>` : ''}</div>`;
+      ? `<div class="sub" style="margin-top:4px">다음 트립: ${tripTitle(next)} · Report ${reportAt(next.days[0])}</div>` : ''}</div>`;
   }
   const i = trip.days.findIndex(d => d.date === today);
   return `<div class="card">
@@ -1015,11 +1044,11 @@ function homeView() {
     const nd = nx.t.days.filter(d => d.date >= nx.d.date).map(d => {
       const ls = d.legs.filter(l => l.from !== l.to), chain = ls.length ? [ls[0].from, ...ls.map(l => l.to)].join(' → ') : '—';
       return `<div class="nt-day"><span class="nt-d">${md(d.date)}</span><div><b>${esc(chain)}</b>
-        <div class="tl-sub">Report ${esc(d.report || '—')} · Release ${esc(d.release || '—')}${ls[0] ? ` · ${esc(ls[0].flight)} ${esc(ls[0].dep)}` : ''}</div></div></div>`;
+        <div class="tl-sub">Report ${reportAt(d)} · Release ${esc(d.release || '—')}${ls[0] ? ` · ${esc(ls[0].flight)} ${esc(ls[0].dep)}` : ''}</div></div></div>`;
     }).join('');
-    return `<div class="home" data-go="up"><div class="hero off" data-at="${esc(nx.d.date)}T${esc(nx.d.report.padStart(5, '0'))}">
-      <div class="hx-lbl">다음 리포트까지</div><div class="cd">${countdown(nx.d.date, nx.d.report)}</div>
-      <div class="hx-when">${md(nx.d.date)} · ${esc(nx.d.report)}</div></div>
+    return `<div class="home" data-go="up"><div class="hero off" data-ms="${reportMs(nx.d)}">
+      <div class="hx-lbl">다음 리포트까지</div><div class="cd">${countdown(reportMs(nx.d))}</div>
+      <div class="hx-when">${md(nx.d.date)} · ${reportAt(nx.d)}</div></div>
       <div class="card hcard"><div class="hc-h">NEXT TRIP · ${esc(nx.t.pairing)}</div>
         <div class="tl-sub">${tripTitle(nx.t)} · Block ${esc(nx.t.block)} · Credit ${esc(nx.t.credit)} · TAFB ${esc(nx.t.tafb)}</div>${nd}</div></div>`;
   }
@@ -1062,7 +1091,7 @@ function homeView() {
     <div class="hero">
       <div class="hx-top"><span>오늘 · ${md(d.date)}</span><span class="pill">${esc(trip.pairing)} · Day ${trip.days.indexOf(d) + 1}/${trip.days.length}</span></div>
       ${hero}</div>
-    <div class="duty"><div><span>REPORT</span><b>${esc(d.report || '—')}</b></div><div><span>RELEASE</span><b>${esc(d.release || '—')}</b></div><div><span>DUTY</span><b>${esc(d.duty || '—')}</b></div></div>
+    <div class="duty"><div><span>REPORT</span><b>${reportAt(d)}</b></div><div><span>RELEASE</span><b>${esc(d.release || '—')}</b></div><div><span>DUTY</span><b>${esc(d.duty || '—')}</b></div></div>
     <div class="card hcard"><div class="hc-h">${legs.length} LEGS</div>${rows}</div>
     </div>
     ${d.date === trip.start && !((state.checkin || {})[`${trip.pairing}|${trip.start}`] || {}).checked ? `<button class="ckin" data-pairing="${esc(trip.pairing)}" data-start="${esc(trip.start)}"><b>Check In</b><span>${esc(trip.pairing)} · opens Trip Detail</span></button>` : ''}
@@ -1114,15 +1143,13 @@ document.addEventListener('click', e => {
   try { localStorage.removeItem('cbChanges'); } catch (er) {}
   render();
 });
-function countdown(date, hm) {
-  const [y, m, d] = date.split('-').map(Number), [h, mi] = hm.split(':').map(Number);
-  const left = Math.max(0, Math.round((zoneMs(y, m, d, h, mi) - Date.now()) / 60e3));
+function countdown(at) {
+  const left = Math.max(0, Math.round((at - Date.now()) / 60e3));
   const dd = Math.floor(left / 1440), hh = Math.floor(left % 1440 / 60), mm = left % 60;
   return `${dd ? `<b>${dd}</b><i>d</i>` : ''}<b>${hh}</b><i>h</i><b>${String(mm).padStart(2, '0')}</b><i>m</i>`;
 }
 setInterval(() => document.querySelectorAll('.hero.off').forEach(el => {
-  const [date, hm] = el.dataset.at.split('T');
-  el.querySelector('.cd').innerHTML = countdown(date, hm);
+  el.querySelector('.cd').innerHTML = countdown(+el.dataset.ms);
 }), 30e3);
 let otSig = '';
 setInterval(() => {
@@ -1415,6 +1442,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/29', 'Report time shows the airport’s local time with its time zone, and your own time in brackets when you are in a different zone; the countdown uses the airport time'],
   ['10/29', 'Feedback and app requests are also kept in a Google Sheet log'],
   ['10/29', 'Last sync shows your local time again (with the app update it follows your phone’s time zone)'],
   ['10/29', 'Friend page: Refresh reloads the whole page'],
