@@ -1415,6 +1415,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/29', 'Feedback and app requests are also kept in a Google Sheet log'],
   ['10/29', 'Last sync shows your local time again (with the app update it follows your phone’s time zone)'],
   ['10/29', 'Friend page: Refresh reloads the whole page'],
   ['10/29', 'Friend page day off: airport stamps and map dots colored by time zone (P · M · C · E), grey outside the US'],
