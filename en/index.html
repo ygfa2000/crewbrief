@@ -808,11 +808,11 @@ function settingsView() {
     const [v, sub] = f ? f(r) : id === 'seproc' ? [esc((r.acarsRwys || []).filter(x => !x.ix).map(x => `${x.rwy} ${x.efp}`).join(' · ') || '—')] : [esc(id === 'route' ? r.route || '—' : ((id === 'remarks' ? r.remarks : r.mel)[0] || 'None').slice(0, 40))];
     return `<label class="setrow"><input type="checkbox" data-f="${id}"${relShow.includes(id) ? ' checked' : ''}><span class="k">${k}</span><span class="v">${v}${sub ? ` <small>${sub}</small>` : ''}</span>${num(i)}</label>`;
   }).join('');
-  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release items</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>${IN_APP ? 'Update history' : 'Update'}${scriptOld() ? ' ●' : ''}</button>${setTab === 'key' ? `<button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>Door key</button>` : ''}${doorKey && !IN_APP ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}${doorKey ? `<button data-st="fb"${setTab === 'fb' ? ' class="on"' : ''}>Feedback${badge(newFb())}</button>` : ''}<button data-st="share"${setTab === 'share' ? ' class="on"' : ''}>Schedule share</button><button data-st="app"${setTab === 'app' ? ' class="on"' : ''}>Share app${badge(newApp())}</button></div>`;
+  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release items</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>${IN_APP ? 'Update history' : 'Update'}${scriptOld() ? ' ●' : ''}</button>${setTab === 'key' ? `<button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>Door key</button>` : ''}${doorKey && !IN_APP ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}<button data-st="fb"${setTab === 'fb' ? ' class="on"' : ''}>Feedback${badge(newFb())}</button><button data-st="share"${setTab === 'share' ? ' class="on"' : ''}>Schedule share</button><button data-st="app"${setTab === 'app' ? ' class="on"' : ''}>Share app${badge(newApp())}</button></div>`;
   if (setTab === 'upd') return seg + scriptBox();
   if (setTab === 'watch' && doorKey && !IN_APP) return seg + watchBox();
   if (setTab === 'key') return seg + keyBox();
-  if (setTab === 'fb' && doorKey) { fbSeenNow(); return seg + fbBox(); }
+  if (setTab === 'fb') { fbSeenNow(); return seg + fbBox(); }
   if (setTab === 'share') return seg + shareBox();
   if (setTab === 'app') return seg + appBox();
   return `${seg}<div class="card box"><b>Release items</b>
@@ -1442,6 +1442,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/29', 'Feedback in Settings is open to everyone (name optional)'],
   ['10/29', 'Report time shows the airport’s local time with its time zone, and your own time in brackets when you are in a different zone; the countdown uses the airport time'],
   ['10/29', 'Feedback and app requests are also kept in a Google Sheet log'],
   ['10/29', 'Last sync shows your local time again (with the app update it follows your phone’s time zone)'],
@@ -2067,13 +2068,13 @@ document.addEventListener('click', e => {
 });
 
 function fbBox() {
-  if (!fbData) fbLoad();
+  if (!fbData) { if (doorKey) fbLoad(); else fbData = { list: [] }; }
   const list = fbData.list || [];
   const kind = k => k === 'good' ? 'Good' : 'Improve';
   return `<div class="card box"><b>Feedback</b>
     <p class="sub" style="margin:4px 0 10px">Tell us what works well or what could be better.</p>
     <div class="seg fb-seg"><button data-fk="good"${fbKind === 'good' ? ' class="on"' : ''}>👍 Good</button><button data-fk="bad"${fbKind === 'bad' ? ' class="on"' : ''}>🛠 Improve</button></div>
-    <textarea id="fbIn" class="kin" rows="4" placeholder="Write anything"></textarea>
+    <textarea id="fbIn" class="kin" rows="4" placeholder="Write anything"></textarea>${doorKey ? '' : `<input id="fbName" class="kin" maxlength="40" placeholder="Your name (optional)" style="margin-top:8px">`}
     <div class="setbtns"><button id="fbSend" class="on">Send</button><span class="sub" id="fbMsg">${esc(fbMsg)}</span></div></div>
   ${list.length ? `<div class="card box"><b>${fbData.admin ? 'Received' : 'Sent'}</b> <span class="sub">${list.length}</span>
     <div class="fbl">${list.map(x => `<div class="fbi"><div class="fbh"><span class="fbk ${x.kind}">${kind(x.kind)}</span><span class="fbsrc${x.src === 'friend' ? ' fr' : ''}">${x.src === 'friend' ? 'Friend page' : 'App'}</span><span class="sub">${fbWhen(x.at)}${fbData.admin ? ` · ${esc(x.by)}` : ''}</span></div><div class="fbt">${esc(x.text)}</div></div>`).join('')}</div></div>` : ''}`;
@@ -2087,9 +2088,11 @@ document.addEventListener('click', e => {
   if (!text) return say('Please write something');
   e.target.disabled = true;
   say('Sending…');
-  fetch(RELAY, { method: 'POST', body: JSON.stringify({ f: 'fb', dk: doorKey, kind: fbKind, text }) }).then(r => r.json()).then(r => {
+  const name = doorKey ? '' : ((document.getElementById('fbName') || {}).value || '').trim();
+  fetch('https://script.google.com/macros/s/AKfycbz8uCeKdYFBjVW8HQh8tD55JFDkTQ1PNQcmtlITo76RG3Wrtn48hrcEbhpl8labYZ5Z/exec', { method: 'POST', body: JSON.stringify(doorKey ? { f: 'fb', dk: doorKey, kind: fbKind, text } : { f: 'fb', src: 'app', name, kind: fbKind, text }) }).then(r => r.json()).then(r => {
     if (!r.ok) throw new Error(r.error);
-    fbData = r; fbMsg = 'Sent — thank you';
+    if (doorKey) fbData = r;
+    fbMsg = 'Sent — thank you';
     render();
   }).catch(err => { e.target.disabled = false; say(`Not sent: ${err.message}`); });
 });

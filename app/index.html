@@ -808,11 +808,11 @@ function settingsView() {
     const [v, sub] = f ? f(r) : id === 'seproc' ? [esc((r.acarsRwys || []).filter(x => !x.ix).map(x => `${x.rwy} ${x.efp}`).join(' · ') || '—')] : [esc(id === 'route' ? r.route || '—' : ((id === 'remarks' ? r.remarks : r.mel)[0] || '없음').slice(0, 40))];
     return `<label class="setrow"><input type="checkbox" data-f="${id}"${relShow.includes(id) ? ' checked' : ''}><span class="k">${k}</span><span class="v">${v}${sub ? ` <small>${sub}</small>` : ''}</span>${num(i)}</label>`;
   }).join('');
-  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release 항목</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>${IN_APP ? 'Update history' : '업데이트'}${scriptOld() ? ' ●' : ''}</button>${setTab === 'key' ? `<button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>도어 키</button>` : ''}${doorKey && !IN_APP ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}${doorKey ? `<button data-st="fb"${setTab === 'fb' ? ' class="on"' : ''}>피드백${badge(newFb())}</button>` : ''}<button data-st="share"${setTab === 'share' ? ' class="on"' : ''}>Schedule share</button><button data-st="app"${setTab === 'app' ? ' class="on"' : ''}>Share app${badge(newApp())}</button></div>`;
+  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release 항목</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>${IN_APP ? 'Update history' : '업데이트'}${scriptOld() ? ' ●' : ''}</button>${setTab === 'key' ? `<button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>도어 키</button>` : ''}${doorKey && !IN_APP ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}<button data-st="fb"${setTab === 'fb' ? ' class="on"' : ''}>피드백${badge(newFb())}</button><button data-st="share"${setTab === 'share' ? ' class="on"' : ''}>Schedule share</button><button data-st="app"${setTab === 'app' ? ' class="on"' : ''}>Share app${badge(newApp())}</button></div>`;
   if (setTab === 'upd') return seg + scriptBox();
   if (setTab === 'watch' && doorKey && !IN_APP) return seg + watchBox(); // 앱 설정에는 Apple Watch 안내를 두지 않는다
   if (setTab === 'key') return seg + keyBox();   // 웹에서도 키만 지우거나 넣을 수 있게
-  if (setTab === 'fb' && doorKey) { fbSeenNow(); return seg + fbBox(); }
+  if (setTab === 'fb') { fbSeenNow(); return seg + fbBox(); }
   if (setTab === 'share') return seg + shareBox();   // 도어 키 없이도 — 내 공유 코드로
   if (setTab === 'app') return seg + appBox();
   return `${seg}<div class="card box"><b>Release 항목</b>
@@ -1442,6 +1442,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/29', 'Feedback in Settings is open to everyone (name optional)'],
   ['10/29', 'Report time shows the airport’s local time with its time zone, and your own time in brackets when you are in a different zone; the countdown uses the airport time'],
   ['10/29', 'Feedback and app requests are also kept in a Google Sheet log'],
   ['10/29', 'Last sync shows your local time again (with the app update it follows your phone’s time zone)'],
@@ -2067,13 +2068,13 @@ document.addEventListener('click', e => {
 });
 
 function fbBox() {
-  if (!fbData) fbLoad();
+  if (!fbData) { if (doorKey) fbLoad(); else fbData = { list: [] }; }
   const list = fbData.list || [];
   const kind = k => k === 'good' ? '잘된 점' : '개선점';
   return `<div class="card box"><b>피드백</b>
     <p class="sub" style="margin:4px 0 10px">잘된 점이나 고쳤으면 하는 점을 적어 보내 주세요.</p>
     <div class="seg fb-seg"><button data-fk="good"${fbKind === 'good' ? ' class="on"' : ''}>👍 잘된 점</button><button data-fk="bad"${fbKind === 'bad' ? ' class="on"' : ''}>🛠 개선점</button></div>
-    <textarea id="fbIn" class="kin" rows="4" placeholder="자유롭게 적어 주세요"></textarea>
+    <textarea id="fbIn" class="kin" rows="4" placeholder="자유롭게 적어 주세요"></textarea>${doorKey ? '' : `<input id="fbName" class="kin" maxlength="40" placeholder="이름 (선택)" style="margin-top:8px">`}
     <div class="setbtns"><button id="fbSend" class="on">보내기</button><span class="sub" id="fbMsg">${esc(fbMsg)}</span></div></div>
   ${list.length ? `<div class="card box"><b>${fbData.admin ? '받은 피드백' : '보낸 피드백'}</b> <span class="sub">${list.length}</span>
     <div class="fbl">${list.map(x => `<div class="fbi"><div class="fbh"><span class="fbk ${x.kind}">${kind(x.kind)}</span><span class="fbsrc${x.src === 'friend' ? ' fr' : ''}">${x.src === 'friend' ? 'Friend page' : 'App'}</span><span class="sub">${fbWhen(x.at)}${fbData.admin ? ` · ${esc(x.by)}` : ''}</span></div><div class="fbt">${esc(x.text)}</div></div>`).join('')}</div></div>` : ''}`;
@@ -2087,9 +2088,11 @@ document.addEventListener('click', e => {
   if (!text) return say('내용을 적어 주세요');
   e.target.disabled = true;
   say('보내는 중…');
-  fetch(RELAY, { method: 'POST', body: JSON.stringify({ f: 'fb', dk: doorKey, kind: fbKind, text }) }).then(r => r.json()).then(r => {
+  const name = doorKey ? '' : ((document.getElementById('fbName') || {}).value || '').trim();
+  fetch(RELAY, { method: 'POST', body: JSON.stringify(doorKey ? { f: 'fb', dk: doorKey, kind: fbKind, text } : { f: 'fb', src: 'app', name, kind: fbKind, text }) }).then(r => r.json()).then(r => {
     if (!r.ok) throw new Error(r.error);
-    fbData = r; fbMsg = '보냈습니다 — 고맙습니다';
+    if (doorKey) fbData = r;
+    fbMsg = '보냈습니다 — 고맙습니다';
     render();
   }).catch(err => { e.target.disabled = false; say(`못 보냄: ${err.message}`); });
 });
