@@ -345,6 +345,7 @@
   .status > .utcbox + div .upd { grid-column:2; grid-row:1 / span 2; }
   @media (max-width:400px) { .status > .utcbox + div { padding:0 8px 0 10px; column-gap:6px; } .status > .utcbox + div #synced { font-size:14px; } }
   @media (max-width:385px) { .status > .utcbox + div #synced { font-size:13px; } .status .upd .ico { width:26px; height:26px; } }
+  .status .sd { font-size:.72em; font-weight:600; color:var(--mute); }
   @media (max-width:350px) { .status .sd { display:none; } }
   .status .upd .ico { width:28px; height:28px; } .status .upd .ico svg { width:15px; height:15px; }
   /* 새로고침 버튼은 옅은 회색 (톱니와 같은 결) */
@@ -1407,6 +1408,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/29', 'Last sync: the date is smaller so the time fits in its box'],
   ['10/29', 'Friend page: on a day off, Today shows Off today and the next trip date (the trip is in Upcoming)'],
   ['10/29', 'Sked+ is now the first tab; Settings moved to the gear at the top right'],
   ['10/29', 'Last sync shows in UTC on one line, with a lighter refresh button'],
