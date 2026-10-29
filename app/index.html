@@ -1150,7 +1150,7 @@ function render() {
   try { sessionStorage.setItem('cbView', JSON.stringify({ tab, tripTab, setTab })); } catch (e) {}
   try { shareUp(); } catch (e) {}   // 처음 그릴 때는 아직 정의 전일 수 있다
   document.getElementById('synced').innerHTML = state.syncedAt
-    ? (t => `<span class="sd">${t.getUTCMonth() + 1}/${t.getUTCDate()} </span>${String(t.getUTCHours()).padStart(2, '0')}:${String(t.getUTCMinutes()).padStart(2, '0')}Z`)(new Date(state.syncedAt)) : '아직 없음';
+    ? mdhm(state.syncedAt).replace(/^(\S+) /, '<span class="sd">$1 </span>') : '아직 없음';
   if (!state.syncedAt) document.getElementById('howto').open = true;
   scriptWarn();
   document.querySelectorAll('.tabs button, .gear').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
@@ -1415,6 +1415,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/29', 'Last sync shows your local time again (with the app update it follows your phone’s time zone)'],
   ['10/29', 'Friend page: Refresh reloads the whole page'],
   ['10/29', 'Friend page day off: airport stamps and map dots colored by time zone (P · M · C · E), grey outside the US'],
   ['10/29', 'Share app: no request form here anymore — the sign-up page link is in the steps'],
