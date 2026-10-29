@@ -80,6 +80,7 @@
   .fbi { border-top:1px solid var(--line); padding-top:10px; }
   .fbh { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
   .fbk { font-size:12px; font-weight:700; padding:2px 8px; border-radius:999px; }
+  .fbsrc { white-space:nowrap; font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px; background:var(--soft,rgba(127,127,127,.12)); color:var(--ink2,var(--mute)); } .fbsrc.fr { background:rgba(139,92,246,.14); color:#7c4ddb; }
   .fbk.good { background:rgba(46,160,67,.14); color:#2ea043; }
   .fbk.bad { background:rgba(240,140,0,.16); color:#d97706; }
   .fbt { white-space:pre-wrap; overflow-wrap:anywhere; }
@@ -1410,6 +1411,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/29', 'Friend page: a Feedback tab; feedback from friends shows in Settings › Feedback marked Friend page'],
   ['10/29', 'Friend page: a day-off page with how long you’re home, a countdown, a days-off calendar, the next 30 days, a route map and airport stamps'],
   ['10/29', 'Share app: invite requests show which app they are for'],
   ['10/29', 'Flight info: CA and FO on one line, FA below, tighter; No release yet without the extra note'],
@@ -2039,7 +2041,7 @@ function fbBox() {
     <textarea id="fbIn" class="kin" rows="4" placeholder="Write anything"></textarea>
     <div class="setbtns"><button id="fbSend" class="on">Send</button><span class="sub" id="fbMsg">${esc(fbMsg)}</span></div></div>
   ${list.length ? `<div class="card box"><b>${fbData.admin ? 'Received' : 'Sent'}</b> <span class="sub">${list.length}</span>
-    <div class="fbl">${list.map(x => `<div class="fbi"><div class="fbh"><span class="fbk ${x.kind}">${kind(x.kind)}</span><span class="sub">${fbWhen(x.at)}${fbData.admin ? ` · ${esc(x.by)}` : ''}</span></div><div class="fbt">${esc(x.text)}</div></div>`).join('')}</div></div>` : ''}`;
+    <div class="fbl">${list.map(x => `<div class="fbi"><div class="fbh"><span class="fbk ${x.kind}">${kind(x.kind)}</span><span class="fbsrc${x.src === 'friend' ? ' fr' : ''}">${x.src === 'friend' ? 'Friend page' : 'App'}</span><span class="sub">${fbWhen(x.at)}${fbData.admin ? ` · ${esc(x.by)}` : ''}</span></div><div class="fbt">${esc(x.text)}</div></div>`).join('')}</div></div>` : ''}`;
 }
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-fk]');
