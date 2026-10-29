@@ -1415,6 +1415,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/29', 'Share app: no request form here anymore — the sign-up page link is in the steps'],
   ['10/29', 'Friend page day off: a drawn sky with pines and a green hill behind the card'],
   ['10/29', 'Settings: a red number shows new feedback and app requests waiting'],
   ['10/29', 'Friend page day off: a softer navy card with serif type'],
@@ -1977,7 +1978,7 @@ document.addEventListener('click', e => {
   }
 });
 
-let appMsg = '', appReqs = null;
+let appReqs = null;
 const JOIN_URL = 'https://crewbrief.pages.dev/join/';
 const JOIN_TEXT = 'Want to try the Crew Brief iPhone app? Send your Apple ID here and I’ll add you on TestFlight:';
 const SHARE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7.5 7.5 4.5-4.5 4.5 4.5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>';
@@ -2003,7 +2004,7 @@ function appBox() {
   return `<div class="card box"><b>Get the Crew Brief iPhone app</b>
     <p class="sub" style="margin:6px 0 8px">The iPhone app is shared through <b>TestFlight</b>, Apple’s free app for trying apps before they are on the App Store. It works like a normal app, with the home screen widget and Apple Watch.</p>
     <ol class="sub" style="margin:0;padding-left:20px;display:grid;gap:5px">
-      <li>Send your Apple ID email and name below.</li>
+      <li>Send your Apple ID email and name on the sign-up page: <a href="${JOIN_URL}" target="_blank" rel="noopener">crewbrief.pages.dev/join</a></li>
       <li>When you are added, Apple emails you an invite from TestFlight (usually within a day or two).</li>
       <li>Install <b>TestFlight</b> from the App Store.</li>
       <li>On your iPhone, open the email, tap <b>View in TestFlight</b>, then <b>Install</b>.</li>
@@ -2012,19 +2013,12 @@ function appBox() {
   <div class="card box"><b>Invite a friend</b>
     <p class="sub" style="margin:4px 0 10px">Send them the sign-up link. They enter their Apple ID there to get a TestFlight invite.</p>
     <div class="invbtns">${navigator.share ? `<button data-inv="share">${SHARE_ICON}Share</button>` : ''}<button data-inv="sms">💬 Text</button><button data-inv="mail">✉️ Email</button></div></div>
-  <div class="card box"><b>Request an invite</b>
-    <p class="sub" style="margin:4px 0 10px">Use the email of the Apple ID on your iPhone (Settings › your name).</p>
-    <input id="arEmail" class="kin" type="email" placeholder="Apple ID email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="80" style="margin-bottom:8px">
-    <input id="arFirst" class="kin" placeholder="First name" autocomplete="given-name" maxlength="40" style="margin-bottom:8px">
-    <input id="arLast" class="kin" placeholder="Last name" autocomplete="family-name" maxlength="40">
-    <div class="setbtns"><button id="arSend" class="on">Send</button><span class="sub" id="arMsg">${esc(appMsg)}</span></div></div>
   ${list.length ? `<div class="card box"><b>Invite requests</b> <span class="sub">${list.length}</span>
     ${list.map(x => `<div class="shk"><div><b>${esc(x.first)} ${esc(x.last)}</b><div class="sub">${esc(x.app || 'Crew Brief')} · ${esc(x.email)} · ${esc(x.at.slice(5, 10).replace('-', '/'))}</div></div>
       <div class="shbtn"><button data-arcopy="${esc(x.email)}">Copy</button><button data-ardone="${esc(x.email)}" data-arapp="${esc(x.app || 'Crew Brief')}">Done</button></div></div>`).join('')}
     <p class="sub" style="margin:8px 0 0">Add them in App Store Connect › TestFlight, then tap Done.</p></div>` : ''}`;
 }
 document.addEventListener('click', e => {
-  const say = t => { appMsg = t; const m = document.getElementById('arMsg'); if (m) m.textContent = t; };
   const inv = e.target.closest('[data-inv]');
   if (inv) {
     const k = inv.dataset.inv;
@@ -2032,16 +2026,6 @@ document.addEventListener('click', e => {
     if (k === 'sms') location.href = `sms:&body=${encodeURIComponent(`${JOIN_TEXT} ${JOIN_URL}`)}`;
     if (k === 'mail') location.href = `mailto:?subject=${encodeURIComponent('Crew Brief iPhone app')}&body=${encodeURIComponent(`${JOIN_TEXT}\n${JOIN_URL}`)}`;
     return;
-  }
-  if (e.target.id === 'arSend') {
-    const v = id => document.getElementById(id).value.trim();
-    const body = { f: 'appReq', email: v('arEmail'), first: v('arFirst'), last: v('arLast') };
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) return say('Check the email');
-    if (!body.first || !body.last) return say('Enter first and last name');
-    say('Sending…');
-    fetch(RELAY, { method: 'POST', body: JSON.stringify(body) }).then(r => r.json())
-      .then(r => { if (!r.ok) throw new Error(r.error); ['arEmail', 'arFirst', 'arLast'].forEach(id => { document.getElementById(id).value = ''; }); say('Sent. You’ll get a TestFlight email once you’re added.'); })
-      .catch(err => say(`Failed: ${err.message}`));
   }
   if (e.target.dataset?.arcopy) { const t = e.target.dataset.arcopy; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => { e.target.textContent = 'Copied'; }, () => prompt('Copy', t)); }
   if (e.target.dataset?.ardone) {
