@@ -1411,6 +1411,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/29', 'Friend page day off: home and plane picture, no Next up card (it’s in Upcoming)'],
   ['10/29', 'Friend page: a Feedback tab; feedback from friends shows in Settings › Feedback marked Friend page'],
   ['10/29', 'Friend page: a day-off page with how long you’re home, a countdown, a days-off calendar, the next 30 days, a route map and airport stamps'],
   ['10/29', 'Share app: invite requests show which app they are for'],
