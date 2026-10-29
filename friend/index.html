@@ -125,6 +125,10 @@
   .hero .ot { font-size:13px; } .hero .ot b { display:inline; margin-left:4px; }
   .hero .ot.ok { background:#e7f8ef; color:#0b8a5f; } .hero .ot.late { background:#ffe3e6; color:#d92d3a; } .hero .ot.done { background:rgba(255,255,255,.2); color:#fff; }
   .empty { text-align:center; color:var(--mute); padding:30px 10px; }
+  .off { text-align:center; padding:28px 16px 22px; }
+  .offt { font-size:26px; font-weight:800; letter-spacing:-.02em; }
+  .offn { margin-top:12px; border:0; border-radius:999px; padding:9px 16px; background:var(--soft); color:var(--ink2); font:inherit; font-size:14px; cursor:pointer; }
+  .offn b { color:var(--ink); }
   .foot { text-align:center; margin-top:18px; }
   .foot button { border:0; background:none; color:var(--mute); font-size:13px; text-decoration:underline; }
   /* header: same logo as the app, "For Friend" under the name, P · M · C · E clocks on the right */
@@ -262,7 +266,7 @@ const spanTxt = t => { const a = new Date(t.start + 'T12:00:00'), b = new Date(t
 function show() {
   const v = $('view'); v.hidden = false; $('bar').hidden = false;
   const d = shared.data || { trips: [] }, who = shared.name || 'Crew';
-  const trip = d.trips.find(t => t.start <= today && t.end >= today) || d.trips.find(t => t.start > today);
+  const trip = d.trips.find(t => t.start <= today && t.end >= today);
   const at = d.syncedAt ? (t => `${t.getMonth() + 1}/${t.getDate()} ${pad(t.getHours())}:${pad(t.getMinutes())}`)(new Date(d.syncedAt)) : '';
   let body;
   if (page === 'up') {
@@ -286,8 +290,10 @@ function show() {
         <div class="route"><b>${esc(next.from)}</b><span class="mid">${esc(next.block || '')}</span><b>${esc(next.to)}</b></div>
         <div class="times"><span>${tzOf(next.from, next.date)}${esc(next.dep)}</span><span>${tzOf(next.to, next.date)}${esc(next.arr)}</span></div></div>` : '';
     const openDay = trip && (trip.days.some(x => x.date === today) ? today : trip.days[0].date);
+    const nx = d.trips.filter(t => t.start > today).sort((a, b) => a.start.localeCompare(b.start))[0];
+    const left = nx && Math.round((Date.parse(nx.start) - Date.parse(today)) / 864e5);
     body = hero + (trip ? `<div class="card trip"><h2>${range(trip)}</h2>${trip.days.map((x, i) => dayHtml(x, i, x.date === openDay)).join('')}</div>`
-      : '<div class="card empty">No upcoming flights shared yet.</div>');
+      : `<div class="card off"><div class="offt">Off today</div>${nx ? `<button class="offn" data-pg="up">Next trip <b>${spanTxt(nx)}</b> · in ${left} day${left === 1 ? '' : 's'} ›</button>` : '<div class="sub">No upcoming flights shared yet.</div>'}</div>`);
   }
   v.innerHTML = `${HDR}<div class="top"><div><h1>${esc(who)}’s flights</h1><div class="sub">${at ? `Updated ${at} · ` : ''}local airport times</div></div><button class="refresh" id="again">↻ Refresh</button></div>
     ${body}

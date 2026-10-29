@@ -1407,6 +1407,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/29', 'Friend page: on a day off, Today shows Off today and the next trip date (the trip is in Upcoming)'],
   ['10/29', 'Sked+ is now the first tab; Settings moved to the gear at the top right'],
   ['10/29', 'Last sync shows in UTC on one line, with a lighter refresh button'],
   ['10/29', 'Times follow your phone’s new time zone after you land (fully with the next app update)'],
