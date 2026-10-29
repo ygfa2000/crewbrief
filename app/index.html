@@ -1410,6 +1410,8 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/29', 'Friend page: a day-off page with how long you’re home, a countdown, a days-off calendar, the next 30 days, a route map and airport stamps'],
+  ['10/29', 'Share app: invite requests show which app they are for'],
   ['10/29', 'Flight info: CA and FO on one line, FA below, tighter; No release yet without the extra note'],
   ['10/29', 'App sign-up page: screenshots of what the app does (home, release, flow map, today, calculators, friend page)'],
   ['10/29', 'Friend and app sign-up pages moved to a new address; old links still work'],
@@ -1996,8 +1998,8 @@ function appBox() {
     <input id="arLast" class="kin" placeholder="Last name" autocomplete="family-name" maxlength="40">
     <div class="setbtns"><button id="arSend" class="on">Send</button><span class="sub" id="arMsg">${esc(appMsg)}</span></div></div>
   ${list.length ? `<div class="card box"><b>Invite requests</b> <span class="sub">${list.length}</span>
-    ${list.map(x => `<div class="shk"><div><b>${esc(x.first)} ${esc(x.last)}</b><div class="sub">${esc(x.email)} · ${esc(x.at.slice(5, 10).replace('-', '/'))}</div></div>
-      <div class="shbtn"><button data-arcopy="${esc(x.email)}">Copy</button><button data-ardone="${esc(x.email)}">Done</button></div></div>`).join('')}
+    ${list.map(x => `<div class="shk"><div><b>${esc(x.first)} ${esc(x.last)}</b><div class="sub">${esc(x.app || 'Crew Brief')} · ${esc(x.email)} · ${esc(x.at.slice(5, 10).replace('-', '/'))}</div></div>
+      <div class="shbtn"><button data-arcopy="${esc(x.email)}">Copy</button><button data-ardone="${esc(x.email)}" data-arapp="${esc(x.app || 'Crew Brief')}">Done</button></div></div>`).join('')}
     <p class="sub" style="margin:8px 0 0">Add them in App Store Connect › TestFlight, then tap Done.</p></div>` : ''}`;
 }
 document.addEventListener('click', e => {
@@ -2022,7 +2024,7 @@ document.addEventListener('click', e => {
   }
   if (e.target.dataset?.arcopy) { const t = e.target.dataset.arcopy; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => { e.target.textContent = 'Copied'; }, () => prompt('Copy', t)); }
   if (e.target.dataset?.ardone) {
-    fetch(RELAY, { method: 'POST', body: JSON.stringify({ f: 'appReqDone', dk: doorKey, email: e.target.dataset.ardone }) }).then(r => r.json())
+    fetch(RELAY, { method: 'POST', body: JSON.stringify({ f: 'appReqDone', dk: doorKey, email: e.target.dataset.ardone, app: e.target.dataset.arapp }) }).then(r => r.json())
       .then(r => { if (r.ok) { appReqs = r; render(); } });
   }
 });
