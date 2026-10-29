@@ -1408,6 +1408,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/29', 'Friend and app sign-up pages moved to a new address; old links still work'],
   ['10/29', 'Last sync: the date is smaller so the time fits in its box'],
   ['10/29', 'Friend page: on a day off, Today shows Off today and the next trip date (the trip is in Upcoming)'],
   ['10/29', 'Sked+ is now the first tab; Settings moved to the gear at the top right'],
@@ -1874,7 +1875,7 @@ function fbLoad() {
     if (tab === 'set' && setTab === 'fb') render();
   }).catch(err => { fbMsg = `목록을 못 받음: ${err.message}`; if (tab === 'set' && setTab === 'fb') render(); });
 }
-const FRIEND_URL = 'https://ygfa2000.github.io/crewbrief/friend/';
+const FRIEND_URL = 'https://crewbrief.pages.dev/friend/';
 const SHARE_API = 'https://crewbrief-share.bidpeek.workers.dev/', SHARE_MAX = 2;
 let shareData = null, shareMsg = '', shareKind = 'friend', shareCode = '';
 try { shareCode = localStorage.getItem('cbShareCode') || ''; } catch (e) {}
@@ -1961,7 +1962,7 @@ document.addEventListener('click', e => {
 });
 
 let appMsg = '', appReqs = null;
-const JOIN_URL = 'https://ygfa2000.github.io/crewbrief/join/';
+const JOIN_URL = 'https://crewbrief.pages.dev/join/';
 const JOIN_TEXT = 'Want to try the Crew Brief iPhone app? Send your Apple ID here and I’ll add you on TestFlight:';
 const SHARE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7.5 7.5 4.5-4.5 4.5 4.5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>';
 function appReqLoad() {
