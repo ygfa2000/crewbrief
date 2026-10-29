@@ -356,6 +356,9 @@
   .status .upd .ico { background:linear-gradient(180deg,#ffffff,#d3d8df); box-shadow:inset 0 1px 0 #fff, 0 0 0 1px rgba(31,36,48,.12), 0 2px 5px rgba(31,36,48,.18); }
   .status .upd .ico svg { stroke:#6b7380; }
   .gear { display:grid; place-items:center; } .gear svg { width:34px; height:34px; display:block; overflow:visible; }
+  .gear { position:relative; }
+  .nbadge { display:inline-grid; place-items:center; min-width:18px; height:18px; padding:0 5px; margin-left:5px; border-radius:9px; background:#f04452; color:#fff; font:700 11px/1 -apple-system,system-ui,sans-serif; vertical-align:1px; }
+  .gear .nbadge { position:absolute; top:-2px; right:-4px; margin:0; box-shadow:0 0 0 2px var(--bg); }
   .gear.on { background:var(--ink); color:var(--card); border-color:var(--ink); }
   .tabs button { white-space:nowrap; }
   @media (max-width:370px) {
@@ -800,11 +803,11 @@ function settingsView() {
     const [v, sub] = f ? f(r) : id === 'seproc' ? [esc((r.acarsRwys || []).filter(x => !x.ix).map(x => `${x.rwy} ${x.efp}`).join(' · ') || '—')] : [esc(id === 'route' ? r.route || '—' : ((id === 'remarks' ? r.remarks : r.mel)[0] || '없음').slice(0, 40))];
     return `<label class="setrow"><input type="checkbox" data-f="${id}"${relShow.includes(id) ? ' checked' : ''}><span class="k">${k}</span><span class="v">${v}${sub ? ` <small>${sub}</small>` : ''}</span>${num(i)}</label>`;
   }).join('');
-  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release 항목</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>${IN_APP ? 'Update history' : '업데이트'}${scriptOld() ? ' ●' : ''}</button>${setTab === 'key' ? `<button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>도어 키</button>` : ''}${doorKey && !IN_APP ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}${doorKey ? `<button data-st="fb"${setTab === 'fb' ? ' class="on"' : ''}>피드백</button>` : ''}<button data-st="share"${setTab === 'share' ? ' class="on"' : ''}>Schedule share</button><button data-st="app"${setTab === 'app' ? ' class="on"' : ''}>Share app</button></div>`;
+  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release 항목</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>${IN_APP ? 'Update history' : '업데이트'}${scriptOld() ? ' ●' : ''}</button>${setTab === 'key' ? `<button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>도어 키</button>` : ''}${doorKey && !IN_APP ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}${doorKey ? `<button data-st="fb"${setTab === 'fb' ? ' class="on"' : ''}>피드백${badge(newFb())}</button>` : ''}<button data-st="share"${setTab === 'share' ? ' class="on"' : ''}>Schedule share</button><button data-st="app"${setTab === 'app' ? ' class="on"' : ''}>Share app${badge(newApp())}</button></div>`;
   if (setTab === 'upd') return seg + scriptBox();
   if (setTab === 'watch' && doorKey && !IN_APP) return seg + watchBox(); // 앱 설정에는 Apple Watch 안내를 두지 않는다
   if (setTab === 'key') return seg + keyBox();   // 웹에서도 키만 지우거나 넣을 수 있게
-  if (setTab === 'fb' && doorKey) return seg + fbBox();
+  if (setTab === 'fb' && doorKey) { fbSeenNow(); return seg + fbBox(); }
   if (setTab === 'share') return seg + shareBox();   // 도어 키 없이도 — 내 공유 코드로
   if (setTab === 'app') return seg + appBox();
   return `${seg}<div class="card box"><b>Release 항목</b>
@@ -1151,6 +1154,7 @@ function render() {
   if (!state.syncedAt) document.getElementById('howto').open = true;
   scriptWarn();
   document.querySelectorAll('.tabs button, .gear').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  { const g = document.querySelector('.gear'), n = newFb() + newApp(), old = g.querySelector('.nbadge'); if (old) old.remove(); if (n) g.insertAdjacentHTML('beforeend', badge(n)); }
   document.getElementById('view').hidden = tab === 'calc' || tab === 'atis';
   document.getElementById('calc').hidden = tab !== 'calc';
   document.getElementById('atis').hidden = tab !== 'atis';
@@ -1411,6 +1415,8 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/29', 'Settings: a red number shows new feedback and app requests waiting'],
+  ['10/29', 'Friend page day off: a softer navy card with serif type'],
   ['10/29', 'Friend page day off: home and plane picture, no Next up card (it’s in Upcoming)'],
   ['10/29', 'Friend page: a Feedback tab; feedback from friends shows in Settings › Feedback marked Friend page'],
   ['10/29', 'Friend page: a day-off page with how long you’re home, a countdown, a days-off calendar, the next 30 days, a route map and airport stamps'],
@@ -1881,7 +1887,7 @@ function fbLoad() {
   fetch(`${RELAY}?f=fb&dk=${encodeURIComponent(doorKey)}`).then(r => r.json()).then(r => {
     if (!r.ok) throw new Error(r.error);
     fbData = r;
-    if (tab === 'set' && setTab === 'fb') render();
+    if ((tab === 'set' && setTab === 'fb') || newFb()) render();
   }).catch(err => { fbMsg = `목록을 못 받음: ${err.message}`; if (tab === 'set' && setTab === 'fb') render(); });
 }
 const FRIEND_URL = 'https://crewbrief.pages.dev/friend/';
@@ -1974,10 +1980,21 @@ let appMsg = '', appReqs = null;
 const JOIN_URL = 'https://crewbrief.pages.dev/join/';
 const JOIN_TEXT = 'Want to try the Crew Brief iPhone app? Send your Apple ID here and I’ll add you on TestFlight:';
 const SHARE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7.5 7.5 4.5-4.5 4.5 4.5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>';
+const badge = n => n ? `<b class="nbadge">${n > 99 ? '99+' : n}</b>` : '';
+const fbSeen = () => { try { return localStorage.getItem('cbFbSeen') || ''; } catch (e) { return ''; } };
+const newFb = () => fbData && fbData.admin ? (fbData.list || []).filter(x => x.at > fbSeen()).length : 0;
+const newApp = () => appReqs && appReqs.ok ? (appReqs.list || []).length : 0;
+function fbSeenNow() {
+  const last = ((fbData || {}).list || []).reduce((a, x) => x.at > a ? x.at : a, '');
+  if (last && last > fbSeen()) try { localStorage.setItem('cbFbSeen', last); } catch (e) {}
+}
+function badgeLoad() { if (!doorKey) return; fbLoad(); appReqs = null; appReqLoad(); }
+setTimeout(badgeLoad, 3000);
+setInterval(() => { if (!document.hidden) badgeLoad(); }, 10 * 60e3);
 function appReqLoad() {
   if (!doorKey || appReqs) return;
   appReqs = { list: [] };
-  fetch(`${RELAY}?f=appReqs&dk=${encodeURIComponent(doorKey)}`).then(r => r.json()).then(r => { if (r.ok) { appReqs = r; if (tab === 'set' && setTab === 'app') render(); } }).catch(() => {});
+  fetch(`${RELAY}?f=appReqs&dk=${encodeURIComponent(doorKey)}`).then(r => r.json()).then(r => { if (r.ok) { appReqs = r; if ((tab === 'set' && setTab === 'app') || newApp()) render(); } }).catch(() => {});
 }
 function appBox() {
   appReqLoad();
