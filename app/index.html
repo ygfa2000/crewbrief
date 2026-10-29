@@ -334,6 +334,31 @@
   /* 위쪽(로고·시계·탭)은 스크롤해도 그대로 — 아래 내용만 움직인다 */
   .pin { position:sticky; top:0; z-index:5; background:var(--bg); margin:-16px -16px 0; padding:16px 16px 0; }
   .pin .tabs { position:static; }
+  /* 설정은 탭 줄이 아니라 머리 오른쪽 끝 */
+  .gear { flex:none; width:38px; height:38px; margin-left:-4px; border-radius:50%; border:0; background:transparent; color:var(--ink2,var(--mute)); font-size:19px; line-height:1; padding:0; cursor:pointer; }
+  /* 업데이트는 마지막 동기화 칸 안에 동그란 아이콘만 (글자는 aria-label 대신 그대로 두고 크기 0) */
+  .status .upd { gap:0; padding:3px; font-size:0; }
+  /* 시각 + 업데이트 한 줄, 그 위에 아주 작은 'Last sync' (앱이 동기화 중·결과를 적는 자리이기도) */
+  .status > .utcbox + div { grid-template-columns:auto auto; align-items:center; align-content:center; column-gap:8px; }
+  .status > .utcbox + div { row-gap:1px; }
+  .status > .utcbox + div .k { grid-column:1; font-size:9.5px; line-height:1.1; letter-spacing:.02em; }
+  .status > .utcbox + div .upd { grid-column:2; grid-row:1 / span 2; }
+  @media (max-width:400px) { .status > .utcbox + div { padding:0 8px 0 10px; column-gap:6px; } .status > .utcbox + div #synced { font-size:14px; } }
+  @media (max-width:385px) { .status > .utcbox + div #synced { font-size:13px; } .status .upd .ico { width:26px; height:26px; } }
+  @media (max-width:350px) { .status .sd { display:none; } }
+  .status .upd .ico { width:28px; height:28px; } .status .upd .ico svg { width:15px; height:15px; }
+  /* 새로고침 버튼은 옅은 회색 (톱니와 같은 결) */
+  .status .upd, .status .upd:active { background:transparent; box-shadow:none; }
+  .status .upd .ico { background:linear-gradient(180deg,#ffffff,#d3d8df); box-shadow:inset 0 1px 0 #fff, 0 0 0 1px rgba(31,36,48,.12), 0 2px 5px rgba(31,36,48,.18); }
+  .status .upd .ico svg { stroke:#6b7380; }
+  .gear { display:grid; place-items:center; } .gear svg { width:34px; height:34px; display:block; overflow:visible; }
+  .gear.on { background:var(--ink); color:var(--card); border-color:var(--ink); }
+  .tabs button { white-space:nowrap; }
+  @media (max-width:370px) {
+    .hdr { gap:8px; } .mark { width:32px; height:32px; } .word { font-size:20px; }
+    .gear { width:34px; height:34px; font-size:17px; margin-left:-2px; }
+    .tabs button { font-size:13px; padding-left:0; padding-right:0; } .tabs button[data-tab="door"], .tabs button[data-tab="calc"] { flex-basis:38px; }
+  }
   .invbtns { display:flex; gap:8px; flex-wrap:wrap; }
   .invbtns button { flex:1; min-width:90px; display:inline-flex; align-items:center; justify-content:center; gap:6px; font:600 15px -apple-system,system-ui,sans-serif; padding:11px 10px; border:1px solid var(--line); border-radius:12px; background:var(--card); color:var(--ink); cursor:pointer; }
   .invbtns button[data-inv="share"] { background:var(--acc); border-color:var(--acc); color:#fff; }
@@ -374,10 +399,10 @@
 <div class="pin">
 <header class="hdr"><h1 class="head"><a id="home" target="_top" style="color:inherit;text-decoration:none"><svg class="mark" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="cbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5aa5ff"/><stop offset="1" stop-color="#1b64da"/></linearGradient></defs><rect width="40" height="40" rx="12" fill="url(#cbg)"/><path d="M9 27c6-1 14-5 22-14" stroke="rgba(255,255,255,.35)" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M10.5 21.5 30 12.5l-6.2 16.2-4.3-5.6z" fill="#fff"/><path d="m19.5 23.1 10.5-10.6-12.2 8.9z" fill="#cfe2ff"/></svg><span class="word"><span class="wt">Crew <em>Brief</em></span><small>Flight Deck Tool</small></span></a></h1>
   <span class="secret" id="secret" aria-hidden="true"></span>
-  <a class="upd" target="_top" href="#cbsync" data-u="aHR0cHM6Ly93d3cuc2t5d2VzdG9ubGluZS5jb20vU0tZVy9Ta2VkUGx1cy9NeVNjaGVkdWxlLmFzcHg="><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3.2h-3.2"/></svg></span>업데이트</a></header>
-<div class="status"><div class="utcbox"><div class="utc1"><span class="k">UTC</span><span class="zulu" id="zulu"></span></div><div class="zones" id="zones"></div></div><div><span class="k">마지막 동기화</span><span class="sub" id="synced"></span></div></div>
+  <button class="gear" data-tab="set" aria-label="설정"><svg viewBox="0 0 28 28" aria-hidden="true"><defs><linearGradient id="cbG3t" x1="0" y1="0" x2=".4" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#e6e9ee"/><stop offset="1" stop-color="#c4cad3"/></linearGradient><linearGradient id="cbG3s" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#a3aab6"/><stop offset=".5" stop-color="#b4bac4"/><stop offset="1" stop-color="#868e9b"/></linearGradient><linearGradient id="cbG3r" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9c0ca"/><stop offset="1" stop-color="#f1f3f6"/></linearGradient><filter id="cbG3f" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="1.2" stdDeviation=".9" flood-color="#1a2030" flood-opacity=".35"/></filter></defs><g filter="url(#cbG3f)"><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" transform="translate(0 2.60) rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)" fill="url(#cbG3s)"/><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" transform="translate(0 2.40) rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)" fill="url(#cbG3s)"/><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" transform="translate(0 2.20) rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)" fill="url(#cbG3s)"/><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" transform="translate(0 2.00) rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)" fill="url(#cbG3s)"/><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" transform="translate(0 1.80) rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)" fill="url(#cbG3s)"/><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" transform="translate(0 1.60) rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)" fill="url(#cbG3s)"/><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" transform="translate(0 1.40) rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)" fill="url(#cbG3s)"/><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" transform="translate(0 1.20) rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)" fill="url(#cbG3s)"/><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" transform="translate(0 1.00) rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)" fill="url(#cbG3s)"/><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" transform="translate(0 0.80) rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)" fill="url(#cbG3s)"/><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" transform="translate(0 0.60) rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)" fill="url(#cbG3s)"/><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" transform="translate(0 0.40) rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)" fill="url(#cbG3s)"/><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" transform="translate(0 0.20) rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)" fill="url(#cbG3s)"/><g transform="rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)"><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" fill="url(#cbG3t)"/><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" fill="none" stroke="rgba(255,255,255,.6)" stroke-width=".35" stroke-linejoin="round"/><circle cx="14" cy="14" r="6.3" fill="url(#cbG3r)" opacity=".55"/><circle cx="14" cy="14" r="6.3" fill="none" stroke="rgba(255,255,255,.55)" stroke-width=".3"/><circle cx="14" cy="14" r="3.7" fill="#a9b0bb" transform="translate(0 .9)"/><circle cx="14" cy="14" r="3.7" fill="url(#cbG3t)"/><circle cx="14" cy="14" r="3.7" fill="none" stroke="rgba(255,255,255,.65)" stroke-width=".3"/><circle cx="14" cy="14" r="1.9" fill="#59606e"/><path d="M12.1 14 A1.9 1.9 0 0 0 15.9 14 A1.9 1.4 0 0 1 12.1 14Z" fill="#c9ced6" opacity=".9"/></g></g></svg></button></header>
+<div class="status"><div class="utcbox"><div class="utc1"><span class="k">UTC</span><span class="zulu" id="zulu"></span></div><div class="zones" id="zones"></div></div><div><span class="k">마지막 동기화</span><span class="sub" id="synced"></span><a class="upd" target="_top" href="#cbsync" data-u="aHR0cHM6Ly93d3cuc2t5d2VzdG9ubGluZS5jb20vU0tZVy9Ta2VkUGx1cy9NeVNjaGVkdWxlLmFzcHg="><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3.2h-3.2"/></svg></span>업데이트</a></div></div>
 <button class="script-warn" id="scriptWarn" hidden></button>
-<nav class="tabs"><button data-tab="today">오늘</button><button data-tab="up">내 트립</button><button data-tab="atis">D-ATIS</button><button data-tab="door" id="doorTab" aria-label="Jet bridge code" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.6" y=".9" width="11.8" height="22.2" rx="5.2" fill="#f4f5f8" stroke="#1f2430" stroke-width=".9"/><rect x="5.3" y="2.7" width="8.4" height="10.2" rx="2.1" fill="#2b2d42"/><g fill="#fff"><circle cx="7.3" cy="4.7" r=".6"/><circle cx="9.5" cy="4.7" r=".6"/><circle cx="11.7" cy="4.7" r=".6"/><circle cx="7.3" cy="6.8" r=".6"/><circle cx="9.5" cy="6.8" r=".6"/><circle cx="11.7" cy="6.8" r=".6"/><circle cx="7.3" cy="8.9" r=".6"/><circle cx="9.5" cy="8.9" r=".6"/><circle cx="11.7" cy="8.9" r=".6"/><circle cx="7.3" cy="11" r=".6"/><circle cx="9.5" cy="11" r=".6"/><circle cx="11.7" cy="11" r=".6"/></g><circle cx="9.5" cy="17.4" r="3.1" fill="#d5d8e0" stroke="#1f2430" stroke-width=".9"/><rect x="7.9" y="15.9" width="15" height="3" rx="1.5" fill="#e8e9ee" stroke="#1f2430" stroke-width=".9"/><rect x="9.6" y="16.7" width="5" height="1.1" rx=".55" fill="#fff"/></svg></button><button data-tab="calc" aria-label="계산기"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.3" y="1.3" width="15.4" height="21.4" rx="3.2" fill="#1c1c1e" stroke="rgba(255,255,255,.35)" stroke-width=".7"/><rect x="6.9" y="3.9" width="10.2" height="4.8" rx="1.1" fill="#a1a1a6"/><circle cx="8.3" cy="12.4" r="1.4" fill="#d4d4d8"/><circle cx="12" cy="12.4" r="1.4" fill="#d4d4d8"/><circle cx="15.7" cy="12.4" r="1.4" fill="#ff9f0a"/><circle cx="8.3" cy="15.8" r="1.4" fill="#d4d4d8"/><circle cx="12" cy="15.8" r="1.4" fill="#d4d4d8"/><circle cx="15.7" cy="15.8" r="1.4" fill="#ff9f0a"/><circle cx="8.3" cy="19.2" r="1.4" fill="#d4d4d8"/><circle cx="12" cy="19.2" r="1.4" fill="#d4d4d8"/><circle cx="15.7" cy="19.2" r="1.4" fill="#ff9f0a"/></svg></button><button data-tab="set" aria-label="설정">⚙</button></nav>
+<nav class="tabs"><button data-tab="sked">Sked+</button><button data-tab="today">오늘</button><button data-tab="up">내 트립</button><button data-tab="atis">D-ATIS</button><button data-tab="door" id="doorTab" aria-label="Jet bridge code" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.6" y=".9" width="11.8" height="22.2" rx="5.2" fill="#f4f5f8" stroke="#1f2430" stroke-width=".9"/><rect x="5.3" y="2.7" width="8.4" height="10.2" rx="2.1" fill="#2b2d42"/><g fill="#fff"><circle cx="7.3" cy="4.7" r=".6"/><circle cx="9.5" cy="4.7" r=".6"/><circle cx="11.7" cy="4.7" r=".6"/><circle cx="7.3" cy="6.8" r=".6"/><circle cx="9.5" cy="6.8" r=".6"/><circle cx="11.7" cy="6.8" r=".6"/><circle cx="7.3" cy="8.9" r=".6"/><circle cx="9.5" cy="8.9" r=".6"/><circle cx="11.7" cy="8.9" r=".6"/><circle cx="7.3" cy="11" r=".6"/><circle cx="9.5" cy="11" r=".6"/><circle cx="11.7" cy="11" r=".6"/></g><circle cx="9.5" cy="17.4" r="3.1" fill="#d5d8e0" stroke="#1f2430" stroke-width=".9"/><rect x="7.9" y="15.9" width="15" height="3" rx="1.5" fill="#e8e9ee" stroke="#1f2430" stroke-width=".9"/><rect x="9.6" y="16.7" width="5" height="1.1" rx=".55" fill="#fff"/></svg></button><button data-tab="calc" aria-label="계산기"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.3" y="1.3" width="15.4" height="21.4" rx="3.2" fill="#1c1c1e" stroke="rgba(255,255,255,.35)" stroke-width=".7"/><rect x="6.9" y="3.9" width="10.2" height="4.8" rx="1.1" fill="#a1a1a6"/><circle cx="8.3" cy="12.4" r="1.4" fill="#d4d4d8"/><circle cx="12" cy="12.4" r="1.4" fill="#d4d4d8"/><circle cx="15.7" cy="12.4" r="1.4" fill="#ff9f0a"/><circle cx="8.3" cy="15.8" r="1.4" fill="#d4d4d8"/><circle cx="12" cy="15.8" r="1.4" fill="#d4d4d8"/><circle cx="15.7" cy="15.8" r="1.4" fill="#ff9f0a"/><circle cx="8.3" cy="19.2" r="1.4" fill="#d4d4d8"/><circle cx="12" cy="19.2" r="1.4" fill="#d4d4d8"/><circle cx="15.7" cy="19.2" r="1.4" fill="#ff9f0a"/></svg></button></nav>
 </div>
 
 
@@ -676,7 +701,14 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt
 const n = v => (v == null ? '—' : Number(v).toLocaleString('en-US'));
 const DOW = ['일','월','화','수','목','금','토'];
 const md = iso => { const [y, m, d] = iso.split('-').map(Number); return `${m}/${d} (${DOW[new Date(y, m - 1, d).getDay()]})`; };
-const today = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
+let ZONE;
+const setZone = () => { ZONE = document.documentElement.dataset.cbTz || undefined; try { new Intl.DateTimeFormat('en-US', { timeZone: ZONE }); } catch (e) { ZONE = undefined; } };
+setZone();
+const loc = x => { const p = {}; new Intl.DateTimeFormat('en-US', { timeZone: ZONE, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' }).formatToParts(new Date(x)).forEach(o => { p[o.type] = +o.value; }); return p; };
+const ymd = x => { const p = loc(x); return `${p.year}-${String(p.month).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`; };
+const mdhm = x => { const p = loc(x); return `${p.month}/${p.day} ${String(p.hour % 24).padStart(2, '0')}:${String(p.minute).padStart(2, '0')}`; };
+const zoneMs = (y, m, d, h, mi) => { const g = Date.UTC(y, m - 1, d, h, mi), p = loc(g); return g - (Date.UTC(p.year, p.month - 1, p.day, p.hour % 24, p.minute) - g); };
+let today = ymd(Date.now());
 const kv = (k, v, sub) => `<div class="kv"><div class="k">${k}</div><div class="v">${v}${sub ? ` <small>${sub}</small>` : ''}</div></div>`;
 const fuel = f => (f ? n(f.fuel) : '—');
 const t = f => (f ? fmtHM(f.time) : '');
@@ -818,7 +850,7 @@ function flowPanel(leg, fl) {
         ${f.delayReason && late >= 5 ? `<div class="sub" style="color:var(--warn)">${esc(f.delayReason)}</div>` : ''}</span>
       <span class="r">${esc(f.depGate || '—')}→${esc(f.arrGate || '—')}</span>${ooo}</div>${f.in || !leg.tail ? '' : fmapBox(leg, f, i === mine)}`;
   }).join('');
-  const at = new Date(fl.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const at = new Date(fl.at).toLocaleTimeString('en-GB', { timeZone: ZONE, hour: '2-digit', minute: '2-digit' });
   return `<div class="panel"><h4>FLOW · ${esc(leg.tail)} <span style="display:block;font-weight:400;font-size:12px;white-space:nowrap;margin-top:2px">(${at} 기준 · 현지시각 · 게이트)</span></h4>${rows || '<span class="sub">편 정보 없음</span>'}</div>`;
 }
 
@@ -1033,7 +1065,7 @@ function incentiveCard() {
   const ot = state.opentime;
   if (homeSync || !ot) return '';
   const list = (ot.trips || []).filter(x => x.date >= today).sort((a, b) => (a.date + a.report).localeCompare(b.date + b.report));
-  const at = new Date(ot.at), when = `${at.getMonth() + 1}/${at.getDate()} ${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`;
+  const when = mdhm(ot.at);
   const rows = list.map(x => `<div class="inc"><span class="inc-p">${x.pct ? `${x.pct}%` : 'INC'}</span><div>
     <div class="tl-top"><b>${md(x.date)}</b><span class="tl-fl">${esc(x.pairing)} · ${x.days}일</span></div>
     <div class="tl-sub">${esc(x.report)} – ${x.relDate !== x.date ? `${md(x.relDate)} ` : ''}${esc(x.release)} · Credit ${esc(x.credit)}${x.overnights.length ? ` · ${esc(x.overnights.join(' '))}` : ''}</div></div></div>`).join('');
@@ -1077,7 +1109,7 @@ document.addEventListener('click', e => {
 });
 function countdown(date, hm) {
   const [y, m, d] = date.split('-').map(Number), [h, mi] = hm.split(':').map(Number);
-  const left = Math.max(0, Math.round((new Date(y, m - 1, d, h, mi) - Date.now()) / 60e3));
+  const left = Math.max(0, Math.round((zoneMs(y, m, d, h, mi) - Date.now()) / 60e3));
   const dd = Math.floor(left / 1440), hh = Math.floor(left % 1440 / 60), mm = left % 60;
   return `${dd ? `<b>${dd}</b><i>d</i>` : ''}<b>${hh}</b><i>h</i><b>${String(mm).padStart(2, '0')}</b><i>m</i>`;
 }
@@ -1110,11 +1142,11 @@ function render() {
   (state.trips || []).forEach(t => t.days.forEach(d => d.legs.forEach(l => { if (l.dhd && (l.dhd === 'N' || !/\d/.test(l.flight || ''))) l.dhd = null; })));
   try { sessionStorage.setItem('cbView', JSON.stringify({ tab, tripTab, setTab })); } catch (e) {}
   try { shareUp(); } catch (e) {}   // 처음 그릴 때는 아직 정의 전일 수 있다
-  document.getElementById('synced').textContent = state.syncedAt
-    ? (t => `${t.getMonth() + 1}/${t.getDate()} ${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`)(new Date(state.syncedAt)) : '아직 없음';
+  document.getElementById('synced').innerHTML = state.syncedAt
+    ? (t => `<span class="sd">${t.getUTCMonth() + 1}/${t.getUTCDate()} </span>${String(t.getUTCHours()).padStart(2, '0')}:${String(t.getUTCMinutes()).padStart(2, '0')}Z`)(new Date(state.syncedAt)) : '아직 없음';
   if (!state.syncedAt) document.getElementById('howto').open = true;
   scriptWarn();
-  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  document.querySelectorAll('.tabs button, .gear').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
   document.getElementById('view').hidden = tab === 'calc' || tab === 'atis';
   document.getElementById('calc').hidden = tab !== 'calc';
   document.getElementById('atis').hidden = tab !== 'atis';
@@ -1126,33 +1158,29 @@ function render() {
     : tab === 'today' ? todayView()
     : tab === 'set' ? settingsView()
     : tab === 'door' ? doorView()
+    : tab === 'sked' ? skedView()
     : myTripView();
   skedSync();
 }
 let tripTab = 'up';
 function myTripView() {
-  const seg = `<div class="seg trip-seg"><button data-tt="up"${tripTab === 'up' ? ' class="on"' : ''}>다가오는 트립</button><button data-tt="past"${tripTab === 'past' ? ' class="on"' : ''}>지난 트립</button>${skedIn() ? `<button data-tt="sked"${tripTab === 'sked' ? ' class="on"' : ''}>Sked+</button>` : '<button data-tt="sked">Sked+ ↗</button>'}</div>`;
-  if (tripTab === 'sked' && skedIn()) return seg + `<div class="sk-nav"><button data-skc="back">‹ Back</button>${document.documentElement.dataset.cbSkedHome ? '<button data-skc="home">⌂ Home</button>' : ''}<button data-skc="reload">↻</button></div><div id="skedSlot"></div>`;
+  const seg = `<div class="seg trip-seg"><button data-tt="up"${tripTab === 'up' ? ' class="on"' : ''}>다가오는 트립</button><button data-tt="past"${tripTab === 'past' ? ' class="on"' : ''}>지난 트립</button></div>`;
+  if (tripTab === 'sked') tripTab = 'up';   // 예전에 Sked+ 가 이 칸에 있을 때 저장된 자리
   if (tripTab === 'up') {
     const next = state.trips.filter(x => x.start > today).sort((a, b) => a.start.localeCompare(b.start))[0];
     return seg + (next ? tripCard(next, false) : '<div class="empty">다가오는 트립이 없습니다.</div>');
   }
-  const from = new Date(Date.now() - 28 * 864e5), pad = n => String(n).padStart(2, '0');
-  const since = `${from.getFullYear()}-${pad(from.getMonth() + 1)}-${pad(from.getDate())}`;
+  const since = ymd(Date.now() - 28 * 864e5);
   const past = state.trips.filter(x => x.start < today && x.end >= since).sort((a, b) => b.start.localeCompare(a.start))
     .map(x => x.end < today ? x : { ...x, days: x.days.filter(d => d.date < today) });
   return seg + (past.map(x => tripCard(x, false)).join('') || '<div class="empty">지난 4주 동안의 트립이 없습니다.</div>');
 }
+const skedView = () => `<div class="sk-nav"><button data-skc="back">‹ Back</button>${document.documentElement.dataset.cbSkedHome ? '<button data-skc="home">⌂ Home</button>' : ''}<button data-skc="reload">↻</button></div><div id="skedSlot"></div>`;
 function skedIn() { return !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.cbsked); }
 document.addEventListener('click', e => {
   const tt = e.target.dataset?.tt, c = e.target.dataset?.skc;
   if (c) { window.webkit.messageHandlers.cbsked.postMessage({ cmd: c }); return; }
   if (!tt) return;
-  if (tt === 'sked' && !skedIn()) {
-    if (document.documentElement.dataset.cbApp) location.href = 'crewbrief://sked';
-    else { const u = new URL(document.querySelector('.upd').href); window.open(u.origin + u.pathname, '_blank'); }
-    return;
-  }
   tripTab = tt; render();
 });
 function skedSync() {
@@ -1166,10 +1194,15 @@ function skedSync() {
 addEventListener('scroll', skedSync, { passive: true });
 addEventListener('resize', skedSync);
 
-document.querySelector('.tabs').addEventListener('click', e => {
+document.querySelectorAll('.tabs, .gear').forEach(el => el.addEventListener('click', e => {
   const b = e.target.closest('[data-tab]');   // 아이콘 탭은 svg 를 누르게 된다
+  if (b && b.dataset.tab === 'sked' && !skedIn()) {   // 앱 안이 아니면 Sked+ 는 새 창 (예전 앱은 앱 안 창)
+    if (document.documentElement.dataset.cbApp) location.href = 'crewbrief://sked';
+    else { const u = new URL(document.querySelector('.upd').href); window.open(u.origin + u.pathname, '_blank'); }
+    return;
+  }
   if (b) { tab = b.dataset.tab; if (tab === 'door' && doorData) doorLoad(); render(); scrollTo(0, 0); }
-});
+}));
 
 {
   const $ = id => document.getElementById(id), pad = n => String(n).padStart(2, '0'), hm = m => `${Math.floor(m / 60)}:${pad(m % 60)}`;
@@ -1358,6 +1391,7 @@ setInterval(() => {
 const SCRIPT_URL = 'https://gist.githubusercontent.com/ygfa2000/66609878012f76472d34391ba0f808ec/raw/CrewBrief.user.js', PAGES = 'https://ygfa2000.github.io/crewbrief/';
 let scriptLatest = null;
 const scriptCur = () => document.documentElement.dataset.cbScript || state.script;
+addEventListener('cbtz', () => { setZone(); today = ymd(Date.now()); render(); });
 const IN_APP = document.documentElement.dataset.cbApp
   || ([...document.querySelectorAll('style')].some(st => st.textContent.includes('#howto { display: none !important; }')) ? '1.0' : '');
 let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedAt) > 14 * 60e3) ? 'wait' : '';
@@ -1373,6 +1407,9 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/29', 'Sked+ is now the first tab; Settings moved to the gear at the top right'],
+  ['10/29', 'Last sync shows in UTC on one line, with a lighter refresh button'],
+  ['10/29', 'Times follow your phone’s new time zone after you land (fully with the next app update)'],
   ['10/28', 'Share app: Invite a friend with Share, Text or Email (sends the sign-up link)'],
   ['10/28', 'New page to request the iPhone app (TestFlight) by link: ygfa2000.github.io/crewbrief/join/'],
   ['10/28', 'Settings: Door key is no longer in the list (use your setup link)'],
@@ -1746,7 +1783,7 @@ function doorView() {
   const ids = [...new Set([...Object.keys(doors), ...ahead, ...(pub ? Object.keys(DOOR_APTS) : [])])].filter(id => !q || id.startsWith(q) || city(id).toUpperCase().includes(q))
     .sort((a, b) => (mine.includes(b) - mine.includes(a)) || (ahead.includes(b) - ahead.includes(a)) || (has(b) - has(a)) || a.localeCompare(b));
   if (doorEdit && !ids.includes(doorEdit)) ids.unshift(doorEdit);
-  const when = x => x ? new Date(x).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' }) : '';
+  const when = x => x ? new Date(x).toLocaleDateString('ko-KR', { timeZone: ZONE, month: 'numeric', day: 'numeric' }) : '';
   const card = id => {
     const d = doors[id] || {}, ed = doorEdit === id;
     const cells = ed
@@ -1765,7 +1802,7 @@ function doorView() {
   return `${intro}<div class="card box"><div class="door-top">
       <input id="dSearch" placeholder="공항 (SFO)" value="${esc(doorQ)}" autocomplete="off" autocapitalize="characters">
       <button data-door="add">＋ 공항 추가</button></div>
-      <p class="sub" style="margin:8px 0 0">${ids.length}곳 · ${doorData.at ? `${new Date(doorData.at).toLocaleString('ko-KR')} 받음` : ''}${doorMsg ? ` · ${doorMsg}` : ''}</p></div>
+      <p class="sub" style="margin:8px 0 0">${ids.length}곳 · ${doorData.at ? `${new Date(doorData.at).toLocaleString('ko-KR', { timeZone: ZONE })} 받음` : ''}${doorMsg ? ` · ${doorMsg}` : ''}</p></div>
     ${ids.map(card).join('') || '<div class="empty">맞는 공항이 없습니다.</div>'}`;
 }
 document.addEventListener('input', e => {
@@ -1825,7 +1862,7 @@ document.addEventListener('click', e => {
   }).catch(err => say(`저장 못 함: ${err.message}`));
 });
 let fbKind = 'bad', fbData = null, fbMsg = '';
-const fbWhen = iso => { const d = new Date(iso); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+const fbWhen = iso => mdhm(iso);
 function fbLoad() {
   fbData = { list: [] };
   fetch(`${RELAY}?f=fb&dk=${encodeURIComponent(doorKey)}`).then(r => r.json()).then(r => {
