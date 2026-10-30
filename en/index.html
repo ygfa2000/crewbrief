@@ -1442,6 +1442,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/30', 'Trip detection keeps working for changed trip IDs (like Q1234A) and unusual trip lines'],
   ['10/30', 'Two trips on back-to-back days now stay separate (a trip ID the app did not recognize could merge them and show the wrong crew) — tap Update once'],
   ['10/29', 'Feedback in Settings is open to everyone (name optional)'],
   ['10/29', 'Report time shows the airport’s local time with its time zone, and your own time in brackets when you are in a different zone; the countdown uses the airport time'],
