@@ -247,6 +247,7 @@
   .readout .k { font-size:11px; letter-spacing:.1em; color:#8c9aab; }
   .readout .v { font:700 40px ui-monospace,monospace; color:#ffb547; font-variant-numeric:tabular-nums; }
   .readout .n { font:13px ui-monospace,monospace; color:#c9d2dc; min-height:1.2em; }
+.hublink { display:block; margin:0 0 10px; padding:11px 14px; border-radius:12px; background:var(--card, #fff); border:1px solid var(--line, #e5e8eb); color:var(--acc, #3182f6); font-weight:600; font-size:15px; text-decoration:none; }
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
@@ -808,7 +809,8 @@ function settingsView() {
     const [v, sub] = f ? f(r) : id === 'seproc' ? [esc((r.acarsRwys || []).filter(x => !x.ix).map(x => `${x.rwy} ${x.efp}`).join(' · ') || '—')] : [esc(id === 'route' ? r.route || '—' : ((id === 'remarks' ? r.remarks : r.mel)[0] || 'None').slice(0, 40))];
     return `<label class="setrow"><input type="checkbox" data-f="${id}"${relShow.includes(id) ? ' checked' : ''}><span class="k">${k}</span><span class="v">${v}${sub ? ` <small>${sub}</small>` : ''}</span>${num(i)}</label>`;
   }).join('');
-  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release items</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>${IN_APP ? 'Update history' : 'Update'}${scriptOld() ? ' ●' : ''}${badge(newUpd())}</button>${setTab === 'key' ? `<button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>Door key</button>` : ''}${doorKey && !IN_APP ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}<button data-st="fb"${setTab === 'fb' ? ' class="on"' : ''}>Feedback${badge(newFb())}</button><button data-st="share"${setTab === 'share' ? ' class="on"' : ''}>Schedule share</button><button data-st="app"${setTab === 'app' ? ' class="on"' : ''}>Share app${badge(newApp())}</button></div>`;
+  let seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release items</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>${IN_APP ? 'Update history' : 'Update'}${scriptOld() ? ' ●' : ''}${badge(newUpd())}</button>${setTab === 'key' ? `<button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>Door key</button>` : ''}${doorKey && !IN_APP ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}<button data-st="fb"${setTab === 'fb' ? ' class="on"' : ''}>Feedback${badge(newFb())}</button><button data-st="share"${setTab === 'share' ? ' class="on"' : ''}>Schedule share</button><button data-st="app"${setTab === 'app' ? ' class="on"' : ''}>Share app${badge(newApp())}</button></div>`;
+  seg += `<a class="hublink" href="${IN_APP ? 'x-safari-https://crewbrief.pages.dev/' : 'https://crewbrief.pages.dev/'}" target="_blank" rel="noopener">Notices &amp; links ›</a>`;
   if (setTab === 'upd') return seg + scriptBox();
   if (setTab === 'watch' && doorKey && !IN_APP) return seg + watchBox();
   if (setTab === 'key') return seg + keyBox();
@@ -1443,6 +1445,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/30', 'Settings: Notices & links — news and setup links for iPhone, Android and the web (opens in Safari)'],
   ['10/30', 'A red number on ⚙ and Update history when something new is added here'],
   ['10/30', 'Trip detection keeps working for changed trip IDs (like Q1234A) and unusual trip lines'],
   ['10/30', 'Two trips on back-to-back days now stay separate (a trip ID the app did not recognize could merge them and show the wrong crew) — tap Update once'],
