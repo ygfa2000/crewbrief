@@ -808,7 +808,7 @@ function settingsView() {
     const [v, sub] = f ? f(r) : id === 'seproc' ? [esc((r.acarsRwys || []).filter(x => !x.ix).map(x => `${x.rwy} ${x.efp}`).join(' · ') || '—')] : [esc(id === 'route' ? r.route || '—' : ((id === 'remarks' ? r.remarks : r.mel)[0] || 'None').slice(0, 40))];
     return `<label class="setrow"><input type="checkbox" data-f="${id}"${relShow.includes(id) ? ' checked' : ''}><span class="k">${k}</span><span class="v">${v}${sub ? ` <small>${sub}</small>` : ''}</span>${num(i)}</label>`;
   }).join('');
-  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release items</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>${IN_APP ? 'Update history' : 'Update'}${scriptOld() ? ' ●' : ''}</button>${setTab === 'key' ? `<button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>Door key</button>` : ''}${doorKey && !IN_APP ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}<button data-st="fb"${setTab === 'fb' ? ' class="on"' : ''}>Feedback${badge(newFb())}</button><button data-st="share"${setTab === 'share' ? ' class="on"' : ''}>Schedule share</button><button data-st="app"${setTab === 'app' ? ' class="on"' : ''}>Share app${badge(newApp())}</button></div>`;
+  const seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release items</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>${IN_APP ? 'Update history' : 'Update'}${scriptOld() ? ' ●' : ''}${badge(newUpd())}</button>${setTab === 'key' ? `<button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>Door key</button>` : ''}${doorKey && !IN_APP ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}<button data-st="fb"${setTab === 'fb' ? ' class="on"' : ''}>Feedback${badge(newFb())}</button><button data-st="share"${setTab === 'share' ? ' class="on"' : ''}>Schedule share</button><button data-st="app"${setTab === 'app' ? ' class="on"' : ''}>Share app${badge(newApp())}</button></div>`;
   if (setTab === 'upd') return seg + scriptBox();
   if (setTab === 'watch' && doorKey && !IN_APP) return seg + watchBox();
   if (setTab === 'key') return seg + keyBox();
@@ -1181,7 +1181,8 @@ function render() {
   if (!state.syncedAt) document.getElementById('howto').open = true;
   scriptWarn();
   document.querySelectorAll('.tabs button, .gear').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
-  { const g = document.querySelector('.gear'), n = newFb() + newApp(), old = g.querySelector('.nbadge'); if (old) old.remove(); if (n) g.insertAdjacentHTML('beforeend', badge(n)); }
+  if (tab === 'set' && setTab === 'upd') updSeenNow();
+  { const g = document.querySelector('.gear'), n = newFb() + newApp() + newUpd(), old = g.querySelector('.nbadge'); if (old) old.remove(); if (n) g.insertAdjacentHTML('beforeend', badge(n)); }
   document.getElementById('view').hidden = tab === 'calc' || tab === 'atis';
   document.getElementById('calc').hidden = tab !== 'calc';
   document.getElementById('atis').hidden = tab !== 'atis';
@@ -1442,6 +1443,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/30', 'A red number on ⚙ and Update history when something new is added here'],
   ['10/30', 'Trip detection keeps working for changed trip IDs (like Q1234A) and unusual trip lines'],
   ['10/30', 'Two trips on back-to-back days now stay separate (a trip ID the app did not recognize could merge them and show the wrong crew) — tap Update once'],
   ['10/29', 'Feedback in Settings is open to everyone (name optional)'],
@@ -2017,6 +2019,16 @@ let appReqs = null;
 const JOIN_URL = 'https://crewbrief.pages.dev/join/';
 const JOIN_TEXT = 'Want to try the Crew Brief iPhone app? Send your Apple ID here and I’ll add you on TestFlight:';
 const SHARE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7.5 7.5 4.5-4.5 4.5 4.5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>';
+const updKey = c => `${c[0]} ${c[1]}`;
+const newUpd = () => {
+  if (!IN_APP) return 0;
+  let seen = null;
+  try { seen = localStorage.getItem('cbUpdSeen'); } catch (e) { return 0; }
+  if (seen === null) { updSeenNow(); return 0; }
+  const i = CHANGES.findIndex(c => updKey(c) === seen);
+  return i < 0 ? 1 : i;
+};
+function updSeenNow() { try { localStorage.setItem('cbUpdSeen', updKey(CHANGES[0])); } catch (e) {} }
 const badge = n => n ? `<b class="nbadge">${n > 99 ? '99+' : n}</b>` : '';
 const fbSeen = () => { try { return localStorage.getItem('cbFbSeen') || ''; } catch (e) { return ''; } };
 const newFb = () => fbData && fbData.admin ? (fbData.list || []).filter(x => x.at > fbSeen()).length : 0;
