@@ -2024,7 +2024,7 @@ const newUpd = () => {
   if (!IN_APP) return 0;
   let seen = null;
   try { seen = localStorage.getItem('cbUpdSeen'); } catch (e) { return 0; }
-  if (seen === null) { updSeenNow(); return 0; }
+  if (seen === null) return CHANGES.filter(c => c[0] === CHANGES[0][0]).length;   // 처음 보는 기기: 가장 최근 날짜의 줄들을 새것으로
   const i = CHANGES.findIndex(c => updKey(c) === seen);
   return i < 0 ? 1 : i;
 };
