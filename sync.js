@@ -25,9 +25,9 @@ function parseTxtDet(text) {
   const lines = text.replace(/\r/g, '').split('\n');
   const trips = [];
   let trip = null, day = null, cut = null, legNo = 0;
-  for (const line of lines) {
+  for (const [i, line] of lines.entries()) {
     let m;
-    if ((m = /^([A-Z]\d{4}[A-Z]{0,2})\s+(\d{2}\/\d{2}\/\d{4})\s*$/.exec(line))) {
+    if ((m = /^([A-Z0-9][A-Z0-9-]{1,11})\s+(\d{2}\/\d{2}\/\d{4})\b/.exec(line)) && /^Block:/.test(lines.slice(i + 1).find(x => x.trim()) || '')) {
       trip = { pairing: m[1], start: iso(m[2]), days: [], crew: [] };
       trips.push(trip); legNo = 0; day = null;
     } else if (!trip) {
