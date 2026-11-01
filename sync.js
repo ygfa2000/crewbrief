@@ -377,20 +377,44 @@ async function run() {
   try {
     const now = new Date();
     const months = [-1, 0, 1].map(k => new Date(now.getFullYear(), now.getMonth() + k, 1));
-    let trips = [];
-    for (const m of months) {
+    const got = {};
+    const readMonth = async k => {
+      const m = months[k + 1];
       const bid = `${m.getFullYear()}${pad(m.getMonth() + 1)}`;
       say(`${bid} 스케줄 읽는 중`);
       const txt = await get(`${atob('L1NLWVcvU2tlZFBsdXMvRXhwb3J0LmFzcHg=')}?Format=TXTDET&BidMonth=${bid}`);
       if (/<html/i.test(txt)) throw Object.assign(new Error('로그인이 필요합니다 — 로그인하면 자동으로 다시 동기화합니다'), { login: true });
-      trips = trips.concat(parseTxtDet(txt));
+      got[k] = parseTxtDet(txt);
+    };
+    const dedupe = list => { const seen = new Set(); return list.filter(t => !seen.has(t.pairing + t.start) && seen.add(t.pairing + t.start)); };
+    const readSoFar = () => dedupe([-1, 0, 1].filter(k => got[k]).flatMap(k => got[k]));
+    let lite = null;
+    if (typeof CB_BG !== 'undefined' && CB_BG === true) {
+      const today = ymd(now), why = [];
+      await readMonth(0);
+      const covering = () => readSoFar().filter(t => t.start <= today && t.end >= today);
+      if (!covering().length && now.getDate() <= 7) { why.push('early in month: trip may have started last month'); await readMonth(-1); }
+      const cur = covering().sort((a, b) => a.start.localeCompare(b.start));
+      if (cur.length) {
+        const curMonth = today.slice(0, 7), last = cur[cur.length - 1];
+        const nextOf = () => readSoFar().filter(t => t.start > last.start).sort((a, b) => a.start.localeCompare(b.start))[0];
+        let next = nextOf();
+        const n0 = why.length;
+        if (!next) why.push('next trip not in this month');
+        else if (next.start.slice(0, 7) > curMonth) why.push('next trip starts next month');
+        if (cur.some(t => t.end.slice(0, 7) > curMonth) || (next && next.end.slice(0, 7) > curMonth)) why.push('trip runs into next month');
+        if (why.length > n0) { await readMonth(1); next = nextOf(); }
+        const mine = new Set(cur.concat(next ? [next] : []).map(t => t.pairing + t.start));
+        lite = { only: mine, months: [-1, 0, 1].filter(k => got[k]).map(k => ymd(months[k + 1]).slice(0, 7)), why };
+      }
     }
-    const seen = new Set();
-    trips = trips.filter(t => !seen.has(t.pairing + t.start) && seen.add(t.pairing + t.start));
+    if (!lite) for (const k of [-1, 0, 1]) if (!got[k]) await readMonth(k);
+    let trips = readSoFar();
+    const scoped = lite ? trips.filter(t => lite.only.has(t.pairing + t.start)) : trips;
 
     const from = new Date(now); from.setDate(from.getDate() - 1);
     const to = now;
-    const legs = trips.flatMap(t => t.days.flatMap(d => d.legs)).filter(l => l.date >= ymd(from) && l.date <= ymd(to));
+    const legs = scoped.flatMap(t => t.days.flatMap(d => d.legs)).filter(l => l.date >= ymd(from) && l.date <= ymd(to));
     const releases = {}, raws = {};
     let i = 0;
     for (const l of legs) {
@@ -407,7 +431,7 @@ async function run() {
 
     const flows = {};
     const flowTo = new Date(now); flowTo.setDate(flowTo.getDate() + 2);
-    const flowLegs = trips.flatMap(t => t.days.flatMap(d => d.legs)).filter(l => l.date >= ymd(from) && l.date <= ymd(flowTo));
+    const flowLegs = scoped.flatMap(t => t.days.flatMap(d => d.legs)).filter(l => l.date >= ymd(from) && l.date <= ymd(flowTo));
     const tails = [...new Set(flowLegs.filter(l => l.tail).map(l => `${l.date}|${l.tail}`))];
     i = 0;
     for (const dt of tails) {
@@ -420,7 +444,7 @@ async function run() {
     }
 
     const checkin = {};
-    for (const t of trips.filter(t => t.start === ymd(now))) {
+    for (const t of scoped.filter(t => t.start === ymd(now))) {
       try {
         say(`Check-in (${t.pairing})`);
         const r = parseCheckIn(await get(`${atob('L1NLWVcvU2tlZFBsdXMvVHJpcERldGFpbC5hc3B4')}?PairingName=${encodeURIComponent(t.pairing)}&PairingDate=${t.start.replace(/-/g, '')}&OTPosition=&SBID=0`));
@@ -429,7 +453,7 @@ async function run() {
     }
 
     let opentime = null;
-    try {
+    if (!lite) try {
       say('Open Time 읽는 중');
       const OT = atob('L1NLWVcvU2tlZFBsdXMvT3BlblRpbWUuYXNweA==');
       let html = await get(OT), how = 'GET';
@@ -444,6 +468,7 @@ async function run() {
 
     if (typeof CB_DONE === 'function') CB_DONE();
     const payload = { syncedAt: now.toISOString(), trips, releases, flows, raws, opentime, checkin, script: typeof CB_SCRIPT_VER === 'string' ? CB_SCRIPT_VER : 'bookmark' };
+    if (lite) payload.lite = { months: lite.months, why: lite.why, trips: lite.only.size };
     if (!CB_EXEC) {
       say(`완료 — 트립 ${trips.length}개, Release ${Object.keys(releases).length}건, Flow ${Object.keys(flows).length}대 · 앱으로 돌아갑니다…`);
       const d = await pack(payload);

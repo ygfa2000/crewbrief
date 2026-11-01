@@ -1445,6 +1445,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['10/31', 'iPhone app: background refresh on trip days checks only this trip and the next (Open Time waits for the next open), so it finishes in time and Release/ETD alerts come when they happen'],
   ['10/30', 'Settings: Notices & links — news and setup links for iPhone, Android and the web (opens in Safari)'],
   ['10/30', 'A red number on ⚙ and Update history when something new is added here'],
   ['10/30', 'Trip detection keeps working for changed trip IDs (like Q1234A) and unusual trip lines'],
