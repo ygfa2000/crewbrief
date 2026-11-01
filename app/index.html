@@ -371,6 +371,12 @@
   .status > .utcbox + div { row-gap:1px; }
   .status > .utcbox + div .k { grid-column:1; font-size:9.5px; line-height:1.1; letter-spacing:.02em; }
   .status > .utcbox + div .upd { grid-column:2; grid-row:1 / span 2; }
+  .status > .utcbox + div .k, .status > .utcbox + div .sbar { grid-row:1; }
+  .status > .utcbox + div #synced { grid-column:1; grid-row:2; }
+  .sbar { display:none; grid-column:1; align-self:center; height:6px; min-width:60px; border-radius:3px; background:var(--line); overflow:hidden; }
+  .sbar i { display:block; width:0; height:100%; border-radius:inherit; background:var(--acc); transition:width .5s ease; }
+  .syncing .sbar { display:block; }
+  .syncing .k { visibility:hidden; width:0; }
   @media (max-width:400px) { .status > .utcbox + div { padding:0 8px 0 10px; column-gap:6px; } .status > .utcbox + div #synced { font-size:14px; } }
   @media (max-width:385px) { .status > .utcbox + div #synced { font-size:13px; } .status .upd .ico { width:26px; height:26px; } }
   .status .sd { font-size:.72em; font-weight:600; color:var(--mute); }
@@ -384,7 +390,7 @@
   .gear { position:relative; }
   .nbadge { display:inline-grid; place-items:center; min-width:18px; height:18px; padding:0 5px; margin-left:5px; border-radius:9px; background:#f04452; color:#fff; font:700 11px/1 -apple-system,system-ui,sans-serif; vertical-align:1px; }
   .gear .nbadge { position:absolute; top:-2px; right:-4px; margin:0; box-shadow:0 0 0 2px var(--bg); }
-  .gear.on { background:var(--line); }
+  .gear.on { background:rgba(25,31,40,.22); }
   @media (prefers-color-scheme: dark) { .gear { background:rgba(255,255,255,.16); } .gear.on { background:rgba(255,255,255,.32); } }
   .tabs button { white-space:nowrap; }
   @media (max-width:370px) {
@@ -1522,6 +1528,40 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
     if (was !== homeSync && tab === 'home') render();
   }).observe(k, { childList: true, characterData: true, subtree: true, attributes: true });
   if (homeSync) setTimeout(() => { if (homeSync === 'wait') { homeSync = ''; if (tab === 'home') render(); } }, 5000);
+}
+const SYNC_KO = ['스케줄 읽는 중', 'Open Time 읽는 중', '저장하는 중', '완료 —', '실패:'];
+function syncStep(t, run) {
+  const [koMonth, koOt, koSave, koDone, koFail] = SYNC_KO;
+  let m;
+  if (/^(Failed:|Sign in|Sync request expired)/.test(t) || t.startsWith(koFail)) return null;
+  if (/^(Auto-)?[Ss]yncing/.test(t)) return 2;
+  if ((m = /^(?:Reading )?(\d{6}) /.exec(t)) && (/ schedule$/.test(t) || t.endsWith(koMonth))) {
+    if (!run.months.includes(m[1])) run.months.push(m[1]);
+    return 2 + 23 * (Math.min(run.months.length, 3) - .5) / 3;
+  }
+  if ((m = /^Release (\d+)\/(\d+)/.exec(t))) return 25 + 35 * (m[1] - .5) / m[2];
+  if ((m = /^Flow (\d+)\/(\d+)/.exec(t))) return 60 + 20 * (m[1] - .5) / m[2];
+  if (/^Check-in/.test(t)) return 82;
+  if (t === 'Reading Open Time' || t === koOt) return 86;
+  if (t === 'Saving' || t === koSave) return 97;
+  if (/^Done —/.test(t) || t.startsWith(koDone)) return 100;
+  return undefined;
+}
+{
+  const k = document.querySelector('.status > div + div .k'), bar = document.createElement('span');
+  bar.className = 'sbar'; bar.setAttribute('role', 'progressbar'); bar.innerHTML = '<i></i>';
+  k.after(bar);
+  let run = null;
+  new MutationObserver(() => {
+    const t = k.textContent.trim(), busy = /--acc/.test(k.style.color);
+    if (!busy || /^(Auto-)?[Ss]yncing/.test(t)) run = null;
+    if (busy && !run) run = { months: [], p: 0 };
+    const p = busy ? syncStep(t, run) : null, on = p !== null;
+    if (on && p !== undefined) run.p = Math.max(run.p, Math.round(p));
+    k.parentNode.classList.toggle('syncing', on);
+    bar.firstChild.style.width = (on ? run.p : 0) + '%';
+    bar.setAttribute('aria-valuenow', on ? run.p : 0);
+  }).observe(k, { childList: true, characterData: true, subtree: true, attributes: true });
 }
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
