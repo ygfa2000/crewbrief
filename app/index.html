@@ -87,6 +87,8 @@
   .fbrep { margin-top:8px; padding:8px 10px; border-left:3px solid var(--acc); background:var(--soft); border-radius:6px; }
   .fbrep .fbrh { font-size:12px; font-weight:700; color:var(--acc); margin-bottom:2px; }
   .fbrep .fbt { font-size:14px; }
+  .fbrep.me { border-left-color:var(--mute); background:transparent; } .fbrep.me .fbrh { color:var(--ink2,var(--mute)); }
+  .fbfol { margin-top:8px; } .fbfol textarea { margin:0; }
   .fbst { white-space:nowrap; font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px; } .fbst.done { background:rgba(46,160,67,.14); color:#2ea043; } .fbst.wait { background:rgba(240,68,82,.12); color:#e03445; }
   .home { cursor:pointer; display:grid; gap:10px; margin-top:12px; }
   .hload { display:grid; justify-items:center; gap:8px; padding:36px 16px; text-align:center; }
@@ -1566,6 +1568,7 @@ function syncStep(t, run) {
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['11/01', 'Feedback is now a conversation: you can answer a reply from Crew Brief under your own feedback'],
   ['11/01', 'My Trip › LogTen: pick a date range, check the legs you want and send them to LogTen in one go (already sent legs are updated, not duplicated)'],
   ['11/01', 'New Settings icon'],
   ['11/01', 'Feedback is now a board: My feedback shows what you sent from this device, with replies under each one, and a red number when a reply arrives'],
@@ -2050,7 +2053,9 @@ document.addEventListener('click', e => {
 let fbKind = 'bad', fbData = null, fbMsg = '';
 const fbWhen = iso => mdhm(iso);
 const FB_API = RELAY;
-let fbMine = null, fbRepEdit = '', fbRepDraft = '', fbRepAsk = false;
+let fbMine = null, fbRepEdit = '', fbRepDraft = '', fbRepAsk = false, fbDelAsk = '', fbFolDraft = {}, fbFolMsg = {};
+const fbT = x => x.thread || (x.reply ? [{ who: 'admin', text: x.reply, at: x.replyAt }] : []);
+const fbLastAt = (x, who) => fbT(x).filter(l => l.who === who).reduce((a, l) => l.at > a ? l.at : a, '');
 const FB_IDS_MAX = 30;
 const fbIds = () => { try { const a = JSON.parse(localStorage.getItem('cbFbIds')); return Array.isArray(a) ? a.filter(x => /^[0-9a-f]{64}$/.test(x)) : []; } catch (e) { return []; } };
 function fbRidKeep(rid) {
@@ -2074,7 +2079,7 @@ const fbMineList = () => {
   return out.sort((a, b) => a.at < b.at ? 1 : a.at > b.at ? -1 : 0);
 };
 const replySeen = () => { try { return localStorage.getItem('cbFbReplySeen') || ''; } catch (e) { return ''; } };
-const newReply = () => fbMineList().filter(x => x.reply && x.replyAt > replySeen()).length;
+const newReply = () => fbMineList().filter(x => fbLastAt(x, 'admin') > replySeen()).length;
 function fbLoad() {
   fbData = { list: [] };
   fetch(`${RELAY}?f=fb&dk=${encodeURIComponent(doorKey)}`).then(r => r.json()).then(r => {
@@ -2185,12 +2190,13 @@ const newUpd = () => {
 function updSeenNow() { try { localStorage.setItem('cbUpdSeen', updKey(CHANGES[0])); } catch (e) {} }
 const badge = n => n ? `<b class="nbadge">${n > 99 ? '99+' : n}</b>` : '';
 const fbSeen = () => { try { return localStorage.getItem('cbFbSeen') || ''; } catch (e) { return ''; } };
-const newFb = () => (fbData && fbData.admin ? (fbData.list || []).filter(x => x.at > fbSeen()).length : 0) + newReply();
+const fbNewAt = x => { const u = fbLastAt(x, 'user'); return u > x.at ? u : x.at; };
+const newFb = () => (fbData && fbData.admin ? (fbData.list || []).filter(x => fbNewAt(x) > fbSeen()).length : 0) + newReply();
 const newApp = () => appReqs && appReqs.ok ? (appReqs.list || []).length : 0;
 function fbSeenNow() {
-  const last = ((fbData || {}).list || []).reduce((a, x) => x.at > a ? x.at : a, '');
+  const last = ((fbData || {}).list || []).reduce((a, x) => fbNewAt(x) > a ? fbNewAt(x) : a, '');
   if (last && last > fbSeen()) try { localStorage.setItem('cbFbSeen', last); } catch (e) {}
-  const lr = fbMineList().reduce((a, x) => x.replyAt && x.replyAt > a ? x.replyAt : a, '');
+  const lr = fbMineList().reduce((a, x) => fbLastAt(x, 'admin') > a ? fbLastAt(x, 'admin') : a, '');
   if (lr && lr > replySeen()) try { localStorage.setItem('cbFbReplySeen', lr); } catch (e) {}
 }
 function badgeLoad() { fbMineLoad(); if (!doorKey) return; fbLoad(); appReqs = null; appReqLoad(); }
@@ -2240,7 +2246,7 @@ document.addEventListener('click', e => {
 function fbBox() {
   if (!fbData) { if (doorKey) fbLoad(); else fbData = { list: [] }; }
   if (!fbMine) fbMineLoad();
-  const list = fbData.list || [], mine = fbMineList(), waiting = list.filter(x => x.rid && !x.reply).length;
+  const list = fbData.list || [], mine = fbMineList(), waiting = list.filter(x => x.rid && (fbT(x).slice(-1)[0] || { who: 'user' }).who === 'user').length;
   const kind = k => k === 'good' ? '잘된 점' : '개선점';
   return `<div class="card box"><b>피드백</b>
     <p class="sub" style="margin:4px 0 10px">잘된 점이나 고쳤으면 하는 점을 적어 보내 주세요.</p>
@@ -2248,23 +2254,64 @@ function fbBox() {
     <textarea id="fbIn" class="kin" rows="4" placeholder="자유롭게 적어 주세요"></textarea>${doorKey ? '' : `<input id="fbName" class="kin" maxlength="40" placeholder="이름 (선택)" style="margin-top:8px">`}
     <div class="setbtns"><button id="fbSend" class="on">보내기</button><span class="sub" id="fbMsg">${esc(fbMsg)}</span></div></div>
   ${mine.length ? `<div class="card box" data-testid="fb-mine"><b>My feedback</b> <span class="sub">${mine.length}</span>
-    <div class="fbl">${mine.map(x => `<div class="fbi"><div class="fbh"><span class="fbk ${x.kind}">${kind(x.kind)}</span><span class="sub">${fbWhen(x.at)}</span></div><div class="fbt">${esc(x.text)}</div>${repBox(x)}</div>`).join('')}</div></div>` : ''}
+    <div class="fbl">${mine.map(x => `<div class="fbi"><div class="fbh"><span class="fbk ${x.kind}">${kind(x.kind)}</span><span class="sub">${fbWhen(x.at)}</span></div><div class="fbt">${esc(x.text)}</div>${repBox(x, 'You')}${folBox(x)}</div>`).join('')}</div></div>` : ''}
   ${fbData.admin && list.length ? `<div class="card box"><b>받은 피드백</b> <span class="sub">${list.length}${waiting ? ` · ${waiting} waiting for a reply` : ''}</span>
-    <div class="fbl">${list.map(x => `<div class="fbi"><div class="fbh"><span class="fbk ${x.kind}">${kind(x.kind)}</span><span class="fbsrc${x.src === 'friend' ? ' fr' : ''}">${x.src === 'friend' ? 'Friend page' : 'App'}</span><span class="sub">${fbWhen(x.at)} · ${esc(x.by)}</span>${x.rid ? `<span class="fbst ${x.reply ? 'done' : 'wait'}">${x.reply ? 'Replied' : 'No reply yet'}</span>` : ''}</div><div class="fbt">${esc(x.text)}</div>${adminRep(x)}</div>`).join('')}</div></div>` : ''}`;
+    <div class="fbl">${list.map(x => `<div class="fbi"><div class="fbh"><span class="fbk ${x.kind}">${kind(x.kind)}</span><span class="fbsrc${x.src === 'friend' ? ' fr' : ''}">${x.src === 'friend' ? 'Friend page' : 'App'}</span><span class="sub">${fbWhen(x.at)} · ${esc(x.by)}</span>${x.rid ? fbState(x) : ''}</div><div class="fbt">${esc(x.text)}</div>${adminRep(x)}</div>`).join('')}</div></div>` : ''}`;
 }
-const repBox = x => x.reply ? `<div class="fbrep" data-testid="fb-reply"><div class="fbrh">Reply from Crew Brief <span class="sub">· ${fbWhen(x.replyAt)}</span></div><div class="fbt">${esc(x.reply)}</div></div>` : '';
+const repBox = (x, you) => fbT(x).map(l => l.who === 'admin'
+  ? `<div class="fbrep" data-testid="fb-reply"><div class="fbrh">Crew Brief <span class="sub">· ${fbWhen(l.at)}</span></div><div class="fbt">${esc(l.text)}</div></div>`
+  : `<div class="fbrep me" data-testid="fb-follow"><div class="fbrh">${esc(you)} <span class="sub">· ${fbWhen(l.at)}</span></div><div class="fbt">${esc(l.text)}</div></div>`).join('');
+const folBox = x => !x.rid || !fbT(x).some(l => l.who === 'admin') ? '' : `<div class="fbfol"><textarea class="kin" rows="2" maxlength="1000" data-folin="${x.rid}" placeholder="Reply to Crew Brief">${esc(fbFolDraft[x.rid] || '')}</textarea>
+  <div class="setbtns" style="margin-top:6px"><button data-fol="${x.rid}" class="on">Send</button><span class="sub" data-testid="fb-folmsg">${esc(fbFolMsg[x.rid] || '')}</span></div></div>`;
+const fbState = x => { const l = fbT(x).slice(-1)[0]; return `<span class="fbst ${l && l.who === 'admin' ? 'done' : 'wait'}">${!l ? 'No reply yet' : l.who === 'admin' ? 'Replied' : 'New message'}</span>`; };
+const fbDelKey = x => `${x.at}|${x.rid || ''}`;
 const adminRep = x => {
-  if (!x.rid) return repBox(x);
-  if (fbRepEdit !== x.rid) return `${repBox(x)}<div class="setbtns" style="margin-top:6px"><button data-fbrep="${x.rid}">${x.reply ? 'Edit reply' : 'Reply'}</button></div>`;
-  return `<textarea id="fbRepIn" class="kin" rows="3" maxlength="1000" style="margin:8px 0 0"${fbRepAsk ? ' disabled' : ''}>${esc(fbRepDraft)}</textarea>
-    ${fbRepAsk ? `<p class="sub" style="margin:6px 0 0">${x.reply ? 'Replace the reply this person sees?' : 'Send this reply? Only this person sees it.'}</p>
-    <div class="setbtns" style="margin-top:6px"><button data-fbsend="${x.rid}" class="on">${x.reply ? 'Save reply' : 'Send reply'}</button><button data-fbback="1">Back</button><span class="sub" id="fbRepMsg"></span></div>`
-    : `<div class="setbtns" style="margin-top:6px"><button data-fbask="1" class="on">${x.reply ? 'Save' : 'Send'}</button><button data-fbcancel="1">Cancel</button><span class="sub" id="fbRepMsg"></span></div>`}`;
+  if (fbDelAsk === fbDelKey(x)) return `${repBox(x, x.by)}<p class="sub" style="margin:6px 0 0">Delete this feedback? The sender will no longer see it.</p>
+    <div class="setbtns" style="margin-top:6px"><button data-fbdelgo="${esc(fbDelKey(x))}" class="on">Delete</button><button data-fbdelback="1">Back</button><span class="sub" id="fbDelMsg"></span></div>`;
+  const del = `<button data-fbdel="${esc(fbDelKey(x))}">Delete</button>`;
+  if (!x.rid) return `${repBox(x, x.by)}<div class="setbtns" style="margin-top:6px">${del}</div>`;
+  if (fbRepEdit !== x.rid) return `${repBox(x, x.by)}<div class="setbtns" style="margin-top:6px"><button data-fbrep="${x.rid}">Reply</button>${del}</div>`;
+  return `${repBox(x, x.by)}<textarea id="fbRepIn" class="kin" rows="3" maxlength="1000" style="margin:8px 0 0"${fbRepAsk ? ' disabled' : ''}>${esc(fbRepDraft)}</textarea>
+    ${fbRepAsk ? `<p class="sub" style="margin:6px 0 0">Send this reply? Only this person sees it.</p>
+    <div class="setbtns" style="margin-top:6px"><button data-fbsend="${x.rid}" class="on">Send reply</button><button data-fbback="1">Back</button><span class="sub" id="fbRepMsg"></span></div>`
+    : `<div class="setbtns" style="margin-top:6px"><button data-fbask="1" class="on">Send</button><button data-fbcancel="1">Cancel</button><span class="sub" id="fbRepMsg"></span></div>`}`;
 };
-document.addEventListener('input', e => { if (e.target.id === 'fbRepIn') fbRepDraft = e.target.value; });
+document.addEventListener('input', e => {
+  if (e.target.id === 'fbRepIn') fbRepDraft = e.target.value;
+  if (e.target.dataset?.folin) fbFolDraft[e.target.dataset.folin] = e.target.value;
+});
 document.addEventListener('click', e => {
+  const fb = e.target.closest('[data-fol]');
+  if (!fb) return;
+  const rid = fb.dataset.fol, text = (fbFolDraft[rid] || '').trim();
+  if (!text) { fbFolMsg[rid] = 'Write a reply'; return render(); }
+  fb.disabled = true; fbFolMsg[rid] = 'Sending…';
+  fetch(FB_API, { method: 'POST', body: JSON.stringify({ f: 'fbFollow', rid, text }) }).then(r => r.json()).then(r => {
+    if (!r.ok || !(r.list || [])[0]) throw new Error(r.error || 'not found');
+    fbMine = [r.list[0]].concat((fbMine || []).filter(x => x.rid !== rid));
+    fbFolDraft[rid] = ''; fbFolMsg[rid] = '';
+    render();
+  }).catch(err => { fbFolMsg[rid] = `Not sent: ${err.message}`; render(); });
+});
+document.addEventListener('click', e => {
+  const db = e.target.closest('[data-fbdel]');
+  if (db) { fbDelAsk = db.dataset.fbdel; fbRepEdit = ''; render(); return; }
+  if (e.target.closest('[data-fbdelback]')) { fbDelAsk = ''; render(); return; }
+  const dg = e.target.closest('[data-fbdelgo]');
+  if (dg) {
+    const x = (fbData.list || []).find(y => fbDelKey(y) === dg.dataset.fbdelgo);
+    if (!x) return;
+    dg.disabled = true;
+    fetch(FB_API, { method: 'POST', body: JSON.stringify({ f: 'fbDelete', dk: doorKey, at: x.at, rid: x.rid || '', head: x.text.slice(0, 40) }) }).then(r => r.json()).then(r => {
+      if (!r.ok) throw new Error(r.error);
+      fbData = r; fbDelAsk = '';
+      fbMine = (fbMine || []).filter(y => fbDelKey(y) !== fbDelKey(x));
+      render();
+    }).catch(err => { dg.disabled = false; const m = document.getElementById('fbDelMsg'); if (m) m.textContent = `Not deleted: ${err.message}`; });
+    return;
+  }
   const rb = e.target.closest('[data-fbrep]');
-  if (rb) { fbRepEdit = rb.dataset.fbrep; fbRepAsk = false; fbRepDraft = ((fbData.list || []).find(x => x.rid === fbRepEdit) || {}).reply || ''; render(); return; }
+  if (rb) { fbRepEdit = rb.dataset.fbrep; fbRepAsk = false; fbDelAsk = ''; fbRepDraft = ''; render(); return; }
   if (e.target.closest('[data-fbcancel]')) { fbRepEdit = ''; fbRepAsk = false; render(); return; }
   if (e.target.closest('[data-fbback]')) { fbRepAsk = false; render(); return; }
   if (e.target.closest('[data-fbask]')) {
