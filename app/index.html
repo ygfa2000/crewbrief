@@ -84,6 +84,10 @@
   .fbk.good { background:rgba(46,160,67,.14); color:#2ea043; }
   .fbk.bad { background:rgba(240,140,0,.16); color:#d97706; }
   .fbt { white-space:pre-wrap; overflow-wrap:anywhere; }
+  .fbrep { margin-top:8px; padding:8px 10px; border-left:3px solid var(--acc); background:var(--soft); border-radius:6px; }
+  .fbrep .fbrh { font-size:12px; font-weight:700; color:var(--acc); margin-bottom:2px; }
+  .fbrep .fbt { font-size:14px; }
+  .fbst { white-space:nowrap; font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px; } .fbst.done { background:rgba(46,160,67,.14); color:#2ea043; } .fbst.wait { background:rgba(240,68,82,.12); color:#e03445; }
   .home { cursor:pointer; display:grid; gap:10px; margin-top:12px; }
   .hload { display:grid; justify-items:center; gap:8px; padding:36px 16px; text-align:center; }
   .spin { width:26px; height:26px; border-radius:50%; border:3px solid var(--line); border-top-color:var(--acc); animation:spin .8s linear infinite; }
@@ -1184,6 +1188,7 @@ function render() {
   scriptWarn();
   document.querySelectorAll('.tabs button, .gear').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
   if (tab === 'set' && setTab === 'upd') updSeenNow();   // Update history 를 보는 중이면 숫자를 그리기 전에 본 것으로
+  if (tab === 'set' && setTab === 'fb') fbSeenNow();   // 피드백도 — 여는 순간 ⚙·탭 숫자가 같이 사라진다 (새 글·새 답변)
   { const g = document.querySelector('.gear'), n = newFb() + newApp() + newUpd(), old = g.querySelector('.nbadge'); if (old) old.remove(); if (n) g.insertAdjacentHTML('beforeend', badge(n)); }
   document.getElementById('view').hidden = tab === 'calc' || tab === 'atis';
   document.getElementById('calc').hidden = tab !== 'calc';
@@ -1445,6 +1450,7 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['11/01', 'Feedback is now a board: My feedback shows what you sent from this device, with replies under each one, and a red number when a reply arrives'],
   ['10/31', 'iPhone app: background refresh on trip days checks only this trip and the next (Open Time waits for the next open), so it finishes in time and Release/ETD alerts come when they happen'],
   ['10/30', 'Settings: Notices & links — news and setup links for iPhone, Android and the web (opens in Safari)'],
   ['10/30', 'A red number on ⚙ and Update history when something new is added here'],
@@ -1925,6 +1931,32 @@ document.addEventListener('click', e => {
 });
 let fbKind = 'bad', fbData = null, fbMsg = '';
 const fbWhen = iso => mdhm(iso);
+const FB_API = RELAY;
+let fbMine = null, fbRepEdit = '', fbRepDraft = '', fbRepAsk = false;
+const FB_IDS_MAX = 30;
+const fbIds = () => { try { const a = JSON.parse(localStorage.getItem('cbFbIds')); return Array.isArray(a) ? a.filter(x => /^[0-9a-f]{64}$/.test(x)) : []; } catch (e) { return []; } };
+function fbRidKeep(rid) {
+  if (!/^[0-9a-f]{64}$/.test(rid || '')) return;
+  const ids = fbIds().filter(x => x !== rid);
+  ids.push(rid);
+  try { localStorage.setItem('cbFbIds', JSON.stringify(ids.slice(-FB_IDS_MAX))); } catch (e) {}
+}
+function fbMineLoad() {
+  const ids = fbIds();
+  if (!ids.length) return;
+  fetch(`${FB_API}?f=fbMine&ids=${ids.join(',')}`).then(r => r.json()).then(r => {
+    if (!r.ok) return;
+    fbMine = r.list || [];
+    if ((tab === 'set' && setTab === 'fb') || newReply()) render();
+  }).catch(() => {});
+}
+const fbMineList = () => {
+  const out = (fbMine || []).slice(), have = new Set(out.map(x => x.rid));
+  if (fbData && !fbData.admin) (fbData.list || []).forEach(x => { if (!x.rid || !have.has(x.rid)) out.push(x); });
+  return out.sort((a, b) => a.at < b.at ? 1 : a.at > b.at ? -1 : 0);
+};
+const replySeen = () => { try { return localStorage.getItem('cbFbReplySeen') || ''; } catch (e) { return ''; } };
+const newReply = () => fbMineList().filter(x => x.reply && x.replyAt > replySeen()).length;
 function fbLoad() {
   fbData = { list: [] };
   fetch(`${RELAY}?f=fb&dk=${encodeURIComponent(doorKey)}`).then(r => r.json()).then(r => {
@@ -2035,13 +2067,15 @@ const newUpd = () => {
 function updSeenNow() { try { localStorage.setItem('cbUpdSeen', updKey(CHANGES[0])); } catch (e) {} }
 const badge = n => n ? `<b class="nbadge">${n > 99 ? '99+' : n}</b>` : '';
 const fbSeen = () => { try { return localStorage.getItem('cbFbSeen') || ''; } catch (e) { return ''; } };
-const newFb = () => fbData && fbData.admin ? (fbData.list || []).filter(x => x.at > fbSeen()).length : 0;
+const newFb = () => (fbData && fbData.admin ? (fbData.list || []).filter(x => x.at > fbSeen()).length : 0) + newReply();
 const newApp = () => appReqs && appReqs.ok ? (appReqs.list || []).length : 0;
 function fbSeenNow() {
   const last = ((fbData || {}).list || []).reduce((a, x) => x.at > a ? x.at : a, '');
   if (last && last > fbSeen()) try { localStorage.setItem('cbFbSeen', last); } catch (e) {}
+  const lr = fbMineList().reduce((a, x) => x.replyAt && x.replyAt > a ? x.replyAt : a, '');
+  if (lr && lr > replySeen()) try { localStorage.setItem('cbFbReplySeen', lr); } catch (e) {}
 }
-function badgeLoad() { if (!doorKey) return; fbLoad(); appReqs = null; appReqLoad(); }
+function badgeLoad() { fbMineLoad(); if (!doorKey) return; fbLoad(); appReqs = null; appReqLoad(); }
 setTimeout(badgeLoad, 3000);
 setInterval(() => { if (!document.hidden) badgeLoad(); }, 10 * 60e3);
 function appReqLoad() {
@@ -2087,16 +2121,48 @@ document.addEventListener('click', e => {
 
 function fbBox() {
   if (!fbData) { if (doorKey) fbLoad(); else fbData = { list: [] }; }
-  const list = fbData.list || [];
+  if (!fbMine) fbMineLoad();
+  const list = fbData.list || [], mine = fbMineList(), waiting = list.filter(x => x.rid && !x.reply).length;
   const kind = k => k === 'good' ? '잘된 점' : '개선점';
   return `<div class="card box"><b>피드백</b>
     <p class="sub" style="margin:4px 0 10px">잘된 점이나 고쳤으면 하는 점을 적어 보내 주세요.</p>
     <div class="seg fb-seg"><button data-fk="good"${fbKind === 'good' ? ' class="on"' : ''}>👍 잘된 점</button><button data-fk="bad"${fbKind === 'bad' ? ' class="on"' : ''}>🛠 개선점</button></div>
     <textarea id="fbIn" class="kin" rows="4" placeholder="자유롭게 적어 주세요"></textarea>${doorKey ? '' : `<input id="fbName" class="kin" maxlength="40" placeholder="이름 (선택)" style="margin-top:8px">`}
     <div class="setbtns"><button id="fbSend" class="on">보내기</button><span class="sub" id="fbMsg">${esc(fbMsg)}</span></div></div>
-  ${list.length ? `<div class="card box"><b>${fbData.admin ? '받은 피드백' : '보낸 피드백'}</b> <span class="sub">${list.length}</span>
-    <div class="fbl">${list.map(x => `<div class="fbi"><div class="fbh"><span class="fbk ${x.kind}">${kind(x.kind)}</span><span class="fbsrc${x.src === 'friend' ? ' fr' : ''}">${x.src === 'friend' ? 'Friend page' : 'App'}</span><span class="sub">${fbWhen(x.at)}${fbData.admin ? ` · ${esc(x.by)}` : ''}</span></div><div class="fbt">${esc(x.text)}</div></div>`).join('')}</div></div>` : ''}`;
+  ${mine.length ? `<div class="card box" data-testid="fb-mine"><b>My feedback</b> <span class="sub">${mine.length}</span>
+    <div class="fbl">${mine.map(x => `<div class="fbi"><div class="fbh"><span class="fbk ${x.kind}">${kind(x.kind)}</span><span class="sub">${fbWhen(x.at)}</span></div><div class="fbt">${esc(x.text)}</div>${repBox(x)}</div>`).join('')}</div></div>` : ''}
+  ${fbData.admin && list.length ? `<div class="card box"><b>받은 피드백</b> <span class="sub">${list.length}${waiting ? ` · ${waiting} waiting for a reply` : ''}</span>
+    <div class="fbl">${list.map(x => `<div class="fbi"><div class="fbh"><span class="fbk ${x.kind}">${kind(x.kind)}</span><span class="fbsrc${x.src === 'friend' ? ' fr' : ''}">${x.src === 'friend' ? 'Friend page' : 'App'}</span><span class="sub">${fbWhen(x.at)} · ${esc(x.by)}</span>${x.rid ? `<span class="fbst ${x.reply ? 'done' : 'wait'}">${x.reply ? 'Replied' : 'No reply yet'}</span>` : ''}</div><div class="fbt">${esc(x.text)}</div>${adminRep(x)}</div>`).join('')}</div></div>` : ''}`;
 }
+const repBox = x => x.reply ? `<div class="fbrep" data-testid="fb-reply"><div class="fbrh">Reply from Crew Brief <span class="sub">· ${fbWhen(x.replyAt)}</span></div><div class="fbt">${esc(x.reply)}</div></div>` : '';
+const adminRep = x => {
+  if (!x.rid) return repBox(x);
+  if (fbRepEdit !== x.rid) return `${repBox(x)}<div class="setbtns" style="margin-top:6px"><button data-fbrep="${x.rid}">${x.reply ? 'Edit reply' : 'Reply'}</button></div>`;
+  return `<textarea id="fbRepIn" class="kin" rows="3" maxlength="1000" style="margin:8px 0 0"${fbRepAsk ? ' disabled' : ''}>${esc(fbRepDraft)}</textarea>
+    ${fbRepAsk ? `<p class="sub" style="margin:6px 0 0">${x.reply ? 'Replace the reply this person sees?' : 'Send this reply? Only this person sees it.'}</p>
+    <div class="setbtns" style="margin-top:6px"><button data-fbsend="${x.rid}" class="on">${x.reply ? 'Save reply' : 'Send reply'}</button><button data-fbback="1">Back</button><span class="sub" id="fbRepMsg"></span></div>`
+    : `<div class="setbtns" style="margin-top:6px"><button data-fbask="1" class="on">${x.reply ? 'Save' : 'Send'}</button><button data-fbcancel="1">Cancel</button><span class="sub" id="fbRepMsg"></span></div>`}`;
+};
+document.addEventListener('input', e => { if (e.target.id === 'fbRepIn') fbRepDraft = e.target.value; });
+document.addEventListener('click', e => {
+  const rb = e.target.closest('[data-fbrep]');
+  if (rb) { fbRepEdit = rb.dataset.fbrep; fbRepAsk = false; fbRepDraft = ((fbData.list || []).find(x => x.rid === fbRepEdit) || {}).reply || ''; render(); return; }
+  if (e.target.closest('[data-fbcancel]')) { fbRepEdit = ''; fbRepAsk = false; render(); return; }
+  if (e.target.closest('[data-fbback]')) { fbRepAsk = false; render(); return; }
+  if (e.target.closest('[data-fbask]')) {
+    if (!fbRepDraft.trim()) { const m = document.getElementById('fbRepMsg'); if (m) m.textContent = 'Write a reply'; return; }
+    fbRepAsk = true; render(); return;
+  }
+  const sb = e.target.closest('[data-fbsend]');
+  if (!sb) return;
+  sb.disabled = true;
+  fetch(FB_API, { method: 'POST', body: JSON.stringify({ f: 'fbReply', dk: doorKey, rid: sb.dataset.fbsend, reply: fbRepDraft.trim() }) }).then(r => r.json()).then(r => {
+    if (!r.ok) throw new Error(r.error);
+    fbData = r; fbRepEdit = ''; fbRepDraft = ''; fbRepAsk = false;
+    fbMineLoad();   // 관리자가 자기 글에 답했을 때도 맞게
+    render();
+  }).catch(err => { sb.disabled = false; const m = document.getElementById('fbRepMsg'); if (m) m.textContent = `Not saved: ${err.message}`; });
+});
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-fk]');
   if (b) { fbKind = b.dataset.fk; b.parentNode.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); return; }
@@ -2107,8 +2173,10 @@ document.addEventListener('click', e => {
   e.target.disabled = true;
   say('보내는 중…');
   const name = doorKey ? '' : ((document.getElementById('fbName') || {}).value || '').trim();
-  fetch(RELAY, { method: 'POST', body: JSON.stringify(doorKey ? { f: 'fb', dk: doorKey, kind: fbKind, text } : { f: 'fb', src: 'app', name, kind: fbKind, text }) }).then(r => r.json()).then(r => {
+  fetch(FB_API, { method: 'POST', body: JSON.stringify(doorKey ? { f: 'fb', dk: doorKey, kind: fbKind, text } : { f: 'fb', src: 'app', name, kind: fbKind, text }) }).then(r => r.json()).then(r => {
     if (!r.ok) throw new Error(r.error);
+    fbRidKeep(r.rid);
+    if (r.rid) fbMine = [{ rid: r.rid, at: new Date().toISOString(), kind: fbKind, text }].concat((fbMine || []).filter(x => x.rid !== r.rid));   // 서버에 다시 묻기 전에도 목록에
     if (doorKey) fbData = r;
     fbMsg = '보냈습니다 — 고맙습니다';
     render();
