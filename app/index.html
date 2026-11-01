@@ -281,6 +281,21 @@
   .logten { display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:12px;
     padding:5px 14px 5px 5px; font-weight:700; text-decoration:none; font-size:14px; margin:4px 0 6px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
   .logten .lt-ico { width:30px; height:30px; border-radius:7px; box-shadow:0 0 0 1px rgba(0,0,0,.08); }
+  .ltx-range { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .ltx-range label { display:grid; gap:4px; color:var(--mute); font-size:12px; font-weight:600; min-width:0; }
+  .ltx-range input { min-width:0; width:100%; box-sizing:border-box; font:600 15px 'Pretendard Variable',Pretendard,sans-serif; padding:7px 8px; border:1px solid var(--line); border-radius:10px; background:var(--bg); color:var(--ink); }
+  .ltx-sel { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin:12px 0 4px; }
+  .ltx-sel button { font:600 13px 'Pretendard Variable',Pretendard,sans-serif; padding:6px 12px; border:1px solid var(--line); border-radius:10px; background:var(--card); color:var(--ink); cursor:pointer; }
+  .ltx-sel .sub { margin-left:auto; font-size:13px; }
+  .ltx-go { display:flex; flex-wrap:wrap; gap:0 8px; }
+  .ltx-dh { font-weight:700; font-size:15px; padding:12px 0 4px; border-top:1px solid var(--line); }
+  .ltx-day:first-child .ltx-dh { border-top:0; }
+  .ltx-row { display:grid; grid-template-columns:22px 3.6em 1fr auto; gap:8px; align-items:center; padding:8px 0; border-bottom:1px solid var(--line); font-size:14px; }
+  .ltx-row input { width:18px; height:18px; margin:0; accent-color:var(--acc); }
+  .ltx-row > span:nth-child(3) { display:grid; font-weight:700; min-width:0; }
+  .ltx-row .sub { font-weight:500; font-size:12px; }
+  .ltx-row .r { display:grid; text-align:right; color:var(--mute); font-size:12px; }
+  .ltx-row.off { opacity:.4; }
   .leg > summary { grid-template-columns:4.6em 1fr auto auto; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); }
   .leg > summary > span:first-child { color:var(--ink2); font-weight:600; font-size:14px; }
   .leg > summary > span:nth-child(2) { font-weight:700; font-size:17px; display:grid; }
@@ -365,11 +380,12 @@
   .status .upd, .status .upd:active { background:transparent; box-shadow:none; }
   .status .upd .ico { background:linear-gradient(180deg,#ffffff,#d3d8df); box-shadow:inset 0 1px 0 #fff, 0 0 0 1px rgba(31,36,48,.12), 0 2px 5px rgba(31,36,48,.18); }
   .status .upd .ico svg { stroke:#6b7380; }
-  .gear { display:grid; place-items:center; } .gear svg { width:34px; height:34px; display:block; overflow:visible; }
+  .gear { display:grid; place-items:center; } .gear img { width:34px; height:34px; display:block; }
   .gear { position:relative; }
   .nbadge { display:inline-grid; place-items:center; min-width:18px; height:18px; padding:0 5px; margin-left:5px; border-radius:9px; background:#f04452; color:#fff; font:700 11px/1 -apple-system,system-ui,sans-serif; vertical-align:1px; }
   .gear .nbadge { position:absolute; top:-2px; right:-4px; margin:0; box-shadow:0 0 0 2px var(--bg); }
-  .gear.on { background:var(--ink); color:var(--card); border-color:var(--ink); }
+  .gear.on { background:var(--line); }
+  @media (prefers-color-scheme: dark) { .gear { background:rgba(255,255,255,.16); } .gear.on { background:rgba(255,255,255,.32); } }
   .tabs button { white-space:nowrap; }
   @media (max-width:370px) {
     .hdr { gap:8px; } .mark { width:32px; height:32px; } .word { font-size:20px; }
@@ -416,7 +432,7 @@
 <div class="pin">
 <header class="hdr"><h1 class="head"><a id="home" target="_top" style="color:inherit;text-decoration:none"><svg class="mark" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="cbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5aa5ff"/><stop offset="1" stop-color="#1b64da"/></linearGradient></defs><rect width="40" height="40" rx="12" fill="url(#cbg)"/><path d="M9 27c6-1 14-5 22-14" stroke="rgba(255,255,255,.35)" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M10.5 21.5 30 12.5l-6.2 16.2-4.3-5.6z" fill="#fff"/><path d="m19.5 23.1 10.5-10.6-12.2 8.9z" fill="#cfe2ff"/></svg><span class="word"><span class="wt">Crew <em>Brief</em></span><small>Flight Deck Tool</small></span></a></h1>
   <span class="secret" id="secret" aria-hidden="true"></span>
-  <button class="gear" data-tab="set" aria-label="설정"><svg viewBox="0 0 28 28" aria-hidden="true"><defs><linearGradient id="cbG3t" x1="0" y1="0" x2=".4" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#e6e9ee"/><stop offset="1" stop-color="#c4cad3"/></linearGradient><linearGradient id="cbG3s" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#a3aab6"/><stop offset=".5" stop-color="#b4bac4"/><stop offset="1" stop-color="#868e9b"/></linearGradient><linearGradient id="cbG3r" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9c0ca"/><stop offset="1" stop-color="#f1f3f6"/></linearGradient><filter id="cbG3f" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="1.2" stdDeviation=".9" flood-color="#1a2030" flood-opacity=".35"/></filter></defs><g filter="url(#cbG3f)"><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" transform="translate(0 2.60) rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)" fill="url(#cbG3s)"/><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" transform="translate(0 2.40) rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)" fill="url(#cbG3s)"/><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" transform="translate(0 2.20) rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)" fill="url(#cbG3s)"/><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" transform="translate(0 2.00) rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)" fill="url(#cbG3s)"/><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" transform="translate(0 1.80) rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)" fill="url(#cbG3s)"/><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" transform="translate(0 1.60) rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)" fill="url(#cbG3s)"/><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" transform="translate(0 1.40) rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)" fill="url(#cbG3s)"/><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" transform="translate(0 1.20) rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)" fill="url(#cbG3s)"/><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" transform="translate(0 1.00) rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)" fill="url(#cbG3s)"/><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" transform="translate(0 0.80) rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)" fill="url(#cbG3s)"/><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" transform="translate(0 0.60) rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)" fill="url(#cbG3s)"/><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" transform="translate(0 0.40) rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)" fill="url(#cbG3s)"/><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" transform="translate(0 0.20) rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)" fill="url(#cbG3s)"/><g transform="rotate(-12 14 14) translate(14 14) scale(1 .74) translate(-14 -14)"><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" fill="url(#cbG3t)"/><path d="M12.27 5.58 L12.60 2.89 L15.40 2.89 L15.73 5.58 L18.09 6.44 L20.07 4.59 L22.22 6.39 L20.74 8.66 L22.00 10.83 L24.70 10.69 L25.19 13.45 L22.60 14.24 L22.16 16.71 L24.32 18.34 L22.92 20.77 L20.43 19.71 L18.51 21.32 L19.12 23.96 L16.48 24.92 L15.26 22.51 L12.74 22.51 L11.52 24.92 L8.88 23.96 L9.49 21.32 L7.57 19.71 L5.08 20.77 L3.68 18.34 L5.84 16.71 L5.40 14.24 L2.81 13.45 L3.30 10.69 L6.00 10.83 L7.26 8.66 L5.78 6.39 L7.93 4.59 L9.91 6.44Z" fill="none" stroke="rgba(255,255,255,.6)" stroke-width=".35" stroke-linejoin="round"/><circle cx="14" cy="14" r="6.3" fill="url(#cbG3r)" opacity=".55"/><circle cx="14" cy="14" r="6.3" fill="none" stroke="rgba(255,255,255,.55)" stroke-width=".3"/><circle cx="14" cy="14" r="3.7" fill="#a9b0bb" transform="translate(0 .9)"/><circle cx="14" cy="14" r="3.7" fill="url(#cbG3t)"/><circle cx="14" cy="14" r="3.7" fill="none" stroke="rgba(255,255,255,.65)" stroke-width=".3"/><circle cx="14" cy="14" r="1.9" fill="#59606e"/><path d="M12.1 14 A1.9 1.9 0 0 0 15.9 14 A1.9 1.4 0 0 1 12.1 14Z" fill="#c9ced6" opacity=".9"/></g></g></svg></button></header>
+  <button class="gear" data-tab="set" aria-label="설정"><img src="data:image/webp;base64,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" alt="" aria-hidden="true"></button></header>
 <div class="status"><div class="utcbox"><div class="utc1"><span class="k">UTC</span><span class="zulu" id="zulu"></span></div><div class="zones" id="zones"></div></div><div><span class="k">마지막 동기화</span><span class="sub" id="synced"></span><a class="upd" target="_top" href="#cbsync" data-u="aHR0cHM6Ly93d3cuc2t5d2VzdG9ubGluZS5jb20vU0tZVy9Ta2VkUGx1cy9NeVNjaGVkdWxlLmFzcHg="><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3.2h-3.2"/></svg></span>업데이트</a></div></div>
 <button class="script-warn" id="scriptWarn" hidden></button>
 <nav class="tabs"><button data-tab="sked">Sked+</button><button data-tab="today">오늘</button><button data-tab="up">내 트립</button><button data-tab="atis">D-ATIS</button><button data-tab="door" id="doorTab" aria-label="Jet bridge code" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.6" y=".9" width="11.8" height="22.2" rx="5.2" fill="#f4f5f8" stroke="#1f2430" stroke-width=".9"/><rect x="5.3" y="2.7" width="8.4" height="10.2" rx="2.1" fill="#2b2d42"/><g fill="#fff"><circle cx="7.3" cy="4.7" r=".6"/><circle cx="9.5" cy="4.7" r=".6"/><circle cx="11.7" cy="4.7" r=".6"/><circle cx="7.3" cy="6.8" r=".6"/><circle cx="9.5" cy="6.8" r=".6"/><circle cx="11.7" cy="6.8" r=".6"/><circle cx="7.3" cy="8.9" r=".6"/><circle cx="9.5" cy="8.9" r=".6"/><circle cx="11.7" cy="8.9" r=".6"/><circle cx="7.3" cy="11" r=".6"/><circle cx="9.5" cy="11" r=".6"/><circle cx="11.7" cy="11" r=".6"/></g><circle cx="9.5" cy="17.4" r="3.1" fill="#d5d8e0" stroke="#1f2430" stroke-width=".9"/><rect x="7.9" y="15.9" width="15" height="3" rx="1.5" fill="#e8e9ee" stroke="#1f2430" stroke-width=".9"/><rect x="9.6" y="16.7" width="5" height="1.1" rx=".55" fill="#fff"/></svg></button><button data-tab="calc" aria-label="계산기"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.3" y="1.3" width="15.4" height="21.4" rx="3.2" fill="#1c1c1e" stroke="rgba(255,255,255,.35)" stroke-width=".7"/><rect x="6.9" y="3.9" width="10.2" height="4.8" rx="1.1" fill="#a1a1a6"/><circle cx="8.3" cy="12.4" r="1.4" fill="#d4d4d8"/><circle cx="12" cy="12.4" r="1.4" fill="#d4d4d8"/><circle cx="15.7" cy="12.4" r="1.4" fill="#ff9f0a"/><circle cx="8.3" cy="15.8" r="1.4" fill="#d4d4d8"/><circle cx="12" cy="15.8" r="1.4" fill="#d4d4d8"/><circle cx="15.7" cy="15.8" r="1.4" fill="#ff9f0a"/><circle cx="8.3" cy="19.2" r="1.4" fill="#d4d4d8"/><circle cx="12" cy="19.2" r="1.4" fill="#d4d4d8"/><circle cx="15.7" cy="19.2" r="1.4" fill="#ff9f0a"/></svg></button></nav>
@@ -895,36 +911,38 @@ const tzOf = (apt, date) => {
 };
 const icao = a => /^[A-Z]{4}$/.test(a) ? a : ({ HNL: 'PHNL', OGG: 'PHOG', KOA: 'PHKO', LIH: 'PHLI', ITO: 'PHTO', ANC: 'PANC', FAI: 'PAFA', JNU: 'PAJN', KTN: 'PAKT', SIT: 'PASI' })[a] || (/^Y/.test(a) ? 'C' + a : 'K' + a);
 const LT_ICON = '<svg class="lt-ico" viewBox="0 0 40 40" aria-hidden="true"><defs><radialGradient id="ltg" cx=".5" cy=".42" r=".6"><stop offset="0" stop-color="#6cc0f2"/><stop offset="1" stop-color="#2f8fd6"/></radialGradient></defs><rect width="40" height="40" rx="10" fill="#fff"/><circle cx="20" cy="20" r="16.5" fill="url(#ltg)"/><rect x="19.3" y="5.6" width="1.4" height="3" rx=".7" fill="#fff" opacity=".9" transform="rotate(0 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(30 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(60 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="3" rx=".7" fill="#fff" opacity=".9" transform="rotate(90 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(120 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(150 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="3" rx=".7" fill="#fff" opacity=".9" transform="rotate(180 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(210 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(240 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="3" rx=".7" fill="#fff" opacity=".9" transform="rotate(270 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(300 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(330 20 20)"/><path d="M5.5 21.2 17 20h6l11.5 1.2v1.3L23 22.3h-6l-11.5.2z" fill="#fff"/><circle cx="20" cy="21.4" r="3" fill="#fff"/><path d="M19.1 12.5h1.8v7h-1.8z" fill="#fff"/><path d="M15.8 14.2h8.4v1.6h-8.4z" fill="#fff"/></svg>';
-function logtenUrl(d) {
-  const mdy = date => `${date.slice(5, 7)}/${date.slice(8, 10)}/${date.slice(0, 4)}`;
-  const at = (date, hm, after) => {
-    if (!/^\d{1,2}:\d{2}$/.test(hm || '')) return undefined;
-    const t = new Date(`${date}T00:00:00Z`);
-    if (after && mins(hm) < mins(after)) t.setUTCDate(t.getUTCDate() + 1);
-    return `${mdy(t.toISOString().slice(0, 10))} ${hm.padStart(5, '0')}`;
+const ltMdy = date => `${date.slice(5, 7)}/${date.slice(8, 10)}/${date.slice(0, 4)}`;
+const ltAt = (date, hm, after) => {
+  if (!/^\d{1,2}:\d{2}$/.test(hm || '')) return undefined;
+  const t = new Date(`${date}T00:00:00Z`);
+  if (after && mins(hm) < mins(after)) t.setUTCDate(t.getUTCDate() + 1);
+  return `${ltMdy(t.toISOString().slice(0, 10))} ${hm.padStart(5, '0')}`;
+};
+const ltFlown = d => d.legs.filter(l => /\d/.test(l.flight) && l.from !== l.to && !l.dhd && l.block !== '0:00');
+function logtenEntity(d, l, flown = ltFlown(d)) {
+  const f = ((state.flows || {})[`${l.date}-${l.tail}`]?.flights || []).find(x => x.flight === l.flight && x.from === l.from);
+  if (l.date >= today && !f?.in) return null;
+  const out = f?.out || l.dep, inn = f?.in || l.arr;
+  const e = {
+    entity_name: 'Flight', flight_key: `crewbrief-${l.date}-${l.flight}-${l.from}`,
+    flight_flightDate: ltMdy(l.date), flight_flightNumber: l.flight.replace(/^[A-Z]{2}(?=\d)/, ''),
+    flight_selectedAircraftID: l.tail || undefined, flight_from: icao(l.from), flight_to: icao(l.to),
+    flight_actualDepartureTime: ltAt(l.date, out), flight_takeoffTime: ltAt(l.date, f?.off, out),
+    flight_landingTime: ltAt(l.date, f?.on, out), flight_actualArrivalTime: ltAt(l.date, inn, out),
+    flight_totalTime: l.block,
+    flight_selectedCrewPIC: l.crew?.ca || undefined, flight_selectedCrewSIC: l.crew?.fo || undefined,
   };
-  const flown = d.legs.filter(l => /\d/.test(l.flight) && l.from !== l.to && !l.dhd && l.block !== '0:00');
-  const legs = flown.map(l => {
-    const f = ((state.flows || {})[`${l.date}-${l.tail}`]?.flights || []).find(x => x.flight === l.flight && x.from === l.from);
-    if (l.date >= today && !f?.in) return null;
-    const out = f?.out || l.dep, inn = f?.in || l.arr;
-    const e = {
-      entity_name: 'Flight', flight_key: `crewbrief-${l.date}-${l.flight}-${l.from}`,
-      flight_flightDate: mdy(l.date), flight_flightNumber: l.flight.replace(/^[A-Z]{2}(?=\d)/, ''),
-      flight_selectedAircraftID: l.tail || undefined, flight_from: icao(l.from), flight_to: icao(l.to),
-      flight_actualDepartureTime: at(l.date, out), flight_takeoffTime: at(l.date, f?.off, out),
-      flight_landingTime: at(l.date, f?.on, out), flight_actualArrivalTime: at(l.date, inn, out),
-      flight_totalTime: l.block,
-      flight_selectedCrewPIC: l.crew?.ca || undefined, flight_selectedCrewSIC: l.crew?.fo || undefined,
-    };
-    if (l === flown[0]) e.flight_onDutyTime = at(l.date, d.report);
-    if (l === flown[flown.length - 1]) e.flight_offDutyTime = at(l.date, d.release, d.report);
-    return e;
-  }).filter(Boolean);
+  if (l === flown[0]) e.flight_onDutyTime = ltAt(l.date, d.report);
+  if (l === flown[flown.length - 1]) e.flight_offDutyTime = ltAt(l.date, d.release, d.report);
+  return e;
+}
+const ltPackage = legs => 'logten://v2/addEntities?package=' + encodeURIComponent(JSON.stringify({ metadata: { application: 'Crew Brief', version: '1.0', dateFormat: 'MM/dd/yyyy', dateAndTimeFormat: 'MM/dd/yyyy HH:mm',
+  timesAreZulu: false, shouldApplyAutoFillTimes: true }, entities: legs }));
+function logtenUrl(d) {
+  const flown = ltFlown(d);
+  const legs = flown.map(l => logtenEntity(d, l, flown)).filter(Boolean);
   if (!legs.length || legs.length < flown.length) return ''; // 그날 마지막 구간이 IN 해야 보낸다
-  const pkg = { metadata: { application: 'Crew Brief', version: '1.0', dateFormat: 'MM/dd/yyyy', dateAndTimeFormat: 'MM/dd/yyyy HH:mm',
-    timesAreZulu: false, shouldApplyAutoFillTimes: true }, entities: legs };
-  return 'logten://v2/addEntities?package=' + encodeURIComponent(JSON.stringify(pkg));
+  return ltPackage(legs);
 }
 
 const aptOff = (a, date) => { const k = TZ_APT[a]; return k ? (TZ_STD[k] + (TZ_NODST.has(a) ? 0 : usDst(date) ? 1 : 0)) * 60 : null; };
@@ -1207,8 +1225,9 @@ function render() {
 }
 let tripTab = 'up';
 function myTripView() {
-  const seg = `<div class="seg trip-seg"><button data-tt="up"${tripTab === 'up' ? ' class="on"' : ''}>다가오는 트립</button><button data-tt="past"${tripTab === 'past' ? ' class="on"' : ''}>지난 트립</button></div>`;
+  const seg = `<div class="seg trip-seg"><button data-tt="up"${tripTab === 'up' ? ' class="on"' : ''}>다가오는 트립</button><button data-tt="past"${tripTab === 'past' ? ' class="on"' : ''}>지난 트립</button><button data-tt="lt"${tripTab === 'lt' ? ' class="on"' : ''}>LogTen</button></div>`;
   if (tripTab === 'sked') tripTab = 'up';   // 예전에 Sked+ 가 이 칸에 있을 때 저장된 자리
+  if (tripTab === 'lt') return seg + logtenView();
   if (tripTab === 'up') {
     const next = state.trips.filter(x => x.start > today).sort((a, b) => a.start.localeCompare(b.start))[0];
     return seg + (next ? tripCard(next, false) : '<div class="empty">다가오는 트립이 없습니다.</div>');
@@ -1218,6 +1237,63 @@ function myTripView() {
     .map(x => x.end < today ? x : { ...x, days: x.days.filter(d => d.date < today) });
   return seg + (past.map(x => tripCard(x, false)).join('') || '<div class="empty">지난 4주 동안의 트립이 없습니다.</div>');
 }
+const LT_CHUNK = 30;
+let ltFrom = '', ltTo = '', ltOff = new Set();
+try { ltOff = new Set(JSON.parse(sessionStorage.getItem('cbLtOff') || '[]')); } catch (e) {}
+function logtenView() {
+  const days = (state.trips || []).flatMap(t => t.days).filter(d => d.legs && d.legs.length).sort((a, b) => a.date.localeCompare(b.date));
+  if (!days.length) return '<div class="empty">스케줄 자료가 없습니다.</div>';
+  const lo = days[0].date, hi = days[days.length - 1].date, cl = x => x < lo ? lo : x > hi ? hi : x;
+  if (!ltFrom) ltFrom = cl(ymd(Date.now() - 30 * 864e5));
+  if (!ltTo) ltTo = cl(today);
+  const picked = [];
+  let can = 0;
+  const list = days.filter(d => d.date >= ltFrom && d.date <= ltTo).map(d => {
+    const flown = ltFlown(d);
+    if (!flown.length) return '';
+    return `<div class="ltx-day"><div class="ltx-dh">${md(d.date)}</div>${flown.map(l => {
+      const e = logtenEntity(d, l, flown), k = `crewbrief-${l.date}-${l.flight}-${l.from}`, on = !!e && !ltOff.has(k);
+      if (e) can++;
+      if (on) picked.push(e);
+      const t = x => x ? x.slice(-5) : '';
+      const times = e ? `${t(e.flight_actualDepartureTime) || esc(l.dep)}–${t(e.flight_actualArrivalTime) || esc(l.arr)}` : `${esc(l.dep)}–${esc(l.arr)}`;
+      return `<label class="ltx-row${e ? '' : ' off'}" data-testid="lt-row"><input type="checkbox" data-ltk="${esc(k)}"${on ? ' checked' : ''}${e ? '' : ' disabled'}>
+        <b>${esc(l.flight)}</b><span>${esc(l.from)}→${esc(l.to)}<span class="sub">${times}${e ? '' : ' · 아직 안 끝남'}</span></span>
+        <span class="r"><span>${esc(l.block)}</span><span>${esc(l.tail || '')}</span></span></label>`;
+    }).join('')}</div>`;
+  }).join('');
+  const parts = [];
+  for (let i = 0; i < picked.length; i += LT_CHUNK) parts.push(picked.slice(i, i + LT_CHUNK));
+  const go = parts.map((p, i) => `<a class="logten" data-testid="lt-export" href="${ltPackage(p)}">${LT_ICON}<span>${parts.length > 1 ? `${i + 1}/${parts.length} · ` : ''}LogTen 으로 ${p.length}구간 내보내기</span></a>`).join('');
+  return `<div class="card box">
+    <div class="ltx-range"><label>From<input type="date" id="ltFrom" min="${lo}" max="${hi}" value="${ltFrom}"></label><label>To<input type="date" id="ltTo" min="${lo}" max="${hi}" value="${ltTo}"></label></div>
+    <div class="sub" style="font-size:12px;margin-top:6px">자료 범위 ${md(lo)} – ${md(hi)} (마지막 동기화 기준)</div>
+    <div class="ltx-sel"><button data-lts="all">전체 선택</button><button data-lts="none">전체 해제</button><span class="sub" data-testid="lt-count">${picked.length}/${can} 선택</span></div>
+    <div class="ltx-go">${go || '<span class="sub">고른 구간이 없습니다.</span>'}</div>
+    ${parts.length > 1 ? `<div class="sub" style="font-size:12px">한 번에 ${LT_CHUNK}구간까지 — 버튼을 차례로 누르세요.</div>` : ''}
+    <div class="sub" style="font-size:12px;margin-top:4px">이미 보낸 구간은 새로 생기지 않고 고쳐집니다.</div>
+    ${list || '<div class="empty">이 기간에 비행 구간이 없습니다.</div>'}
+  </div>`;
+}
+const ltKeep = () => { try { sessionStorage.setItem('cbLtOff', JSON.stringify([...ltOff])); } catch (e) {} };
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.id === 'ltFrom' || t.id === 'ltTo') {
+    if (!t.value) return;
+    if (t.id === 'ltFrom') ltFrom = t.value; else ltTo = t.value;
+    if (ltFrom > ltTo) { if (t.id === 'ltFrom') ltTo = ltFrom; else ltFrom = ltTo; }
+    return render();
+  }
+  if (!t.dataset?.ltk) return;
+  if (t.checked) ltOff.delete(t.dataset.ltk); else ltOff.add(t.dataset.ltk);
+  ltKeep(); render();
+});
+document.addEventListener('click', e => {
+  const a = e.target.dataset?.lts;
+  if (!a) return;
+  document.querySelectorAll('#view [data-ltk]:not(:disabled)').forEach(c => { if (a === 'all') ltOff.delete(c.dataset.ltk); else ltOff.add(c.dataset.ltk); });
+  ltKeep(); render();
+});
 const skedView = () => `<div class="sk-nav"><button data-skc="back">‹ Back</button>${document.documentElement.dataset.cbSkedHome ? '<button data-skc="home">⌂ Home</button>' : ''}<button data-skc="reload">↻</button></div><div id="skedSlot"></div>`;
 function skedIn() { return !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.cbsked); }
 document.addEventListener('click', e => {
@@ -1450,6 +1526,8 @@ let homeSync = IN_APP && (!state.syncedAt || Date.now() - new Date(state.syncedA
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['11/01', 'My Trip › LogTen: pick a date range, check the legs you want and send them to LogTen in one go (already sent legs are updated, not duplicated)'],
+  ['11/01', 'New Settings icon'],
   ['11/01', 'Feedback is now a board: My feedback shows what you sent from this device, with replies under each one, and a red number when a reply arrives'],
   ['10/31', 'iPhone app: background refresh on trip days checks only this trip and the next (Open Time waits for the next open), so it finishes in time and Release/ETD alerts come when they happen'],
   ['10/30', 'Settings: Notices & links — news and setup links for iPhone, Android and the web (opens in Safari)'],
