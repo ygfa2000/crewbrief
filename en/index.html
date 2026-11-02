@@ -1803,9 +1803,7 @@ function syncStep(t, run) {
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
-  ['11/02', 'Hotel line: map pin and full hotel name come from the hotel page the app reads; tap a hotel to unfold shuttle times, phone and microwave details (iPhone app)'],
-  ['11/02', 'Hotel line: tap a hotel to unfold shuttle times, phone and microwave details (iPhone app)'],
-  ['11/02', 'Hotel line: map pin opens Google Maps directions from the arrival airport to the hotel'],
+  ['11/02', 'Hotel: tap a hotel to see shuttle times, phone numbers and microwave details; the map pin opens Google Maps directions from the airport (iPhone app)'],
   ['11/02', 'Calculator: Credit box next to IN time shows the credit of the flight you pick and how it differs from block time (in brackets); OUT and Block Time side by side, today’s flights in a row below (swipe when there are more than five), No Flight Today on days off, calculated in UTC'],
   ['11/02', 'Jet bridge code: your location puts the airport you’re at on top (📍 Here) — iPhone app asks once when you open the tab, the website only when you tap Use my location'],
   ['11/02', 'Jet bridge code: longer codes (up to 120 characters per airline) and notes (up to 300), and long codes wrap inside the card'],
