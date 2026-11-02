@@ -182,19 +182,34 @@
   .toast { position:fixed; left:16px; right:16px; top:16px; z-index:50; background:#1e8e3e; color:#fff; font-weight:600; padding:12px 14px; border-radius:10px; text-align:center; box-shadow:0 4px 16px #0005; }
   .seg.leg-seg { grid-template-columns:repeat(3,1fr); margin-top:10px; }
   .seg.trip-seg { grid-template-columns:repeat(3,1fr); }
-  .durrow { display:flex; gap:8px; align-items:center; margin-top:4px; }
-  #calc .durrow input { width:76px; flex:none; margin-top:0; font-size:18px; padding:8px; }
+  .crow { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1.4fr); gap:8px; align-items:end; }
+  #cLegs { margin-top:8px; }
+  .pick-none { margin-top:8px; display:flex; align-items:center; justify-content:center; height:38px; box-sizing:border-box; border:1px solid var(--line); border-radius:8px; color:var(--mute); font-size:12px; font-weight:600; opacity:.7; }
   .sk-nav { display:flex; justify-content:space-between; margin:10px 0 6px; }
   .sk-nav button { font:600 13px -apple-system,system-ui,sans-serif; padding:6px 12px; border:1px solid var(--line); border-radius:9px; background:var(--card); color:var(--ink); }
+  .sk-nav.sk-menu { display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:6px; }
+  .sk-menu button { padding:6px 4px; white-space:nowrap; }
+  .sk-menu button:disabled { opacity:.4; }
   #skedSlot { border-radius:12px; background:var(--card); border:1px solid var(--line); }
-  .pick { flex:1; min-width:0; display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0, 1fr); gap:4px; }
+  .pick { min-width:0; display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0, 1fr); gap:4px; }
   .pick button { display:flex; flex-direction:column; align-items:center; padding:4px 0; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:11px; line-height:1.25; cursor:pointer; min-width:0; }
   .pick button.on { border-color:var(--acc); background:var(--soft); color:var(--acc); }
+  .pick small, .rt { white-space:nowrap; }
+  .pick small { font-size:9px; font-weight:400; }
+  .pick.dup { grid-auto-columns:minmax(min-content, 1fr); overflow-x:auto; }
+  .pick.many { grid-auto-columns:52px; overflow-x:auto; }
+  .pick.dup, .pick.many { -webkit-overflow-scrolling:touch; overscroll-behavior-x:contain; scroll-snap-type:x mandatory; scrollbar-width:none; }
+  .pick.dup::-webkit-scrollbar, .pick.many::-webkit-scrollbar { display:none; }
+  .pick.dup button, .pick.many button { scroll-snap-align:start; }
+  .pick.more { -webkit-mask-image:linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image:linear-gradient(to right, #000 calc(100% - 28px), transparent); }
   .seg.calc-seg { grid-template-columns:repeat(3,1fr); margin-bottom:14px; }
   .lt pre.raw { margin-top:10px !important; font:11px/1.35 ui-monospace,Menlo,monospace; white-space:pre; overflow-x:auto; background:var(--soft); border-radius:8px; padding:8px; margin:0; }
   .se { font:13px/1.5 ui-monospace,Menlo,monospace; margin-top:3px; }
   .se b { display:inline-block; min-width:3.2em; }
   .door-top { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .seg.door-seg { margin-bottom:10px; }
+  .door-new { margin-left:0; }
+  .door-here-btn { margin-top:8px; }
   .door-top input { flex:1 1 140px; min-width:0; font:600 16px ui-monospace,monospace; text-transform:uppercase; padding:8px 10px; border:1px solid var(--line); border-radius:9px; background:var(--card); color:var(--ink); }
   .door-top button, .door-card button { font:600 13px -apple-system,system-ui,sans-serif; padding:7px 12px; border:1px solid var(--line); border-radius:9px; background:var(--card); color:var(--ink); cursor:pointer; }
   .door-top button.on, .door-card button.on { background:var(--acc); border-color:var(--acc); color:#fff; }
@@ -205,11 +220,12 @@
   .door-codes { display:grid; gap:6px; margin-top:8px; }
   .door-codes > div { display:grid; grid-template-columns:36px 1fr; gap:8px; align-items:baseline; border:1px solid var(--line); border-radius:9px; padding:6px 10px; min-width:0; }
   .door-codes .c { color:var(--mute); font:700 14px ui-monospace,monospace; }
-  .door-codes .v { font:700 18px ui-monospace,monospace; word-break:keep-all; overflow-wrap:normal; }
+  .door-codes .v { font:700 18px ui-monospace,monospace; word-break:keep-all; overflow-wrap:anywhere; min-width:0; }
   .door-edit label { display:grid; grid-template-columns:36px 1fr; gap:8px; align-items:start; margin-top:8px; }
   .door-edit .c { color:var(--mute); font:700 14px ui-monospace,monospace; padding-top:10px; }
   .door-edit textarea { margin-top:0; font:600 17px ui-monospace,monospace; padding:8px 10px; }
-  .door-note { margin-top:6px; font-size:13px; white-space:pre-wrap; }
+  .door-card textarea { resize:none; overflow:hidden; }
+  .door-note { margin-top:6px; font-size:13px; white-space:pre-wrap; overflow-wrap:anywhere; }
   .door-card textarea { width:100%; box-sizing:border-box; margin-top:6px; font:14px -apple-system,system-ui,sans-serif; padding:6px 8px; border:1px solid var(--line); border-radius:7px; background:var(--bg); color:var(--ink); }
   .door-btns { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:8px; }
   .setlist { display:grid; gap:2px; }
@@ -253,6 +269,11 @@
   .readout .k { font-size:11px; letter-spacing:.1em; color:#8c9aab; }
   .readout .v { font:700 40px ui-monospace,monospace; color:#ffb547; font-variant-numeric:tabular-nums; }
   .readout .n { font:13px ui-monospace,monospace; color:#c9d2dc; min-height:1.2em; }
+  .cread { display:flex; gap:8px; margin-top:12px; }
+  .cread .readout { flex:1; min-width:0; margin-top:0; }
+  .cread.two .v { font-size:clamp(24px, 7.2vw, 40px); }
+  #cCrV { display:flex; flex-wrap:wrap; align-items:baseline; column-gap:4px; }
+  .cdiff { font-size:12px; font-weight:600; color:#c9d2dc; white-space:nowrap; }
 .hublink { display:block; margin:0 0 10px; padding:11px 14px; border-radius:12px; background:var(--card, #fff); border:1px solid var(--line, #e5e8eb); color:var(--acc, #3182f6); font-weight:600; font-size:15px; text-decoration:none; }
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
@@ -463,14 +484,13 @@
   <div class="seg calc-seg"><button data-cm="block" class="on">Block Time</button><button data-cm="temp">Temperature</button><button data-cm="xw">Crosswind</button></div>
   <div id="cBlock">
   <div class="seg"><button data-m="end" class="on">Find IN time</button><button data-m="dur">Find block time</button></div>
-  <label>OUT time <small>e.g. 0745 or 07:45</small><input id="cStart" inputmode="numeric" autocomplete="off" value="0745"></label>
-  <div id="cDurBox"><label for="cDur">Block time <small>e.g. 2:35 · 235 · 2.6</small></label>
-    <div class="durrow"><input id="cDur" inputmode="decimal" autocomplete="off" value="2:35"><div id="cLegs" class="pick" hidden></div></div>
+  <div class="crow"><label>OUT time <small>e.g. 0745</small><input id="cStart" inputmode="numeric" autocomplete="off" value="0745"></label>
+  <div id="cDurBox"><label for="cDur">Block Time<small id="cDurHint"> e.g. 2:35 · 235 · 2.6</small><input id="cDur" inputmode="decimal" autocomplete="off" value="2:35"></label></div>
+  <label id="cEndBox" hidden>IN time<input id="cEnd" inputmode="numeric" autocomplete="off" value="1020"></label></div>
+  <div id="cPickBox"><div id="cLegs" class="pick" hidden></div><div id="cNoFlight" class="pick-none" hidden>No Flight Today</div>
     <div class="chips"><button data-d="1:00">1:00</button><button data-d="1:30">1:30</button><button data-d="2:00">2:00</button><button data-d="3:00">3:00</button><button data-d="5:00">5:00</button></div></div>
-  <label id="cEndBox" hidden>IN time <small>earlier than OUT = next day</small><input id="cEnd" inputmode="numeric" autocomplete="off" value="1020"></label>
-  <label>Time-zone difference (arr − dep, hours) <small>only for local times; 0 for UTC</small><input id="cTz" inputmode="decimal" autocomplete="off" value="0"></label>
-  <div class="readout" aria-live="polite"><div class="k" id="cK">IN time</div><div class="v" id="cV">--:--</div><div class="n" id="cN"></div></div>
-  <p class="sub">24-hour clock, midnight rollover handled. Zone example: SFO → DEN is +1, DEN → SFO is −1.</p>
+  <div class="cread two" id="cRead"><div class="readout" aria-live="polite"><div class="k" id="cK">IN time</div><div class="v" id="cV">--:--</div><div class="n" id="cN"></div></div>
+  <div class="readout" id="cCr" aria-live="polite"><div class="k">Credit</div><div class="v" id="cCrV">—</div><div class="n" id="cCrN">Pick a leg</div></div></div>
   </div>
   <div id="cTemp" hidden>
     <label>Celsius °C<input id="tC" autocomplete="off" placeholder="15"></label>
@@ -1220,7 +1240,7 @@ function render() {
   document.getElementById('calc').hidden = tab !== 'calc';
   document.getElementById('atis').hidden = tab !== 'atis';
   if (tab === 'atis') atisChips();
-  if (tab === 'calc') calcLegs();
+  if (tab === 'calc') { today = ymd(Date.now()); calcLegs(); }
   if (tab === 'calc' || tab === 'atis') return skedSync();
   document.getElementById('view').innerHTML =
     tab === 'home' ? changesCard() + homeView() + incentiveCard()
@@ -1229,16 +1249,18 @@ function render() {
     : tab === 'door' ? doorView()
     : tab === 'sked' ? skedView()
     : myTripView();
+  if (tab === 'door') document.querySelectorAll('.door-card textarea').forEach(doorGrow);
   skedSync();
 }
 let tripTab = 'up';
 function myTripView() {
+  if (tripTab === 'cur') tripTab = 'up';
   const seg = `<div class="seg trip-seg"><button data-tt="up"${tripTab === 'up' ? ' class="on"' : ''}>Upcoming</button><button data-tt="past"${tripTab === 'past' ? ' class="on"' : ''}>Past Trips</button><button data-tt="lt"${tripTab === 'lt' ? ' class="on"' : ''}>LogTen</button></div>`;
   if (tripTab === 'sked') tripTab = 'up';
   if (tripTab === 'lt') return seg + logtenView();
   if (tripTab === 'up') {
-    const next = state.trips.filter(x => x.start > today).sort((a, b) => a.start.localeCompare(b.start))[0];
-    return seg + (next ? tripCard(next, false) : '<div class="empty">No upcoming trips.</div>');
+    const next = state.trips.filter(x => x.start > today).sort((a, b) => a.start.localeCompare(b.start)).slice(0, 3);
+    return seg + (next.map(x => tripCard(x, false)).join('') || '<div class="empty">No upcoming trips.</div>');
   }
   const since = ymd(Date.now() - 28 * 864e5);
   const past = state.trips.filter(x => x.start < today && x.end >= since).sort((a, b) => b.start.localeCompare(a.start))
@@ -1302,14 +1324,21 @@ document.addEventListener('click', e => {
   document.querySelectorAll('#view [data-ltk]:not(:disabled)').forEach(c => { if (a === 'all') ltOff.delete(c.dataset.ltk); else ltOff.add(c.dataset.ltk); });
   ltKeep(); render();
 });
-const skedView = () => `<div class="sk-nav"><button data-skc="back">‹ Back</button>${document.documentElement.dataset.cbSkedHome ? '<button data-skc="home">⌂ Home</button>' : ''}<button data-skc="reload">↻</button></div><div id="skedSlot"></div>`;
+const skedView = () => { const h = document.documentElement.dataset;
+  if (!h.cbSkedHome) return `<div class="sk-nav"><button data-skc="back">‹ Back</button><button data-skc="reload">↻</button></div><div id="skedSlot"></div>`;
+  return `<div class="sk-nav sk-menu"><button data-skc="home">⌂ Home</button>${h.cbSkedTrip ? `<button data-skt${curTrip() ? '' : ' disabled'}>Current</button>` : ''}<button data-skc="back">‹ Back</button><button data-skc="reload">↻</button></div><div id="skedSlot"></div>`; };
 function skedIn() { return !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.cbsked); }
 document.addEventListener('click', e => {
   const tt = e.target.dataset?.tt, c = e.target.dataset?.skc;
   if (c) { window.webkit.messageHandlers.cbsked.postMessage({ cmd: c }); return; }
+  if (e.target.closest?.('[data-skt]')) { const t = curTrip(); if (t) window.webkit.messageHandlers.cbsked.postMessage({ cmd: 'trip', pairing: t.pairing, date: t.start.replace(/-/g, '') }); return; }
   if (!tt) return;
   tripTab = tt; render();
 });
+function curTrip() {
+  const gap = t => t.start > today ? Date.parse(t.start) - Date.parse(today) : t.end < today ? Date.parse(today) - Date.parse(t.end) : 0;
+  return (state.trips || []).slice().sort((a, b) => gap(a) - gap(b) || (b.start > today) - (a.start > today) || a.start.localeCompare(b.start))[0];
+}
 function skedSync() {
   if (!skedIn()) return;
   const el = document.getElementById('skedSlot');
@@ -1328,7 +1357,7 @@ document.querySelectorAll('.tabs, .gear').forEach(el => el.addEventListener('cli
     else { const u = new URL(document.querySelector('.upd').href); window.open(u.origin + u.pathname, '_blank'); }
     return;
   }
-  if (b) { tab = b.dataset.tab; if (tab === 'door' && doorData) doorLoad(); render(); scrollTo(0, 0); }
+  if (b) { tab = b.dataset.tab; if (tab === 'door' && doorData) doorLoad(); if (tab === 'door') pubTried = false; render(); scrollTo(0, 0); }
 }));
 
 {
@@ -1345,54 +1374,80 @@ document.querySelectorAll('.tabs, .gear').forEach(el => el.addEventListener('cli
   };
   const dur = s => {
     s = s.trim();
-    if (s.includes(':')) { const [h, m] = s.split(':').map(Number); return Number.isInteger(h) && Number.isInteger(m) && m <= 59 ? h * 60 + m : null; }
-    if (s.includes('.')) { const v = parseFloat(s); return isNaN(v) ? null : Math.round(v * 60); }
+    if (/^[-−–]/.test(s)) return null;
+    if (s.includes(':')) { const [h, m] = s.split(':').map(Number); return Number.isInteger(h) && Number.isInteger(m) && h >= 0 && m >= 0 && m <= 59 ? h * 60 + m : null; }
+    if (s.includes('.')) { const v = parseFloat(s); return isNaN(v) || v < 0 ? null : Math.round(v * 60); }
     if (/^\d{3,4}$/.test(s)) { const m = +s.slice(-2); return m > 59 ? null : +s.slice(0, -2) * 60 + m; }
     if (/^\d{1,2}$/.test(s)) return +s * 60;
     return null;
   };
   const calc = () => {
-    const out = (v, n) => { $('cV').textContent = v; $('cN').textContent = n; };
+    const out = (v, n) => { $('cV').textContent = v; $('cN').textContent = n; $('cN').hidden = !n; };
     const st = clock($('cStart').value);
-    const tz = Math.round((parseFloat($('cTz').value.replace('−', '-')) || 0) * 60);
     if (st === null) return out('--:--', 'Check the OUT time');
     if (mode === 'end') {
       const d = dur($('cDur').value);
       if (d === null) return out('--:--', 'Check the block time');
-      const raw = st + d + tz, day = Math.floor(raw / 1440), t = ((raw % 1440) + 1440) % 1440;
-      out(`${pad(Math.floor(t / 60))}:${pad(t % 60)}`, `${hm(d)} (${(d / 60).toFixed(2)} h)` + (day > 0 ? ` · next day +${day}` : day < 0 ? ' · previous day' : ''));
+      const t = (((st + d) % 1440) + 1440) % 1440;
+      out(`${pad(Math.floor(t / 60))}:${pad(t % 60)}`, hm(d));
     } else {
       const en = clock($('cEnd').value);
       if (en === null) return out('--:--', 'Check the IN time');
-      let d = en - tz - st, next = false;
-      while (d < 0) { d += 1440; next = true; }
-      out(hm(d), `${(d / 60).toFixed(2)} h · ${d} min` + (next ? ' · past midnight' : ''));
+      let d = en - st;
+      while (d < 0) d += 1440;
+      out(hm(d), '');
     }
   };
   document.querySelector('#cBlock .seg').addEventListener('click', e => {
     if (!e.target.dataset.m) return;
     mode = e.target.dataset.m;
     document.querySelectorAll('#cBlock .seg button').forEach(b => b.classList.toggle('on', b.dataset.m === mode));
-    $('cDurBox').hidden = mode !== 'end';
+    $('cDurBox').hidden = mode !== 'end'; $('cPickBox').hidden = mode !== 'end';
+    if (mode === 'end') legShow();
     $('cEndBox').hidden = mode !== 'dur';
     $('cK').textContent = mode === 'end' ? 'IN time' : 'Block time';
+    $('cCr').hidden = mode !== 'end'; $('cRead').classList.toggle('two', mode === 'end');
     calc();
   });
-  document.querySelector('#cBlock .chips').addEventListener('click', e => { if (e.target.dataset.d) { $('cDur').value = e.target.dataset.d; calc(); } });
-  ['cStart', 'cDur', 'cEnd', 'cTz'].forEach(id => $(id).addEventListener('input', calc));
+  document.querySelector('#cBlock .chips').addEventListener('click', e => { if (e.target.dataset.d) { $('cDur').value = e.target.dataset.d; calc(); legOff(); } });
+  ['cStart', 'cDur', 'cEnd'].forEach(id => $(id).addEventListener('input', calc));
   calc();
 }
 
 function calcLegs() {
   const box = document.getElementById('cLegs');
-  const items = state.trips.flatMap(t => t.days).filter(d => d.date === today).flatMap(d => d.legs)
-    .filter(l => l.from !== l.to && l.block)
-    .map(l => {
-      return { l, done: !!legFlow(l).in };
-    }).filter(x => !x.done);
+  const legs = state.trips.flatMap(t => t.days).filter(d => d.date === today).flatMap(d => d.legs)
+    .filter(l => l.from !== l.to && l.block);
+  const items = legs.map(l => ({ l }));
+  const on = box.querySelector('button.on'), dv = document.getElementById('cDur').value, x0 = box.scrollLeft;
   box.hidden = !items.length;
-  box.innerHTML = items.map(({ l }) => `<button data-d="${esc(l.block)}"><b>${esc(l.flight)}</b>${esc(l.block)}</button>`).join('');
+  document.getElementById('cNoFlight').hidden = !!legs.length;
+  document.getElementById('cDurHint').textContent = items.length ? '(Pick a flight below)' : ' e.g. 2:35 · 235 · 2.6';
+  box.classList.toggle('many', items.length > 5);
+  const dup = f => items.filter(x => x.l.flight === f).length > 1;
+  box.classList.toggle('dup', items.some(x => dup(x.l.flight)));
+  box.innerHTML = items.map(({ l }) => `<button data-d="${esc(l.block)}" data-c="${esc(l.credit || '')}" data-f="${esc(l.flight)}" data-k="${esc(`${l.date}-${l.no}-${l.from}-${l.to}`)}"${dup(l.flight) ? ` data-r="${esc(`${l.from}-${l.to}`)}"` : ''}><b>${esc(l.flight)}${dup(l.flight) ? ` <small>(${esc(`${l.from}-${l.to}`)})</small>` : ''}</b>${esc(l.block)}</button>`).join('');
+  if (on && on.dataset.d === dv) box.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.k === on.dataset.k));
+  box.scrollLeft = x0;
+  legShow();
+  calcCredit();
 }
+function legShow() {
+  const box = document.getElementById('cLegs'), b = box.querySelector('button.on');
+  if (b) { const r = b.getBoundingClientRect(), R = box.getBoundingClientRect(); if (r.left < R.left) box.scrollLeft += r.left - R.left; else if (r.right > R.right) box.scrollLeft += r.right - R.right; }
+  legMore();
+}
+function legMore() { const box = document.getElementById('cLegs'); box.classList.toggle('more', box.scrollLeft + box.clientWidth < box.scrollWidth - 2); }
+document.getElementById('cLegs').addEventListener('scroll', legMore, { passive: true });
+function calcCredit() {
+  const b = document.querySelector('#cLegs button.on');
+  const m = v => /^\d+:[0-5]\d$/.test(v || '') ? v.split(':')[0] * 60 + +v.split(':')[1] : null;
+  const c = b && m(b.dataset.c), k = b && m(b.dataset.d), x = c !== null && k !== null ? c - k : null;
+  document.getElementById('cCrV').innerHTML = (b && esc(b.dataset.c) || '—') + (x === null ? '' : `<span class="cdiff">(${x > 0 ? '+' : x < 0 ? '−' : ''}${Math.floor(Math.abs(x) / 60)}:${String(Math.abs(x) % 60).padStart(2, '0')})</span>`);
+  document.getElementById('cCrN').innerHTML = b ? esc(b.dataset.f) + (b.dataset.r ? ` <span class="rt">(${esc(b.dataset.r)})</span>` : '') : 'Pick a leg';
+}
+function legOff() { document.querySelectorAll('#cLegs button.on').forEach(x => x.classList.remove('on')); calcCredit(); }
+document.getElementById('cDur').addEventListener('input', legOff);
 document.getElementById('cLegs').addEventListener('click', e => {
   const b = e.target.closest('[data-d]');
   if (!b) return;
@@ -1400,6 +1455,7 @@ document.getElementById('cLegs').addEventListener('click', e => {
   d.value = b.dataset.d;
   d.dispatchEvent(new Event('input'));
   document.querySelectorAll('#cLegs button').forEach(x => x.classList.toggle('on', x === b));
+  calcCredit();
 });
 
 document.querySelector('.calc-seg').addEventListener('click', e => {
@@ -1568,6 +1624,12 @@ function syncStep(t, run) {
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['11/02', 'Calculator: Credit box next to IN time shows the credit of the flight you pick and how it differs from block time (in brackets); OUT and Block Time side by side, today’s flights in a row below (swipe when there are more than five), No Flight Today on days off, calculated in UTC'],
+  ['11/02', 'Door codes: your location puts the airport you’re at on top (📍 Here) — iPhone app asks once when you open the tab, the website only when you tap Use my location'],
+  ['11/02', 'Door codes: longer codes (up to 120 characters per airline) and notes (up to 300), and long codes wrap inside the card'],
+  ['11/02', 'Door codes: key holders can switch between My list and Shared list; Shared list shows newest first, a New badge for the last 7 days and how many airports have codes'],
+  ['11/02', 'My Trip › Upcoming always shows your next three trips'],
+  ['11/02', 'Sked+ tab: cleaner menu — Home · Current · Back · Refresh; Current opens the Sked+ trip detail for the trip you’re on, or the nearest one (iPhone app)'],
   ['11/01', 'Feedback is now a conversation: you can answer a reply from Crew Brief under your own feedback'],
   ['11/01', 'My Trip › LogTen: pick a date range, check the legs you want and send them to LogTen in one go (already sent legs are updated, not duplicated)'],
   ['11/01', 'New Settings icon'],
@@ -1924,7 +1986,47 @@ try { doorKey = localStorage.getItem('cbDoorKey') || ''; doorData = JSON.parse(l
   }
 }
 document.getElementById('doorTab').hidden = false;
+let doorSide = 'mine', pubData = null, pubMsg = '', pubTried = false;
+try { doorSide = localStorage.getItem('cbDoorSide') === 'pub' ? 'pub' : 'mine'; if (doorKey) pubData = JSON.parse(localStorage.getItem('cbPubDoors') || 'null'); } catch (e) {}
+const pubSide = () => !!doorKey && doorSide === 'pub';
+function pubLoad() {
+  fetch(`${RELAY}?f=pubDoors`).then(r => r.json()).then(r => {
+    if (!r.ok) throw new Error(r.error);
+    pubData = { doors: r.doors, at: Date.now() };
+    try { localStorage.setItem('cbPubDoors', JSON.stringify(pubData)); } catch (e) {}
+    pubMsg = '';
+  }).catch(err => { pubMsg = pubData ? `Couldn't update (${esc(err.message)}) — showing the saved list` : `Couldn't load (${esc(err.message)})`; })
+    .then(() => { if (tab === 'door' && pubSide()) render(); });
+}
+document.addEventListener('click', e => {
+  const s = e.target.dataset?.ds;
+  if (!s) return;
+  doorSide = s; doorEdit = null;
+  try { localStorage.setItem('cbDoorSide', s); } catch (er) {}
+  if (s === 'pub') pubTried = false;
+  render();
+});
 const DOOR_CARRIERS = ['UA', 'DL', 'AS', 'AA'];
+const DOOR_GEO = {"ABR":[45.45,-98.42],"ABI":[32.41,-99.68],"ACA":[16.76,-99.75],"AGU":[21.7,-102.32],"CAK":[40.92,-81.44],"ALB":[42.75,-73.8],"ABQ":[35.04,-106.61],"AEX":[31.33,-92.55],"ABE":[40.65,-75.44],"APN":[45.08,-83.56],"AMA":[35.22,-101.71],"ATW":[44.26,-88.52],"AVL":[35.44,-82.54],"ASE":[39.22,-106.87],"AHN":[33.95,-83.33],"ATL":[33.64,-84.43],"AGS":[33.37,-81.96],"AUS":[30.2,-97.66],"BFL":[35.43,-119.06],"BGR":[44.81,-68.83],"BTR":[30.53,-91.15],"BPT":[29.95,-94.02],"BLI":[48.79,-122.54],"BJI":[47.51,-94.93],"BIL":[45.81,-108.54],"BGM":[42.21,-75.98],"BHM":[33.56,-86.75],"BIH":[37.37,-118.36],"BIS":[46.77,-100.75],"BMI":[40.48,-88.92],"BOI":[43.56,-116.22],"BOS":[42.36,-71.01],"BZN":[45.78,-111.15],"BRD":[46.4,-94.13],"BKG":[36.53,-93.2],"CKB":[39.3,-80.23],"BRO":[25.91,-97.43],"BUF":[42.94,-78.73],"BUR":[34.2,-118.36],"BTV":[44.47,-73.15],"BTM":[45.95,-112.5],"YYC":[51.12,-114.01],"CLD":[33.13,-117.28],"CPR":[42.91,-106.46],"CDC":[37.7,-113.1],"CID":[41.88,-91.71],"CMI":[40.04,-88.28],"CHS":[32.9,-80.04],"CRW":[38.37,-81.59],"CLT":[35.21,-80.94],"CHO":[38.14,-78.45],"CHA":[35.04,-85.2],"CYS":[41.16,-104.81],"TGZ":[16.56,-93.03],"ORD":[41.98,-87.9],"CVG":[39.05,-84.67],"CLE":[41.41,-81.85],"COD":[44.52,-109.02],"CLL":[30.59,-96.36],"COS":[38.81,-104.7],"CAE":[33.94,-81.12],"COU":[38.82,-92.22],"CMH":[40.0,-82.89],"GTR":[33.45,-88.59],"CRP":[27.77,-97.5],"DFW":[32.9,-97.04],"DAY":[39.9,-84.22],"DEC":[39.83,-88.87],"DEN":[39.86,-104.67],"DSM":[41.53,-93.66],"DTW":[42.21,-83.35],"YIP":[42.24,-83.53],"DVL":[48.12,-98.91],"DIK":[46.8,-102.8],"DDC":[37.76,-99.97],"DLH":[46.84,-92.2],"DRO":[37.15,-107.75],"EGE":[39.64,-106.92],"EAU":[44.87,-91.48],"YEG":[53.31,-113.58],"ELP":[31.81,-106.38],"EKO":[40.82,-115.79],"ELM":[42.16,-76.89],"ERI":[42.08,-80.17],"ESC":[45.72,-87.09],"EUG":[44.12,-123.21],"ACV":[40.98,-124.11],"EVV":[38.04,-87.53],"FAR":[46.92,-96.82],"FMN":[36.74,-108.23],"FAY":[34.99,-78.88],"FLG":[35.14,-111.67],"FNT":[42.97,-83.74],"FOD":[42.55,-94.19],"GRK":[31.07,-97.83],"FSM":[35.34,-94.37],"FWA":[40.98,-85.19],"FAT":[36.78,-119.72],"GNV":[29.69,-82.27],"GCK":[37.93,-100.72],"GCC":[44.35,-105.54],"GFK":[47.95,-97.18],"GRI":[40.97,-98.31],"GJT":[39.13,-108.53],"GRR":[42.88,-85.52],"GTF":[47.48,-111.37],"GRB":[44.48,-88.13],"GSO":[36.1,-79.94],"GSP":[34.9,-82.22],"GDL":[20.52,-103.31],"GUC":[38.53,-106.93],"YHZ":[44.88,-63.51],"CMX":[47.17,-88.49],"HRL":[26.23,-97.65],"MDT":[40.19,-76.76],"PIB":[31.47,-89.34],"HDN":[40.48,-107.22],"HYS":[38.84,-99.27],"HLN":[46.61,-111.98],"HMO":[29.09,-111.05],"HIB":[47.38,-92.84],"HOB":[32.69,-103.22],"HOU":[29.65,-95.28],"IAH":[29.98,-95.34],"HSV":[34.64,-86.77],"IDA":[43.51,-112.07],"IND":[39.72,-86.29],"INL":[48.57,-93.4],"IMT":[45.82,-88.11],"ZIH":[17.6,-101.46],"JAN":[32.31,-90.08],"JAC":[43.61,-110.74],"JAX":[30.49,-81.69],"OAJ":[34.83,-77.61],"JMS":[46.93,-98.68],"JST":[40.32,-78.83],"JLN":[37.15,-94.5],"AZO":[42.23,-85.55],"FCA":[48.31,-114.26],"MCI":[39.3,-94.71],"EAR":[40.73,-99.01],"YLW":[49.96,-119.38],"TYS":[35.81,-83.99],"LAP":[24.07,-110.36],"LAF":[40.41,-86.94],"LFT":[30.21,-91.99],"LCH":[30.13,-93.22],"LNS":[40.12,-76.3],"LAN":[42.78,-84.59],"LAR":[41.31,-105.68],"LRD":[27.54,-99.46],"LAS":[36.08,-115.15],"LAW":[34.57,-98.42],"BJX":[20.99,-101.48],"LWB":[37.86,-80.4],"LWS":[46.37,-117.01],"LEX":[38.04,-84.61],"LBL":[37.04,-100.96],"LNK":[40.84,-96.76],"LIT":[34.73,-92.22],"LGB":[33.82,-118.15],"GGG":[32.38,-94.71],"LTO":[25.99,-111.35],"LAX":[33.94,-118.41],"SJD":[23.15,-109.72],"SDF":[38.17,-85.74],"ELH":[25.48,-76.68],"LBB":[33.66,-101.82],"SJU":[18.44,-66.0],"LYH":[37.33,-79.2],"MCN":[32.69,-83.65],"MSN":[43.14,-89.34],"MAO":[-3.04,-60.05],"MHK":[39.14,-96.67],"ZLO":[19.14,-104.56],"MWA":[37.75,-89.02],"MQT":[46.35,-87.4],"MHH":[26.51,-77.08],"MCW":[43.16,-93.33],"MZT":[23.16,-106.26],"MFE":[26.18,-98.24],"MFR":[42.37,-122.87],"MEM":[35.04,-89.98],"MEI":[32.33,-88.75],"MAF":[31.94,-102.2],"MKE":[42.95,-87.9],"MSP":[44.88,-93.22],"MOT":[48.26,-101.28],"MSO":[46.92,-114.09],"CNY":[38.76,-109.75],"MOB":[30.69,-88.24],"MLI":[41.45,-90.51],"MLU":[32.51,-92.04],"MRY":[36.59,-121.84],"MTY":[25.78,-100.11],"MGM":[32.3,-86.39],"MTJ":[38.51,-107.89],"MGW":[39.64,-79.92],"MYR":[33.68,-78.93],"ACK":[41.25,-70.06],"BNA":[36.12,-86.68],"HEZ":[31.61,-91.3],"MSY":[29.99,-90.26],"LGA":[40.78,-73.87],"EWR":[40.69,-74.17],"ORF":[36.9,-76.2],"OTH":[43.42,-124.25],"LBF":[41.13,-100.68],"XNA":[36.28,-94.31],"OAK":[37.72,-122.22],"OAX":[17.0,-96.73],"OKC":[35.39,-97.6],"OMA":[41.3,-95.89],"ONT":[34.06,-117.6],"SNA":[33.68,-117.87],"OWB":[37.74,-87.17],"PAH":[37.06,-88.77],"PSP":[33.83,-116.51],"ECP":[30.36,-85.8],"PSC":[46.26,-119.12],"PLN":[45.57,-84.8],"PNS":[30.47,-87.19],"PIA":[40.66,-89.69],"PHL":[39.87,-75.24],"PHX":[33.44,-112.01],"PIR":[44.38,-100.29],"PIT":[40.49,-80.23],"PIH":[42.91,-112.6],"PDX":[45.59,-122.6],"PWM":[43.65,-70.31],"PRC":[34.65,-112.42],"PVD":[41.73,-71.43],"PVU":[40.22,-111.72],"PUB":[38.29,-104.5],"PVR":[20.68,-105.25],"RDU":[35.88,-78.79],"RAP":[44.05,-103.06],"RDD":[40.51,-122.29],"RDM":[44.25,-121.15],"YQR":[50.43,-104.66],"RNO":[39.5,-119.77],"RHI":[45.63,-89.47],"RIC":[37.51,-77.32],"RIW":[43.06,-108.46],"ROA":[37.33,-79.98],"ROC":[43.12,-77.67],"RST":[43.91,-92.5],"RKS":[41.59,-109.07],"ROW":[33.3,-104.53],"SMF":[38.7,-121.59],"MBS":[43.53,-84.08],"SLN":[38.79,-97.65],"SLC":[40.79,-111.98],"SJT":[31.36,-100.5],"SAT":[29.53,-98.47],"SAN":[32.73,-117.19],"SFO":[37.62,-122.37],"SJC":[37.36,-121.93],"SBP":[35.24,-120.64],"SLP":[22.26,-100.94],"SBA":[34.43,-119.84],"SAF":[35.62,-106.09],"STS":[38.51,-122.81],"SRQ":[27.39,-82.55],"CIU":[46.24,-84.46],"SAV":[32.13,-81.2],"BFF":[41.87,-103.6],"SEA":[47.45,-122.31],"SHR":[44.77,-106.98],"SHV":[32.44,-93.83],"SUX":[42.4,-96.38],"FSD":[43.59,-96.74],"SBN":[41.71,-86.32],"GEG":[47.62,-117.53],"SGF":[37.25,-93.39],"STL":[38.75,-90.37],"SGU":[37.04,-113.51],"SCE":[40.85,-77.85],"SHD":[38.26,-78.9],"SWO":[36.16,-97.09],"SUN":[43.5,-114.3],"SYR":[43.11,-76.11],"TPA":[27.98,-82.53],"TEB":[40.85,-74.06],"TIJ":[32.54,-116.97],"FOE":[38.95,-95.66],"YYZ":[43.68,-79.63],"TVC":[44.74,-85.58],"TUS":[32.12,-110.94],"TUL":[36.2,-95.89],"TWF":[42.48,-114.49],"TYR":[32.35,-95.4],"YVR":[49.19,-123.18],"VCT":[28.85,-96.92],"YYJ":[48.65,-123.43],"ACT":[31.61,-97.23],"DCA":[38.85,-77.04],"IAD":[38.94,-77.46],"ALO":[42.56,-92.4],"ATY":[44.91,-97.15],"WYS":[44.69,-111.12],"ICT":[37.65,-97.43],"SPS":[33.99,-98.49],"AVP":[41.34,-75.72],"XWA":[48.26,-103.75],"ILM":[34.27,-77.91],"BDL":[41.94,-72.69],"YWG":[49.91,-97.24],"YUM":[32.65,-114.61]};
+let doorHere = null, hereAt = 0, hereAsk = false;
+function hereApt(lat, lon) {
+  const r = Math.PI / 180;
+  let best = null, km = 15;
+  for (const id in DOOR_GEO) {
+    const [a, o] = DOOR_GEO[id], d = 2 * 6371 * Math.asin(Math.sqrt(Math.sin((a - lat) * r / 2) ** 2 + Math.cos(lat * r) * Math.cos(a * r) * Math.sin((o - lon) * r / 2) ** 2));
+    if (d <= km) { km = d; best = id; }
+  }
+  return best;
+}
+function hereSet(c) { hereAsk = false; hereAt = Date.now(); doorHere = c && isFinite(c.lat) && isFinite(c.lon) ? hereApt(+c.lat, +c.lon) : null; if (tab === 'door') render(); }
+function hereWant(user) {
+  if (hereAsk || (!user && Date.now() - hereAt < 5 * 6e4)) return;
+  const h = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.cbloc;
+  if (document.documentElement.dataset.cbLoc && h) { hereAsk = true; h.postMessage({}); }
+  else if (user && navigator.geolocation) { hereAsk = true; navigator.geolocation.getCurrentPosition(p => hereSet({ lat: p.coords.latitude, lon: p.coords.longitude }), () => hereSet(null), { enableHighAccuracy: false, maximumAge: 5 * 6e4, timeout: 15000 }); }
+}
+addEventListener('cbloc', e => hereSet(e.detail));
+document.addEventListener('click', e => { if (e.target.closest?.('[data-here]')) hereWant(true); });
 const DOOR_APTS = {"ABR":"Aberdeen, SD","ABI":"Abilene, TX","ACA":"Acapulco, Mexico","AGU":"Aguascalientes, Mexico","CAK":"Akron, OH","ALB":"Albany, NY","ABQ":"Albuquerque, NM","AEX":"Alexandria, LA","ABE":"Allentown, PA","APN":"Alpena, MI","AMA":"Amarillo, TX","ATW":"Appleton, WI","AVL":"Asheville, NC","ASE":"Aspen, CO","AHN":"Athens, GA","ATL":"Atlanta, GA","AGS":"Augusta, GA","AUS":"Austin, TX","BFL":"Bakersfield, CA","BGR":"Bangor, ME","BTR":"Baton Rouge, LA","BPT":"Beaumont/Port Arthur, TX","BLI":"Bellingham, WA","BJI":"Bemidji, MN","BIL":"Billings, MT","BGM":"Binghamton, NY","BHM":"Birmingham, AL","BIH":"Bishop, CA","BIS":"Bismarck, ND","BMI":"Bloomington/Normal, IL","BOI":"Boise, ID","BOS":"Boston, MA","BZN":"Bozeman, MT","BRD":"Brainerd, MN","BKG":"Branson, MO","CKB":"Bridgeport, WV","BRO":"Brownsville, TX","BUF":"Buffalo, NY","BUR":"Burbank, CA","BTV":"Burlington, VT","BTM":"Butte, MT","YYC":"Calgary, AB","CLD":"Carlsbad, CA","CPR":"Casper, WY","CDC":"Cedar City, UT","CID":"Cedar Rapids, IA","CMI":"Champaign/Urbana, IL","CHS":"Charleston, SC","CRW":"Charleston, WV","CLT":"Charlotte, NC","CHO":"Charlottesville, VA","CHA":"Chattanooga, TN","CYS":"Cheyenne, WY","TGZ":"Chiapa de Corzo, Mexico","ORD":"Chicago, IL","CVG":"Cincinnati, KY","CLE":"Cleveland, OH","COD":"Cody, WY","CLL":"College Station, TX","COS":"Colorado Springs, CO","CAE":"Columbia, SC","COU":"Columbia, MO","CMH":"Columbus, OH","GTR":"Columbus/W Point, MS","CRP":"Corpus Christi, TX","DFW":"Dallas-Fort Worth, TX","DAY":"Dayton, OH","DEC":"Decatur, IL","DEN":"Denver, CO","DSM":"Des Moines, IA","DTW":"Detroit, MI","YIP":"Detroit, MI","DVL":"Devils Lake, ND","DIK":"Dickinson, ND","DDC":"Dodge City, KS","DLH":"Duluth, MN","DRO":"Durango, CO","EGE":"Eagle, CO","EAU":"Eau Claire, WI","YEG":"Edmonton, AB","ELP":"El Paso, TX","EKO":"Elko, NV","ELM":"Elmira, NY","ERI":"Erie, PA","ESC":"Escanaba, MI","EUG":"Eugene, OR","ACV":"Eureka/Arcata, CA","EVV":"Evansville, IN","FAR":"Fargo, ND","FMN":"Farmington, NM","FAY":"Fayetteville, NC","FLG":"Flagstaff, AZ","FNT":"Flint, MI","FOD":"Fort Dodge, IA","GRK":"Fort Hood/Killeen, TX","FSM":"Fort Smith, AR","FWA":"Fort Wayne, IN","FAT":"Fresno, CA","GNV":"Gainesville, FL","GCK":"Garden City, KS","GCC":"Gillette, WY","GFK":"Grand Forks, ND","GRI":"Grand Island, NE","GJT":"Grand Junction, CO","GRR":"Grand Rapids, MI","GTF":"Great Falls, MT","GRB":"Green Bay, WI","GSO":"Greensboro, NC","GSP":"Greer, SC","GDL":"Guadalajara, Mexico","GUC":"Gunnison, CO","YHZ":"Halifax, NS","CMX":"Hancock, MI","HRL":"Harlingen, TX","MDT":"Harrisburg, PA","PIB":"Hattiesburg/Laurel, MS","HDN":"Hayden, CO","HYS":"Hays, KS","HLN":"Helena, MT","HMO":"Hermosillo, Mexico","HIB":"Hibbing, MN","HOB":"Hobbs, NM","HOU":"Houston, TX","IAH":"Houston, TX","HSV":"Huntsville, AL","IDA":"Idaho Falls, ID","IND":"Indianapolis, IN","INL":"International Falls, MN","IMT":"Iron Mountain, MI","ZIH":"Ixtapa, Mexico","JAN":"Jackson, MS","JAC":"Jackson Hole, WY","JAX":"Jacksonville, FL","OAJ":"Jacksonville, NC","JMS":"Jamestown, ND","JST":"Johnstown, PA","JLN":"Joplin, MO","AZO":"Kalamazoo, MI","FCA":"Kalispell, MT","MCI":"Kansas City, MO","EAR":"Kearney, NE","YLW":"Kelowna, BC","TYS":"Knoxville, TN","LAP":"La Paz, Mexico","LAF":"Lafayette, IN","LFT":"Lafayette, LA","LCH":"Lake Charles, LA","LNS":"Lancaster, PA","LAN":"Lansing, MI","LAR":"Laramie, WY","LRD":"Laredo, TX","LAS":"Las Vegas, NV","LAW":"Lawton, OK","BJX":"Leon, Mexico","LWB":"Lewisburg, WV","LWS":"Lewiston, ID","LEX":"Lexington, KY","LBL":"Liberal, KS","LNK":"Lincoln, NE","LIT":"Little Rock, AR","LGB":"Long Beach, CA","GGG":"Longview, TX","LTO":"Loreto, Mexico","LAX":"Los Angeles, CA","SJD":"Los Cabos, Mexico","SDF":"Louisville, KY","ELH":"Lower Bogue, Bahamas","LBB":"Lubbock, TX","SJU":"San Juan, PR","LYH":"Lynchburg, VA","MCN":"Macon, GA","MSN":"Madison, WI","MAO":"Manaus, Brazil","MHK":"Manhattan, KS","ZLO":"Manzanillo, Mexico","MWA":"Marion, IL","MQT":"Marquette, MI","MHH":"Marsh Harbour, Bahamas","MCW":"Mason City, IA","MZT":"Mazatlán, Mexico","MFE":"McAllen, TX","MFR":"Medford, OR","MEM":"Memphis, TN","MEI":"Meridian, MS","MAF":"Midland, TX","MKE":"Milwaukee, WI","MSP":"Minneapolis, MN","MOT":"Minot, ND","MSO":"Missoula, MT","CNY":"Moab, UT","MOB":"Mobile, AL","MLI":"Moline, IL","MLU":"Monroe, LA","MRY":"Monterey, CA","MTY":"Monterrey, Mexico","MGM":"Montgomery, AL","MTJ":"Montrose, CO","MGW":"Morgantown, WV","MYR":"Myrtle Beach, SC","ACK":"Nantucket, MA","BNA":"Nashville, TN","HEZ":"Natchez, MS","MSY":"New Orleans, LA","LGA":"New York, NY","EWR":"Newark, NJ","ORF":"Norfolk, VA","OTH":"North Bend, OR","LBF":"North Platte, NE","XNA":"Northwest Arkansas, AR","OAK":"Oakland, CA","OAX":"Oaxaca, Mexico","OKC":"Oklahoma City, OK","OMA":"Omaha, NE","ONT":"Ontario, CA","SNA":"Orange County, CA","OWB":"Owensboro, KY","PAH":"Paducah, KY","PSP":"Palm Springs, CA","ECP":"Panama City, FL","PSC":"Pasco, WA","PLN":"Pellston, MI","PNS":"Pensacola, FL","PIA":"Peoria, IL","PHL":"Philadelphia, PA","PHX":"Phoenix, AZ","PIR":"Pierre, SD","PIT":"Pittsburgh, PA","PIH":"Pocatello, ID","PDX":"Portland, OR","PWM":"Portland, ME","PRC":"Prescott, AZ","PVD":"Providence, RI","PVU":"Provo, UT","PUB":"Pueblo, CO","PVR":"Puerto Vallarta, Mexico","RDU":"Raleigh/Durham, NC","RAP":"Rapid City, SD","RDD":"Redding, CA","RDM":"Redmond, OR","YQR":"Regina, SK","RNO":"Reno, NV","RHI":"Rhinelander, WI","RIC":"Richmond, VA","RIW":"Riverton, WY","ROA":"Roanoke, VA","ROC":"Rochester, NY","RST":"Rochester, MN","RKS":"Rock Springs, WY","ROW":"Roswell, NM","SMF":"Sacramento, CA","MBS":"Saginaw, MI","SLN":"Salina, KS","SLC":"Salt Lake City, UT","SJT":"San Angelo, TX","SAT":"San Antonio, TX","SAN":"San Diego, CA","SFO":"San Francisco, CA","SJC":"San Jose, CA","SBP":"San Luis Obispo, CA","SLP":"San Luis Potosí, Mexico","SBA":"Santa Barbara, CA","SAF":"Santa Fe, NM","STS":"Santa Rosa, CA","SRQ":"Sarasota/Bradenton, FL","CIU":"Sault Ste. Marie, MI","SAV":"Savannah, GA","BFF":"Scottsbluff, NE","SEA":"Seattle/Tacoma, WA","SHR":"Sheridan, WY","SHV":"Shreveport, LA","SUX":"Sioux City, IA","FSD":"Sioux Falls, SD","SBN":"South Bend, IN","GEG":"Spokane, WA","SGF":"Springfield, MO","STL":"St. Louis, MO","SGU":"St. George, UT","SCE":"State College, PA","SHD":"Staunton/Waynesboro, VA","SWO":"Stillwater, OK","SUN":"Sun Valley, ID","SYR":"Syracuse, NY","TPA":"Tampa, FL","TEB":"Teterboro, NJ","TIJ":"Tijuana, Mexico","FOE":"Topeka, KS","YYZ":"Toronto, ON","TVC":"Traverse City, MI","TUS":"Tucson, AZ","TUL":"Tulsa, OK","TWF":"Twin Falls, ID","TYR":"Tyler, TX","YVR":"Vancouver, BC","VCT":"Victoria, TX","YYJ":"Victoria, BC","ACT":"Waco, TX","DCA":"Washington, DC","IAD":"Washington, DC","ALO":"Waterloo, IA","ATY":"Watertown, SD","WYS":"West Yellowstone, MT","ICT":"Wichita, KS","SPS":"Wichita Falls, TX","AVP":"Wilkes-Barre/Scranton, PA","XWA":"Williston, ND","ILM":"Wilmington, NC","BDL":"Windsor Locks, CT","YWG":"Winnipeg, MB","YUM":"Yuma, AZ"};
 function watchPush() {
   if (!doorKey) return;
@@ -1948,6 +2050,8 @@ function doorLoad() {
   }).catch(err => { doorMsg = doorData ? `Couldn't update (${esc(err.message)}) — showing the saved list` : `Couldn't load (${esc(err.message)})`; })
     .then(() => { if ((tab === 'door' && !doorEdit) || tab === 'home') render(); });
 }
+function doorGrow(t) { t.style.height = 'auto'; t.style.height = t.scrollHeight + t.offsetHeight - t.clientHeight + 'px'; }
+document.addEventListener('input', e => { if (e.target.matches?.('.door-card textarea')) doorGrow(e.target); });
 function doorSave(apt, codes) {
   doorMsg = 'Saving…'; render();
   fetch(RELAY, { method: 'POST', body: JSON.stringify(doorKey ? { f: 'door', dk: doorKey, apt, codes } : { f: 'pubDoor', apt, codes }) }).then(r => r.json()).then(r => {
@@ -1958,39 +2062,49 @@ function doorSave(apt, codes) {
     .then(render);
 }
 function doorView() {
-  if (!doorData) {
-    if (!doorTried) { doorTried = true; doorLoad(); }
-    return doorMsg ? `<div class="warn">${doorMsg}</div>` : '<div class="empty">Loading…</div>';
+  const ps = pubSide(), data = ps ? pubData : doorData, msg = ps ? pubMsg : doorMsg;
+  const seg = doorKey ? `<div class="seg door-seg"><button data-ds="mine"${ps ? '' : ' class="on"'}>My list</button><button data-ds="pub"${ps ? ' class="on"' : ''}>Shared list</button></div>` : '';
+  if (ps && !pubTried) { pubTried = true; pubLoad(); }
+  if (!data) {
+    if (!ps && !doorTried) { doorTried = true; doorLoad(); }
+    return seg + (msg ? `<div class="warn">${msg}</div>` : '<div class="empty">Loading…</div>');
   }
-  const doors = doorData.doors || {}, pub = !doorKey;
+  const doors = data.doors || {}, pub = !doorKey;
+  hereWant(false);
   const day = state.trips.flatMap(t => t.days).find(d => d.date >= today);
   const mine = day ? [...new Set(day.legs.flatMap(l => [l.from, l.to]))] : [];
   const ahead = pub ? [...new Set(state.trips.flatMap(t => t.days).filter(d => d.date >= today).flatMap(d => d.legs.flatMap(l => [l.from, l.to])))].filter(Boolean) : [];
   const q = doorQ.trim().toUpperCase();
   const city = id => (doors[id] || {}).name || DOOR_APTS[id] || '';
   const has = id => DOOR_CARRIERS.some(c => (doors[id] || {})[c]);
-  const ids = [...new Set([...Object.keys(doors), ...ahead, ...(pub ? Object.keys(DOOR_APTS) : [])])].filter(id => !q || id.startsWith(q) || city(id).toUpperCase().includes(q))
-    .sort((a, b) => (mine.includes(b) - mine.includes(a)) || (ahead.includes(b) - ahead.includes(a)) || (has(b) - has(a)) || a.localeCompare(b));
-  if (doorEdit && !ids.includes(doorEdit)) ids.unshift(doorEdit);
+  const ms = id => new Date((doors[id] || {}).at || 0).getTime() || 0, fresh = id => Date.now() - ms(id) < 7 * 864e5;
+  const ids = [...new Set([...(doorHere ? [doorHere] : []), ...Object.keys(doors), ...ahead, ...(pub ? Object.keys(DOOR_APTS) : [])])].filter(id => !q || id.startsWith(q) || city(id).toUpperCase().includes(q))
+    .sort(ps ? (a, b) => (b === doorHere) - (a === doorHere) || ms(b) - ms(a) || a.localeCompare(b) : (a, b) => (b === doorHere) - (a === doorHere) || (mine.includes(b) - mine.includes(a)) || (ahead.includes(b) - ahead.includes(a)) || (has(b) - has(a)) || a.localeCompare(b));
+  if (!ps && doorEdit && !ids.includes(doorEdit)) ids.unshift(doorEdit);
   const when = x => x ? new Date(x).toLocaleDateString('en-US', { timeZone: ZONE, month: 'numeric', day: 'numeric' }) : '';
   const card = id => {
-    const d = doors[id] || {}, ed = doorEdit === id;
+    const d = doors[id] || {}, ed = !ps && doorEdit === id;
     const cells = ed
-      ? `<div class="door-edit">${DOOR_CARRIERS.map(c => `<label><span class="c">${c}</span><textarea data-dc="${c}" rows="2" autocomplete="off" autocapitalize="characters">${esc(d[c] || '')}</textarea></label>`).join('')}</div>`
+      ? `<div class="door-edit">${DOOR_CARRIERS.map(c => `<label><span class="c">${c}</span><textarea data-dc="${c}" rows="2" maxlength="${doorKey ? 300 : 120}" autocomplete="off" autocapitalize="characters">${esc(d[c] || '')}</textarea></label>`).join('')}</div>`
       : `<div class="door-codes">${DOOR_CARRIERS.map(c => `<div><div class="c">${c}</div><div class="v">${esc(d[c] || '—').replace(/,\s*/g, ', ')}</div></div>`).join('')}</div>`;
     return `<div class="door-card${mine.includes(id) ? ' mine' : ''}" data-apt="${esc(id)}">
-      <div class="hd"><span><span class="apt">${esc(id)}</span> <span class="sub">${esc(city(id))}</span></span><span class="sub">${d.by ? `${esc(d.by)} · ${when(d.at)}` : d.at ? when(d.at) : ''}</span></div>
+      <div class="hd"><span><span class="apt">${esc(id)}</span> <span class="sub">${esc(city(id))}</span></span><span class="sub">${id === doorHere ? '<span class="ok-tag door-new" data-testid="here">📍 Here</span> ' : ''}${ps && fresh(id) ? '<span class="ok-tag door-new">New</span> ' : ''}${d.by ? `${esc(d.by)} · ${when(d.at)}` : d.at ? when(d.at) : ''}</span></div>
       ${cells}
-      ${ed ? `<textarea data-dc="note" rows="2" placeholder="Note (location etc.)">${esc(d.note || '')}</textarea>
+      ${ed ? `<textarea data-dc="note" rows="2" maxlength="300" placeholder="Note (location etc.)">${esc(d.note || '')}</textarea>
         <div class="door-btns"><button class="on" data-door="save">Save</button><button data-door="cancel">Cancel</button><span class="sub">Clear all four and save to remove the airport</span></div>`
-      : `${d.note ? `<div class="door-note">${esc(d.note)}</div>` : ''}<div class="door-btns"><button data-door="edit">✎ Edit</button></div>`}
+      : `${d.note ? `<div class="door-note">${esc(d.note)}</div>` : ''}${ps ? '' : '<div class="door-btns"><button data-door="edit">✎ Edit</button></div>'}`}
     </div>`;
   };
   const intro = pub ? `<div class="card box door-intro"><b>Help fill in the jet bridge codes</b>
       <p class="sub" style="margin:4px 0 0">We're just getting started, so there are hardly any jet bridge codes yet. After you use a jet bridge, tap <b>✎ Edit</b> on that airport and enter the code. Codes you enter are shared with other crew using this app.</p></div>` : '';
-  return `${intro}<div class="card box"><div class="door-top">
+  const hereBtn = !document.documentElement.dataset.cbApp && navigator.geolocation && !doorHere ? `<button class="atis-apt door-here-btn" data-here${hereAsk ? ' disabled' : ''}>📍 Use my location</button>` : '';
+  if (ps) return `${seg}<div class="card box"><div class="door-top"><input id="dSearch" placeholder="Airport (SFO)" value="${esc(doorQ)}" autocomplete="off" autocapitalize="characters"></div>${hereBtn}
+      <p class="sub" data-testid="pub-sum" style="margin:8px 0 0">With codes: ${Object.keys(doors).filter(has).length} · New or changed in the last 7 days: ${Object.keys(doors).filter(fresh).length}</p>
+      <p class="sub" style="margin:2px 0 0">${pubData.at ? `updated ${new Date(pubData.at).toLocaleString('en-US', { timeZone: ZONE })}` : ''}${msg ? ` · ${msg}` : ''} · Read-only (edit in My list)</p></div>
+    ${ids.map(card).join('') || '<div class="empty">No matching airport.</div>'}`;
+  return `${seg}${intro}<div class="card box"><div class="door-top">
       <input id="dSearch" placeholder="Airport (SFO)" value="${esc(doorQ)}" autocomplete="off" autocapitalize="characters">
-      <button data-door="add">＋ Add airport</button></div>
+      <button data-door="add">＋ Add airport</button></div>${hereBtn}
       <p class="sub" style="margin:8px 0 0">${ids.length} airports · ${doorData.at ? `updated ${new Date(doorData.at).toLocaleString('en-US', { timeZone: ZONE })}` : ''}${doorMsg ? ` · ${doorMsg}` : ''}</p></div>
     ${ids.map(card).join('') || '<div class="empty">No matching airport.</div>'}`;
 }
