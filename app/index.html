@@ -2177,7 +2177,7 @@ function pubLoad() {
     try { localStorage.setItem('cbPubDoors', JSON.stringify(pubData)); } catch (e) {}
     pubMsg = '';
   }).catch(err => { pubMsg = pubData ? `받지 못했습니다 (${esc(err.message)}) — 저장된 목록을 보여 줍니다` : `받지 못했습니다 (${esc(err.message)})`; })
-    .then(() => { if (tab === 'door' && pubSide()) render(); });
+    .then(() => { if (tab === 'door' && pubSide() && !doorEdit) render(); });
 }
 document.addEventListener('click', e => {
   const s = e.target.dataset?.ds;
@@ -2234,12 +2234,14 @@ function doorLoad() {
 function doorGrow(t) { t.style.height = 'auto'; t.style.height = t.scrollHeight + t.offsetHeight - t.clientHeight + 'px'; }
 document.addEventListener('input', e => { if (e.target.matches?.('.door-card textarea')) doorGrow(e.target); });
 function doorSave(apt, codes) {
-  doorMsg = '저장하는 중…'; render();
-  fetch(RELAY, { method: 'POST', body: JSON.stringify(doorKey ? { f: 'door', dk: doorKey, apt, codes } : { f: 'pubDoor', apt, codes }) }).then(r => r.json()).then(r => {
+  const ps = pubSide(), say = t => { if (ps) pubMsg = t; else doorMsg = t; };
+  say('저장하는 중…'); render();
+  fetch(RELAY, { method: 'POST', body: JSON.stringify(doorKey && !ps ? { f: 'door', dk: doorKey, apt, codes } : { f: 'pubDoor', apt, codes }) }).then(r => r.json()).then(r => {
     if (!r.ok) throw new Error(r.error);
-    doorKeep({ doors: r.doors, who: (doorData || {}).who, at: Date.now() });
-    doorEdit = null; doorMsg = `${esc(apt)} 저장했습니다`;
-  }).catch(err => { doorMsg = `저장 실패: ${esc(err.message)} — 인터넷 연결을 확인하고 다시 저장하세요`; })
+    if (ps) { pubData = { doors: r.doors, at: Date.now() }; try { localStorage.setItem('cbPubDoors', JSON.stringify(pubData)); } catch (e) {} }
+    else doorKeep({ doors: r.doors, who: (doorData || {}).who, at: Date.now() });
+    doorEdit = null; say(`${esc(apt)} 저장했습니다`);
+  }).catch(err => { say(`저장 실패: ${esc(err.message)} — 인터넷 연결을 확인하고 다시 저장하세요`); })
     .then(render);
 }
 function doorView() {
@@ -2261,19 +2263,19 @@ function doorView() {
   const ms = id => new Date((doors[id] || {}).at || 0).getTime() || 0, fresh = id => Date.now() - ms(id) < 7 * 864e5;
   const ids = [...new Set([...(doorHere ? [doorHere] : []), ...Object.keys(doors), ...ahead, ...(all ? Object.keys(DOOR_APTS) : [])])].filter(id => !q || id.startsWith(q) || city(id).toUpperCase().includes(q))
     .sort((a, b) => (b === doorHere) - (a === doorHere) || (mine.includes(b) - mine.includes(a)) || (ahead.includes(b) - ahead.includes(a)) || (has(b) - has(a)) || a.localeCompare(b));
-  if (!ps && doorEdit && !ids.includes(doorEdit)) ids.unshift(doorEdit);
+  if (doorEdit && !ids.includes(doorEdit)) ids.unshift(doorEdit);
   const when = x => x ? new Date(x).toLocaleDateString('ko-KR', { timeZone: ZONE, month: 'numeric', day: 'numeric' }) : '';
   const card = id => {
-    const d = doors[id] || {}, ed = !ps && doorEdit === id;
+    const d = doors[id] || {}, ed = doorEdit === id;
     const cells = ed
-      ? `<div class="door-edit">${DOOR_CARRIERS.map(c => `<label><span class="c">${c}</span><textarea data-dc="${c}" rows="2" maxlength="${doorKey ? 300 : 120}" autocomplete="off" autocapitalize="characters">${esc(d[c] || '')}</textarea></label>`).join('')}</div>`
+      ? `<div class="door-edit">${DOOR_CARRIERS.map(c => `<label><span class="c">${c}</span><textarea data-dc="${c}" rows="2" maxlength="${doorKey && !ps ? 300 : 120}" autocomplete="off" autocapitalize="characters">${esc(d[c] || '')}</textarea></label>`).join('')}</div>`
       : `<div class="door-codes">${DOOR_CARRIERS.map(c => `<div><div class="c">${c}</div><div class="v">${esc(d[c] || '—').replace(/,\s*/g, ', ')}</div></div>`).join('')}</div>`;
     return `<div class="door-card${mine.includes(id) ? ' mine' : ''}" data-apt="${esc(id)}">
       <div class="hd"><span><span class="apt">${esc(id)}</span> <span class="sub">${esc(city(id))}</span></span><span class="sub">${id === doorHere ? '<span class="ok-tag door-new" data-testid="here">📍 지금 여기</span> ' : ''}${ps && fresh(id) ? '<span class="ok-tag door-new">New</span> ' : ''}${d.by ? `${esc(d.by)} · ${when(d.at)}` : d.at ? when(d.at) : ''}</span></div>
       ${cells}
       ${ed ? `<textarea data-dc="note" rows="2" maxlength="300" placeholder="메모 (위치 등)">${esc(d.note || '')}</textarea>
         <div class="door-btns"><button class="on" data-door="save">저장</button><button data-door="cancel">취소</button><span class="sub">넷 다 비우고 저장하면 목록에서 빠집니다</span></div>`
-      : `${d.note ? `<div class="door-note">${esc(d.note)}</div>` : ''}${ps ? '' : '<div class="door-btns"><button data-door="edit">✎ 수정</button></div>'}`}
+      : `${d.note ? `<div class="door-note">${esc(d.note)}</div>` : ''}<div class="door-btns"><button data-door="edit">✎ 수정</button></div>`}
     </div>`;
   };
   const intro = pub ? `<div class="card box door-intro"><b>도어 코드를 함께 채워 주세요</b>
@@ -2281,7 +2283,7 @@ function doorView() {
   const hereBtn = !document.documentElement.dataset.cbApp && navigator.geolocation && !doorHere ? `<button class="atis-apt door-here-btn" data-here${hereAsk ? ' disabled' : ''}>📍 내 위치로 찾기</button>` : '';
   if (ps) return `${seg}<div class="card box"><div class="door-top"><input id="dSearch" placeholder="공항 (SFO)" value="${esc(doorQ)}" autocomplete="off" autocapitalize="characters"></div>${hereBtn}
       <p class="sub" data-testid="pub-sum" style="margin:8px 0 0">코드 있는 곳 ${Object.keys(doors).filter(has).length}곳 · 최근 7일 새로 들어오거나 바뀐 곳 ${Object.keys(doors).filter(fresh).length}곳</p>
-      <p class="sub" style="margin:2px 0 0">${pubData.at ? `${new Date(pubData.at).toLocaleString('ko-KR', { timeZone: ZONE })} 받음` : ''}${msg ? ` · ${msg}` : ''} · 읽기만 (고치기는 내 목록에서)</p></div>
+      <p class="sub" style="margin:2px 0 0">${pubData.at ? `${new Date(pubData.at).toLocaleString('ko-KR', { timeZone: ZONE })} 받음` : ''}${msg ? ` · ${msg}` : ''}</p></div>
     ${ids.map(card).join('') || '<div class="empty">맞는 공항이 없습니다.</div>'}`;
   return `${seg}${intro}<div class="card box"><div class="door-top">
       <input id="dSearch" placeholder="공항 (SFO)" value="${esc(doorQ)}" autocomplete="off" autocapitalize="characters">
@@ -2310,7 +2312,8 @@ document.addEventListener('click', e => {
   if (act === 'save') {
     const codes = {};
     cardEl.querySelectorAll('[data-dc]').forEach(i => { codes[i.dataset.dc] = i.value.trim(); });
-    codes.name = ((doorData && doorData.doors[apt]) || {}).name || '';
+    const src = pubSide() ? pubData : doorData;
+    codes.name = ((src && src.doors[apt]) || {}).name || '';
     doorSave(apt, codes);
   }
 });

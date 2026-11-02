@@ -2177,7 +2177,7 @@ function pubLoad() {
     try { localStorage.setItem('cbPubDoors', JSON.stringify(pubData)); } catch (e) {}
     pubMsg = '';
   }).catch(err => { pubMsg = pubData ? `Couldn't update (${esc(err.message)}) — showing the saved list` : `Couldn't load (${esc(err.message)})`; })
-    .then(() => { if (tab === 'door' && pubSide()) render(); });
+    .then(() => { if (tab === 'door' && pubSide() && !doorEdit) render(); });
 }
 document.addEventListener('click', e => {
   const s = e.target.dataset?.ds;
@@ -2234,12 +2234,14 @@ function doorLoad() {
 function doorGrow(t) { t.style.height = 'auto'; t.style.height = t.scrollHeight + t.offsetHeight - t.clientHeight + 'px'; }
 document.addEventListener('input', e => { if (e.target.matches?.('.door-card textarea')) doorGrow(e.target); });
 function doorSave(apt, codes) {
-  doorMsg = 'Saving…'; render();
-  fetch(RELAY, { method: 'POST', body: JSON.stringify(doorKey ? { f: 'door', dk: doorKey, apt, codes } : { f: 'pubDoor', apt, codes }) }).then(r => r.json()).then(r => {
+  const ps = pubSide(), say = t => { if (ps) pubMsg = t; else doorMsg = t; };
+  say('Saving…'); render();
+  fetch(RELAY, { method: 'POST', body: JSON.stringify(doorKey && !ps ? { f: 'door', dk: doorKey, apt, codes } : { f: 'pubDoor', apt, codes }) }).then(r => r.json()).then(r => {
     if (!r.ok) throw new Error(r.error);
-    doorKeep({ doors: r.doors, who: (doorData || {}).who, at: Date.now() });
-    doorEdit = null; doorMsg = `${esc(apt)} saved`;
-  }).catch(err => { doorMsg = `Save failed: ${esc(err.message)} — check your connection and save again`; })
+    if (ps) { pubData = { doors: r.doors, at: Date.now() }; try { localStorage.setItem('cbPubDoors', JSON.stringify(pubData)); } catch (e) {} }
+    else doorKeep({ doors: r.doors, who: (doorData || {}).who, at: Date.now() });
+    doorEdit = null; say(`${esc(apt)} saved`);
+  }).catch(err => { say(`Save failed: ${esc(err.message)} — check your connection and save again`); })
     .then(render);
 }
 function doorView() {
@@ -2261,19 +2263,19 @@ function doorView() {
   const ms = id => new Date((doors[id] || {}).at || 0).getTime() || 0, fresh = id => Date.now() - ms(id) < 7 * 864e5;
   const ids = [...new Set([...(doorHere ? [doorHere] : []), ...Object.keys(doors), ...ahead, ...(all ? Object.keys(DOOR_APTS) : [])])].filter(id => !q || id.startsWith(q) || city(id).toUpperCase().includes(q))
     .sort((a, b) => (b === doorHere) - (a === doorHere) || (mine.includes(b) - mine.includes(a)) || (ahead.includes(b) - ahead.includes(a)) || (has(b) - has(a)) || a.localeCompare(b));
-  if (!ps && doorEdit && !ids.includes(doorEdit)) ids.unshift(doorEdit);
+  if (doorEdit && !ids.includes(doorEdit)) ids.unshift(doorEdit);
   const when = x => x ? new Date(x).toLocaleDateString('en-US', { timeZone: ZONE, month: 'numeric', day: 'numeric' }) : '';
   const card = id => {
-    const d = doors[id] || {}, ed = !ps && doorEdit === id;
+    const d = doors[id] || {}, ed = doorEdit === id;
     const cells = ed
-      ? `<div class="door-edit">${DOOR_CARRIERS.map(c => `<label><span class="c">${c}</span><textarea data-dc="${c}" rows="2" maxlength="${doorKey ? 300 : 120}" autocomplete="off" autocapitalize="characters">${esc(d[c] || '')}</textarea></label>`).join('')}</div>`
+      ? `<div class="door-edit">${DOOR_CARRIERS.map(c => `<label><span class="c">${c}</span><textarea data-dc="${c}" rows="2" maxlength="${doorKey && !ps ? 300 : 120}" autocomplete="off" autocapitalize="characters">${esc(d[c] || '')}</textarea></label>`).join('')}</div>`
       : `<div class="door-codes">${DOOR_CARRIERS.map(c => `<div><div class="c">${c}</div><div class="v">${esc(d[c] || '—').replace(/,\s*/g, ', ')}</div></div>`).join('')}</div>`;
     return `<div class="door-card${mine.includes(id) ? ' mine' : ''}" data-apt="${esc(id)}">
       <div class="hd"><span><span class="apt">${esc(id)}</span> <span class="sub">${esc(city(id))}</span></span><span class="sub">${id === doorHere ? '<span class="ok-tag door-new" data-testid="here">📍 Here</span> ' : ''}${ps && fresh(id) ? '<span class="ok-tag door-new">New</span> ' : ''}${d.by ? `${esc(d.by)} · ${when(d.at)}` : d.at ? when(d.at) : ''}</span></div>
       ${cells}
       ${ed ? `<textarea data-dc="note" rows="2" maxlength="300" placeholder="Note (location etc.)">${esc(d.note || '')}</textarea>
         <div class="door-btns"><button class="on" data-door="save">Save</button><button data-door="cancel">Cancel</button><span class="sub">Clear all four and save to remove the airport</span></div>`
-      : `${d.note ? `<div class="door-note">${esc(d.note)}</div>` : ''}${ps ? '' : '<div class="door-btns"><button data-door="edit">✎ Edit</button></div>'}`}
+      : `${d.note ? `<div class="door-note">${esc(d.note)}</div>` : ''}<div class="door-btns"><button data-door="edit">✎ Edit</button></div>`}
     </div>`;
   };
   const intro = pub ? `<div class="card box door-intro"><b>Help fill in the jet bridge codes</b>
@@ -2281,7 +2283,7 @@ function doorView() {
   const hereBtn = !document.documentElement.dataset.cbApp && navigator.geolocation && !doorHere ? `<button class="atis-apt door-here-btn" data-here${hereAsk ? ' disabled' : ''}>📍 Use my location</button>` : '';
   if (ps) return `${seg}<div class="card box"><div class="door-top"><input id="dSearch" placeholder="Airport (SFO)" value="${esc(doorQ)}" autocomplete="off" autocapitalize="characters"></div>${hereBtn}
       <p class="sub" data-testid="pub-sum" style="margin:8px 0 0">With codes: ${Object.keys(doors).filter(has).length} · New or changed in the last 7 days: ${Object.keys(doors).filter(fresh).length}</p>
-      <p class="sub" style="margin:2px 0 0">${pubData.at ? `updated ${new Date(pubData.at).toLocaleString('en-US', { timeZone: ZONE })}` : ''}${msg ? ` · ${msg}` : ''} · Read-only (edit in My list)</p></div>
+      <p class="sub" style="margin:2px 0 0">${pubData.at ? `updated ${new Date(pubData.at).toLocaleString('en-US', { timeZone: ZONE })}` : ''}${msg ? ` · ${msg}` : ''}</p></div>
     ${ids.map(card).join('') || '<div class="empty">No matching airport.</div>'}`;
   return `${seg}${intro}<div class="card box"><div class="door-top">
       <input id="dSearch" placeholder="Airport (SFO)" value="${esc(doorQ)}" autocomplete="off" autocapitalize="characters">
@@ -2310,7 +2312,8 @@ document.addEventListener('click', e => {
   if (act === 'save') {
     const codes = {};
     cardEl.querySelectorAll('[data-dc]').forEach(i => { codes[i.dataset.dc] = i.value.trim(); });
-    codes.name = ((doorData && doorData.doors[apt]) || {}).name || '';
+    const src = pubSide() ? pubData : doorData;
+    codes.name = ((src && src.doors[apt]) || {}).name || '';
     doorSave(apt, codes);
   }
 });
