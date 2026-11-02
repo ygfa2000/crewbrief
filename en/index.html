@@ -363,7 +363,7 @@
   .seg .hotel-rf.busy { opacity:.6; cursor:default; }
   .seg .hotel-rf.busy .arw { animation:spin 1s linear infinite; }
   @media (prefers-reduced-motion: reduce) { .seg .hotel-rf.busy .arw { animation:none; } }
-  @media (max-width:340px) { .seg .hotel-cell { padding-left:6px; gap:3px; } .seg .hotel-cell .lb { font-size:12px; } .seg .hotel-cell small { font-size:10px; } .seg .hotel-cell small.bad::before { content:none; } }
+  @media (max-width:370px) { .seg .hotel-cell { padding-left:6px; gap:3px; } .seg .hotel-cell .lb { font-size:12px; } .seg .hotel-cell small { font-size:10px; } .seg .hotel-cell small.bad::before { content:none; } }
   .frow { border-bottom:1px solid var(--line); }
   .frow.mine { background:var(--accsoft); }
   /* Flow 의 안 끝난 편마다 지도: 경로(Release 계획 경로, 없으면 최단 경로) · 날고 있으면 실시간 위치(공개 ADS-B) */
@@ -1032,7 +1032,7 @@ function hotelFailTimer() {
 hotelFailTimer();
 function hotelLine() {
   if (hotelFailOn()) {
-    const why = { login: 'Sign in', 'no-layovers': 'No list', retrieve: 'No list', other: 'No list', timeout: 'Timeout', wait: 'In 30s', noapp: 'No app' };
+    const why = { login: 'Sign in', 'no-layovers': 'No list', retrieve: 'Retry', other: 'Retry', timeout: 'Timeout', wait: 'In 30s', noapp: 'No app' };
     return why[hotelFail.why] || 'Failed';
   }
   const r = hotelLast;
@@ -1042,6 +1042,10 @@ function hotelLine() {
 }
 const HOTEL_ORB = '<svg class="orb" viewBox="0 0 28 28" aria-hidden="true"><defs><radialGradient id="cbRfB" cx="45%" cy="38%" r="70%"><stop offset="0" stop-color="#2453b0"/><stop offset=".55" stop-color="#1a3f8f"/><stop offset="1" stop-color="#0e2a68"/></radialGradient><linearGradient id="cbRfG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.38"/><stop offset=".85" stop-color="#fff" stop-opacity="0"/></linearGradient><linearGradient id="cbRfR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a9c0ee" stop-opacity="0.85"/><stop offset="1" stop-color="#6f8fd2" stop-opacity="0.85"/></linearGradient><linearGradient id="cbRfA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#e9edf3"/></linearGradient><filter id="cbRfS" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="1" stdDeviation=".8" flood-color="#06163d" flood-opacity=".45"/></filter></defs><circle cx="14" cy="14" r="12.4" fill="url(#cbRfB)" filter="url(#cbRfS)"/><ellipse cx="14" cy="5.4" rx="8" ry="3.4" fill="url(#cbRfG)"/><circle cx="14" cy="14" r="12.00" fill="none" stroke="url(#cbRfR)" stroke-width="0.8"/><g class="arw"><g transform="translate(14 14.6) scale(.6) translate(-12 -12)" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.3"><g stroke="#06163d" stroke-opacity=".6" transform="translate(0 1.4)"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v4.5h-4.5"/></g><g stroke="url(#cbRfA)"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v4.5h-4.5"/></g></g></g></svg>';
 const hotelBtn = () => document.documentElement.dataset.cbHotelRefresh ? `<div class="hotel-cell" data-testid="hotel-refresh"><span class="lb">Hotel info</span>${hotelLine() ? `<small data-testid="hotel-refresh-line"${hotelFailOn() ? ' class="bad"' : ''}>${esc(hotelLine())}</small>` : ''}<button class="hotel-rf${hotelBusy ? ' busy' : ''}" data-hotel-refresh aria-label="Refresh hotel info"${hotelBusy ? ' disabled' : ''}>${HOTEL_ORB}</button></div>` : '';
+function hotelCounts() {
+  const soon = hotelInfoAll().filter(x => x.date >= dayShift(today, -1)), n = new Set(soon.map(hotelMicroKey)).size;
+  return n ? { hotels: n, micro: new Set(soon.filter(x => x.hotel.microwave).map(hotelMicroKey)).size } : {};
+}
 function hotelKeep(r) {
   const asked = hotelBusy;
   hotelBusy = false;
@@ -1063,7 +1067,7 @@ document.addEventListener('click', e => {
 });
 window.addEventListener('cbhotelinfo', e => {
   const r = e.detail || {};
-  hotelKeep(r.ok ? { ok: true, hotels: r.hotels, micro: r.micro } : { ok: false, why: String(r.why || '') });
+  hotelKeep(r.ok ? Object.assign({ ok: true, hotels: r.hotels, micro: r.micro }, hotelCounts()) : { ok: false, why: String(r.why || '') });
   if (tab === 'set') render();
 });
 function settingsView() {
@@ -1245,7 +1249,31 @@ function legOt(l) {
 }
 
 const HOTEL_INFO = 'cbHotelInfo';
-const hotelInfoAll = () => { try { return (JSON.parse(localStorage.getItem(HOTEL_INFO)) || []).filter(x => !hotelInfoBad(x)); } catch (e) { return []; } };
+const HOTEL_MICRO = 'cbHotelMicro';
+const hotelMicroAll = () => { try { return JSON.parse(localStorage.getItem(HOTEL_MICRO)) || {}; } catch (e) { return {}; } };
+const hotelMicroSave = memo => { try { localStorage.setItem(HOTEL_MICRO, JSON.stringify(memo)); } catch (e) {} };
+const hiPlain = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const hotelMicroKey = x => `${x.airport}|${x.hotel.name}|${hiPlain(x.hotel.address) || (x.hotel.phone ? `tel${hiPlain(x.hotel.phone)}` : '')}`;
+const hotelMicroSure = k => k.split('|').pop();
+const hotelMicroGet = (memo, x) => (Object.prototype.hasOwnProperty.call(memo, hotelMicroKey(x)) ? memo[hotelMicroKey(x)] : null);
+const HOTEL_NOLINE_MS = 30 * 864e5;
+const hotelMicroRead = (memo, x) => { const v = hotelMicroGet(memo, x); return !!v && (!v.none || Math.abs(Date.now() - v.at) < HOTEL_NOLINE_MS); };
+function hotelMicroOn(x, memo) {
+  const v = hotelMicroGet(memo, x);
+  if (v && !v.none) x.hotel.microwave = v; else delete x.hotel.microwave;
+}
+const hotelInfoAll = () => {
+  try {
+    const all = (JSON.parse(localStorage.getItem(HOTEL_INFO)) || []).filter(x => !hotelInfoBad(x)), memo = hotelMicroAll();
+    let moved = false;
+    all.forEach(x => {
+      if (x.hotel.microwave && !hotelMicroRead(memo, x) && hotelMicroSure(hotelMicroKey(x)) && new Set(all.filter(y => y.hotel.name === x.hotel.name).map(hotelMicroKey)).size === 1) { memo[hotelMicroKey(x)] = x.hotel.microwave; moved = true; }
+      hotelMicroOn(x, memo);
+    });
+    if (moved) hotelMicroSave(memo);
+    return all;
+  } catch (e) { return []; }
+};
 const hotelNorm = s => String(s || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]/g, '');
 const hotelSame = (name, hotel) => { const a = hotelNorm(name), b = hotelNorm(hotel); return !!b && (String(hotel).trim().length >= 24 ? a.startsWith(b) : a === b); };
 const dayShift = (date, k) => new Date(Date.parse(`${date}T00:00:00Z`) + k * 864e5).toISOString().slice(0, 10);
@@ -1303,18 +1331,40 @@ window.cbHotelInfoFeed = text => {
   hotelRawKeep(text, list.length);
   if (!list.length) return '[]';
   const old = hotelInfoAll(), cut = new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10), mine = x => `${x.date}|${x.airport}`;
-  list.forEach(x => { const o = old.find(y => mine(y) === mine(x) && y.hotel.name === x.hotel.name); if (o && o.hotel.microwave) x.hotel.microwave = o.hotel.microwave; });
+  const memo = hotelMicroAll();
+  list.forEach(x => hotelMicroOn(x, memo));
   const all = old.filter(y => y.date >= cut && !list.some(x => mine(x) === mine(y))).concat(list);
   try { localStorage.setItem(HOTEL_INFO, JSON.stringify(all)); } catch (e) {}
   hotelRowsRefresh();
-  return JSON.stringify([...new Set(list.filter(x => x.date >= dayShift(today, -1)).sort((a, b) => !!a.hotel.microwave - !!b.hotel.microwave || a.date.localeCompare(b.date)).map(x => x.hotel.name))]);
+  const soon = list.filter(x => x.date >= dayShift(today, -1));
+  if (document.documentElement.dataset.cbHotelRefresh) return JSON.stringify([...new Set(soon.filter(x => !hotelMicroRead(memo, x)).sort((a, b) => a.date.localeCompare(b.date)).map(x => x.hotel.name))]);
+  return JSON.stringify([...new Set(soon.sort((a, b) => !!a.hotel.microwave - !!b.hotel.microwave || a.date.localeCompare(b.date)).map(x => x.hotel.name))]);
 };
+function hotelMicroHit(name, text) {
+  const keys = [...new Set(hotelInfoAll().filter(x => x.hotel.name === name).map(hotelMicroKey))], page = hiPlain(text);
+  const hit = keys.filter(k => hotelMicroSure(k) && (keys.length === 1 || page.includes(hotelMicroSure(k))));
+  return hit.length === 1 ? hit[0] : null;
+}
 window.cbHotelInfoDetail = (name, text) => {
-  const m = parseHotelDetail(text), all = hotelInfoAll();
+  const m = parseHotelDetail(text);
   if (!m) return false;
-  all.filter(x => x.hotel.name === name).forEach(x => { x.hotel.microwave = m; });
-  try { localStorage.setItem(HOTEL_INFO, JSON.stringify(all)); } catch (e) {}
-  hotelRowsRefresh();
+  const key = hotelMicroHit(name, text);
+  if (key) {
+    const memo = hotelMicroAll();
+    memo[key] = m;
+    hotelMicroSave(memo);
+    hotelRowsRefresh();
+  }
+  return true;
+};
+window.cbHotelInfoNoLine = (name, text) => {
+  if (/microwave/i.test(text) || !/crew benefits/i.test(text)) return false;
+  const key = hotelMicroHit(name, text);
+  if (!key) return false;
+  const memo = hotelMicroAll();
+  if (memo[key] && !memo[key].none) return false;
+  memo[key] = { none: true, at: Date.now() };
+  hotelMicroSave(memo);
   return true;
 };
 window.cbHotelInfoCovers = text => {
