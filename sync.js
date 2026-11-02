@@ -522,26 +522,6 @@ async function run() {
       } catch (e) {}
     }
 
-    let hotels;
-    if (typeof CB_BG === 'undefined' || CB_BG !== true) {
-      const today = ymd(now), page = `https://${location.hostname}${atob('L1NLWVcvU2tlZFBsdXMvVHJpcERldGFpbC5hc3B4')}`;
-      let seen = {}, n = 0;
-      try { seen = JSON.parse(localStorage.getItem('cbHotels')) || {}; } catch (e) {}
-      for (const t of scoped.filter(t => t.end >= today && t.days.some(d => d.hotel)).sort((a, b) => a.start.localeCompare(b.start))) {
-        const k = `${t.pairing}|${t.start}`;
-        if (seen[k] && seen[k].at === today) continue;
-        if (n++ >= 5 || Date.now() - now > 12000) break;   // 앱 동기화 한도 25초
-        try {
-          say(`Hotel (${t.pairing})`);
-          const r = hotelLinks(t, await tripPage(t), page);
-          if (r) seen[k] = Object.assign({ at: today }, r);
-        } catch (e) { break; }
-      }
-      hotels = {};
-      trips.forEach(t => { const k = `${t.pairing}|${t.start}`; if (seen[k]) hotels[k] = seen[k]; });
-      try { localStorage.setItem('cbHotels', JSON.stringify(hotels)); } catch (e) {}
-    }
-
     let opentime = null;
     if (!lite) try {
       say('Open Time 읽는 중');
@@ -557,7 +537,7 @@ async function run() {
     } catch (e) { opentime = { at: new Date().toISOString(), trips: [], err: String(e.message || e).slice(0, 80) }; }
 
     if (typeof CB_DONE === 'function') CB_DONE();
-    const payload = { syncedAt: now.toISOString(), trips, releases, flows, raws, opentime, checkin, hotels, script: typeof CB_SCRIPT_VER === 'string' ? CB_SCRIPT_VER : 'bookmark' };
+    const payload = { syncedAt: now.toISOString(), trips, releases, flows, raws, opentime, checkin, script: typeof CB_SCRIPT_VER === 'string' ? CB_SCRIPT_VER : 'bookmark' };
     if (lite) payload.lite = { months: lite.months, why: lite.why, trips: lite.only.size };
     if (!CB_EXEC) {
       say(`완료 — 트립 ${trips.length}개, Release ${Object.keys(releases).length}건, Flow ${Object.keys(flows).length}대 · 앱으로 돌아갑니다…`);

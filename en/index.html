@@ -887,7 +887,7 @@ const api = (fn, arg) => fetch(`${RELAY}?f=atis&ids=${arg.join(',')}`)
     Object.keys(p.raws || {}).forEach(k => { try { localStorage.setItem('cbRaw:' + k, p.raws[k]); if (!rk.includes(k)) rk.push(k); } catch (e) {} });
     rk.sort();
     while (rk.length > 8) { try { localStorage.removeItem('cbRaw:' + rk.shift()); } catch (e) { rk.shift(); } }
-    state = { rawKeys: rk, syncedAt: p.syncedAt, script: p.script || '', trips: p.trips, releases: keep(state.releases, p.releases), flows: keep(state.flows, p.flows), opentime: p.opentime || state.opentime || null, checkin: p.checkin || null, hotels: Object.fromEntries(Object.entries(Object.assign({}, state.hotels, p.hotels)).filter(([k]) => p.trips.some(t => `${t.pairing}|${t.start}` === k))) };
+    state = { rawKeys: rk, syncedAt: p.syncedAt, script: p.script || '', trips: p.trips, releases: keep(state.releases, p.releases), flows: keep(state.flows, p.flows), opentime: p.opentime || state.opentime || null, checkin: p.checkin || null };
     try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {}
     render();
   } catch (e) { alert('Crew Brief: ' + e.message); }
@@ -980,6 +980,22 @@ function releaseCard(r) {
 
 const SAMPLE_REL = {"warnings":[],"flight":"3054","date":"16OCT26","from":"SNA","to":"SFO","tail":"N412SY","adsb":"SKW3054","tas":457,"route":"HHERO3 IKAYE DCT RIZIN DCT SPLNT DCT STOKD DCT SERFR SERFR4","cruise":"CSTID030","fltlv":"FL340","minto":7665,"rlsf":8900,"altsFromTable":[],"dest":{"id":"SFO","dist":358,"ete":56},"alt1":null,"alt2":null,"mintoTime":121,"rlsFuel":8886,"reserve":{"apt":null,"time":45,"fuel":2762},"hold":{"apt":null,"time":20,"fuel":982},"gaAlt":{"apt":null,"time":0,"fuel":0},"ldg":{"apt":null,"time":80,"fuel":4465},"taxiOut":{"apt":null,"time":20,"fuel":500},"burnoff":{"apt":null,"time":56,"fuel":3921},"contin":{"apt":null,"time":15,"fuel":721},"taxiIn":{"apt":null,"time":8,"fuel":200},"gateFuel":4265,"weights":{"payload":15912,"pax":68,"maxPayload":19327,"zfw":66471,"tow":74857,"ldw":70936,"bow":{"index":"69.1","wt":50559},"maxCargo":{"fwd":3306,"aft":2535},"seats":76},"takeoff":{"apt":"SNA","rwy":"02L","flaps":"04","temp":"P28"},"landing":{"apt":"SFO","rwy":"28R","flaps":"05","temp":"P22"},"climb":"270M73C1","descent":"290M78","crzWind":{"dir":"039","spd":57},"isaDev":{"clb":"8","crz":"10","dsc":"12"},"dispatcher":{"name":"J DOE","phone":"435-000-0000"},"pic":"SMITH","sic":"JONES","toc":{"fl":"FL340","distFromOrigin":111,"timeFromOrigin":19,"fuelRemain":6354},"next":{"flight":"3490","from":"SFO","to":"SAN","std":"1140"},"acarsRwys":[{"rwy":"02L","ix":null,"len":5700,"pmtow":7887,"efp":"SPECIAL"},{"rwy":"02L","ix":"E","len":4600,"pmtow":7397,"efp":"SPECIAL"},{"rwy":"20R","ix":null,"len":5700,"pmtow":7887,"efp":"DT H196"},{"rwy":"20R","ix":"K","len":5360,"pmtow":7887,"efp":"DT H196"}],"seProc":{"02L":"900 LT H210 1056"},"remarks":["-GOV TURB SIGMET ... (example)"],"mel":[],"fixes":[["KSNA",33.675,-117.868],["STREL",33.572,-117.9],["DOLLF",33.48,-118.002],["MIKAA",33.41,-118.147],["SNYPR",33.44,-118.3],["HHERO",33.522,-118.488],["FAYHE",33.665,-118.712],["IKAYE",34.143,-119.01],["TOC",34.358,-119.425],["RIZIN",34.412,-119.533],["SPLNT",35.088,-120.373],["STOKD",35.483,-120.818],["SERFR",36.068,-121.365],["TOD",36.337,-121.573],["NRRLI",36.495,-121.7],["WWAVS",36.742,-121.895],["EPICK",36.95,-121.953],["FOLET",37.275,-122.08],["EDDYY",37.375,-122.118],["KSFO",37.618,-122.375]]};
 let setTab = 'rel';
+let hotelRefresh = { busy: false, line: '' };
+const hotelBox = () => document.documentElement.dataset.cbHotelRefresh ? `<div class="card box" data-testid="hotel-refresh"><b>Hotel info</b>
+    <div class="door-btns" style="margin-top:6px"><button data-hotel-refresh${hotelRefresh.busy ? ' disabled' : ''}>${hotelRefresh.busy ? 'Reading…' : 'Refresh hotel info'}</button></div>
+    ${hotelRefresh.line ? `<p class="sub" data-testid="hotel-refresh-line" style="margin:6px 0 0">${esc(hotelRefresh.line)}</p>` : ''}</div>` : '';
+document.addEventListener('click', e => {
+  if (!e.target.closest?.('[data-hotel-refresh]') || hotelRefresh.busy) return;
+  hotelRefresh = { busy: true, line: '' };
+  try { window.webkit.messageHandlers.cbhotel.postMessage({ cmd: 'refresh' }); } catch (err) { hotelRefresh = { busy: false, line: 'Could not reach the app' }; }
+  render();
+});
+window.addEventListener('cbhotelinfo', e => {
+  const r = e.detail || {}, d = new Date(), at = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  const why = { login: 'Sign-in needed', 'no-layovers': 'No list', retrieve: 'No list', other: 'No list', timeout: 'Timed out', wait: 'Try again in 30 seconds' };
+  hotelRefresh = { busy: false, line: r.ok ? `Hotels ${r.hotels} · microwave ${r.micro} · ${at}` : `${why[r.why] || 'Could not read'} · ${at}` };
+  if (tab === 'set') render();
+});
 function settingsView() {
   const keys = Object.keys(state.releases || {}).sort();
   const last = keys.length ? state.releases[keys[keys.length - 1]] : null;
@@ -1000,7 +1016,7 @@ function settingsView() {
   if (setTab === 'fb') { fbSeenNow(); return seg + fbBox(); }
   if (setTab === 'share') return seg + shareBox();
   if (setTab === 'app') return seg + appBox();
-  return `${seg}<div class="card box"><b>Release items</b>
+  return `${seg}${hotelBox()}<div class="card box"><b>Release items</b>
     <p class="sub" style="margin:4px 0 10px">Only checked items are shown in the release box. Pick a number on the right to set the order, then Save. Values are from ${src}.</p>
     <div class="setlist">${rows}</div>
     <div class="setbtns"><button id="sSave" class="on">Save</button><button id="sAll">Select all</button><button id="sDef">Default</button><span class="sub" id="sMsg"></span></div></div>`;
@@ -1160,7 +1176,10 @@ function legOt(l) {
 
 const HOTEL_INFO = 'cbHotelInfo';
 const hotelInfoAll = () => { try { return (JSON.parse(localStorage.getItem(HOTEL_INFO)) || []).filter(x => !hotelInfoBad(x)); } catch (e) { return []; } };
-const hotelInfoFor = (date, airport) => (document.documentElement.dataset.cbHotelInfo ? hotelInfoAll().find(x => x.date === date && x.airport === airport) : null);
+const HI_COMMON = new Set('hotel hotels inn suites suite airport resort the and by at of downtown city spa conference center centre marriott hilton hyatt ihg holiday courtyard place garden regency express westin sheraton renaissance kimpton embassy doubletree hampton homewood residence springhill fairfield towneplace crowne plaza best western radisson wyndham quinta aloft element'.split(' '));
+const hiWords = s => (String(s || '').toLowerCase().match(/[a-z0-9]{3,}/g) || []).filter(w => !HI_COMMON.has(w));
+const hotelSame = (name, hotel) => { const a = hiWords(hotel), b = hiWords(name); return !a.length || !b.length || a.some(w => b.some(v => v.startsWith(w))); };
+const hotelInfoFor = (date, airport, hotel) => (document.documentElement.dataset.cbHotelInfo ? hotelInfoAll().find(x => x.date === date && x.airport === airport && hotelSame(x.hotel.name, hotel)) : null);
 const lastTo = d => (d.legs[d.legs.length - 1] || {}).to || '';
 window.cbHotelInfoWanted = () => state.trips.some(t => t.end >= today && t.days.some(d => d.hotel));
 const HOTEL_RAW = 'cbHotelInfoRaw';
@@ -1220,7 +1239,7 @@ function hotelPhones(x) {
   return out;
 }
 function hotelRow(d, open) {
-  const x = hotelInfoFor(d.date, lastTo(d)), id = `data-hd="${esc(d.date)}" data-ha="${esc(lastTo(d))}"`;
+  const x = hotelInfoFor(d.date, lastTo(d), d.hotel), id = `data-hd="${esc(d.date)}" data-ha="${esc(lastTo(d))}"`;
   const line = `${esc(x ? x.hotel.name : d.hotel)}${hotelMap(d)} · layover ${esc(d.layover)}`;
   if (!x) return `<div class="hotel" ${id}>${line}</div>`;
   const ride = (label, r, date) => (r ? `<div class="hi-row"><b>${label}</b><span>${[hotelShuttle(r) ? '' : r.provider, date && r.date ? md(r.date) : '', r.time, r.transit].filter(Boolean).map(esc).join(' · ') || '—'}</span></div>` : '');
@@ -1237,7 +1256,7 @@ function hotelRowsRefresh() {
   });
 }
 function hotelMap(d) {
-  const to = lastTo(d), x = hotelInfoFor(d.date, to);
+  const to = lastTo(d), x = hotelInfoFor(d.date, to, d.hotel);
   if (!/^[A-Z]{3,4}$/.test(to) || !x || !x.hotel.address) return '';
   const city = DOOR_APTS[to] || '', dest = `${x.hotel.name}, ${x.hotel.address}`;
   const url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(`${to} airport${city ? `, ${city}` : ''}`)}&destination=${encodeURIComponent(dest)}&travelmode=driving`;
@@ -1844,7 +1863,8 @@ function syncStep(t, run) {
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
-  ['11/02', 'Hotel: tap a hotel to see shuttle times, phone numbers and microwave details; the map pin opens Google Maps directions from the airport (iPhone app)'],
+  ['11/02', 'Sorry for all the updates today — a few of today’s changes had problems, and we’ve been fixing them as they came up. Thanks for your patience.'],
+  ['11/02', 'Hotel: tap a hotel to see shuttle times, phone numbers and microwave details; the map pin opens Google Maps directions from the airport; Settings › Refresh hotel info reads it again right away (iPhone app)'],
   ['11/02', 'Calculator: Credit box next to IN time shows the credit of the flight you pick and how it differs from block time (in brackets); OUT and Block Time side by side, today’s flights in a row below (swipe when there are more than five), No Flight Today on days off, calculated in UTC'],
   ['11/02', 'Jet bridge code: your location puts the airport you’re at on top (📍 Here) — iPhone app asks once when you open the tab, the website only when you tap Use my location'],
   ['11/02', 'Jet bridge code: longer codes (up to 120 characters per airline) and notes (up to 300), and long codes wrap inside the card'],
