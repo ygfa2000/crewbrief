@@ -753,7 +753,21 @@ function hiNoIcon(line) {
   while ((t = s.replace(HI_ICON_HEAD, '').replace(HI_ICON_TAIL, '').replace(HI_PHONE_GLUED, '$1').trim()) !== s) s = t;
   return HI_ICON_LINE.test(s) ? '' : s;
 }
-const hiLines = t => String(t || '').split(/\r?\n/).map(hiNoIcon).filter(Boolean);
+const HI_RIDE_ICON = /^(?:directions_bus|airport_shuttle|directions_car|local_taxi)\b/;
+function hiLines(t) {
+  const ls = [];
+  let bus = false;
+  ls.ride = new Set();
+  for (const raw of String(t || '').split(/\r?\n/)) {
+    if (HI_RIDE_ICON.test(raw.trim())) bus = true;
+    const s = hiNoIcon(raw);
+    if (!s) continue;
+    if (bus && !hiIsPhone(s)) ls.ride.add(ls.length);
+    bus = false;
+    ls.push(s);
+  }
+  return ls;
+}
 const hiIsPhone = s => /^\+?[\d().\s-]+$/.test(s) && s.replace(/\D/g, '').length >= 7;
 const HI_MON = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
 function hiDate(s) {
@@ -768,11 +782,12 @@ function hiField(ls, i, re) {
   const v = m[1].trim();
   return v || /^[A-Za-z][\w -]*:|^(Pick-?up|Transit Time)\b/i.test(ls[i + 1] || '') || i + 1 >= ls.length ? [v, i + 1] : [ls[i + 1], i + 2];
 }
-function hiRide(ls, at) {
+const hiIsAddress = s => /,/.test(s) && (/\d/.test(s) || /,\s*[A-Z]{2}\b|\b[A-Z]{2}$/.test(s));
+function hiRide(ls, at, bus = () => false) {
   const o = { provider: '', phone: '', date: '', time: '', transit: '', location: '' };
   if (hiIsPhone(ls[at - 1] || '')) o.phone = ls[at - 1];
-  const h = ls[at - (o.phone ? 2 : 1)] || '';
-  if (h && !hiIsPhone(h) && !/[:,]/.test(h) && !/^(planned|confirmed|number)$/i.test(h)) o.provider = h;
+  const k = at - (o.phone ? 2 : 1), h = ls[k] || '';
+  if (h && !hiIsPhone(h) && (bus(k) || (!/:/.test(h) && !hiIsAddress(h) && h.length <= 60 && !/^(planned|confirmed|number)$/i.test(h)))) o.provider = h;
   let i = at + 1;
   for (;;) {
     let f;
@@ -826,7 +841,7 @@ function parseHotelList(text) {
     const ride = re => {
       const at = body.findIndex(s => re.test(s));
       if (at < 0) return [null, -1];
-      const [o, e] = hiRide(body, at);
+      const [o, e] = hiRide(body, at, j => ls.ride.has(from + j));
       for (let j = at - (o.phone ? 1 : 0) - (o.provider ? 1 : 0); j < e; j++) used.add(j);
       return [o, e];
     };
