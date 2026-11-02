@@ -350,14 +350,20 @@
   .seg button { border:1px solid var(--line); border-radius:12px; background:var(--card); color:var(--mute); font:600 13px 'Pretendard Variable',Pretendard,sans-serif; padding:9px 4px; }
   .seg button.on { background:var(--accsoft); color:var(--acc); border-color:var(--acc); }
   /* ⚙ 격자의 Hotel info 칸(누름 없음 · 둘째 줄에 마지막 결과 — 칸 전체 너비로 한 줄) + 오른쪽 작은 둥근 ↻ 단추 (앱 Build 16) */
-  .seg .hotel-cell { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; column-gap:6px; min-width:0; border:1px solid var(--line); border-radius:12px; background:var(--card); color:var(--mute); font:600 13px 'Pretendard Variable',Pretendard,sans-serif; padding:5px 6px; cursor:default; }
-  .seg .hotel-cell .hi { display:contents; text-align:center; }
-  .seg .hotel-cell small { grid-column:1 / -1; min-width:0; margin-top:2px; font-size:11px; font-weight:500; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .seg .hotel-rf { grid-column:2; grid-row:1; width:30px; height:30px; padding:0; border-radius:50%; font:600 16px/1 -apple-system,system-ui,sans-serif; display:grid; place-items:center; cursor:pointer; }
-  .seg .hotel-rf span { display:block; }
-  .seg .hotel-rf.busy { opacity:.5; }
-  .seg .hotel-rf.busy span { animation:spin 1s linear infinite; }
-  @media (prefers-reduced-motion: reduce) { .seg .hotel-rf.busy span { animation:none; } }
+  .seg .hotel-cell { display:flex; align-items:center; gap:4px; min-width:0; border:1px solid var(--line); border-radius:12px; background:var(--card); color:var(--mute); font:600 13px 'Pretendard Variable',Pretendard,sans-serif; padding:1px 1px 1px 8px; cursor:default; }
+  .seg .hotel-cell .lb { white-space:nowrap; }
+  .seg .hotel-cell small { font-size:11px; font-weight:500; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .seg .hotel-cell small.bad { color:#a8483f; font-weight:500; text-decoration:none; }
+  .seg .hotel-cell small.bad::before { content:"\26A0\FE0E"; margin-right:2px; font-size:.9em; }
+  @media (prefers-color-scheme: dark) { .seg .hotel-cell small.bad { color:#e8907f; } }
+  .seg .hotel-rf { flex:none; margin-left:auto; width:36px; height:36px; padding:0; border:0; border-radius:50%; background:transparent; display:grid; place-items:center; cursor:pointer; }
+  .seg .hotel-rf .orb { width:27px; height:27px; display:block; overflow:visible; }
+  .seg .hotel-rf .arw { transform-box:view-box; transform-origin:50% 52%; }
+  .seg .hotel-rf:active .orb { transform:scale(.94); }
+  .seg .hotel-rf.busy { opacity:.6; cursor:default; }
+  .seg .hotel-rf.busy .arw { animation:spin 1s linear infinite; }
+  @media (prefers-reduced-motion: reduce) { .seg .hotel-rf.busy .arw { animation:none; } }
+  @media (max-width:340px) { .seg .hotel-cell { padding-left:6px; gap:3px; } .seg .hotel-cell .lb { font-size:12px; } .seg .hotel-cell small { font-size:10px; } .seg .hotel-cell small.bad::before { content:none; } }
   .frow { border-bottom:1px solid var(--line); }
   .frow.mine { background:var(--accsoft); }
   /* Flow 의 안 끝난 편마다 지도: 경로(Release 계획 경로, 없으면 최단 경로) · 날고 있으면 실시간 위치(공개 ADS-B) */
@@ -990,21 +996,49 @@ function releaseCard(r) {
 
 const SAMPLE_REL = {"warnings":[],"flight":"3054","date":"16OCT26","from":"SNA","to":"SFO","tail":"N412SY","adsb":"SKW3054","tas":457,"route":"HHERO3 IKAYE DCT RIZIN DCT SPLNT DCT STOKD DCT SERFR SERFR4","cruise":"CSTID030","fltlv":"FL340","minto":7665,"rlsf":8900,"altsFromTable":[],"dest":{"id":"SFO","dist":358,"ete":56},"alt1":null,"alt2":null,"mintoTime":121,"rlsFuel":8886,"reserve":{"apt":null,"time":45,"fuel":2762},"hold":{"apt":null,"time":20,"fuel":982},"gaAlt":{"apt":null,"time":0,"fuel":0},"ldg":{"apt":null,"time":80,"fuel":4465},"taxiOut":{"apt":null,"time":20,"fuel":500},"burnoff":{"apt":null,"time":56,"fuel":3921},"contin":{"apt":null,"time":15,"fuel":721},"taxiIn":{"apt":null,"time":8,"fuel":200},"gateFuel":4265,"weights":{"payload":15912,"pax":68,"maxPayload":19327,"zfw":66471,"tow":74857,"ldw":70936,"bow":{"index":"69.1","wt":50559},"maxCargo":{"fwd":3306,"aft":2535},"seats":76},"takeoff":{"apt":"SNA","rwy":"02L","flaps":"04","temp":"P28"},"landing":{"apt":"SFO","rwy":"28R","flaps":"05","temp":"P22"},"climb":"270M73C1","descent":"290M78","crzWind":{"dir":"039","spd":57},"isaDev":{"clb":"8","crz":"10","dsc":"12"},"dispatcher":{"name":"J DOE","phone":"435-000-0000"},"pic":"SMITH","sic":"JONES","toc":{"fl":"FL340","distFromOrigin":111,"timeFromOrigin":19,"fuelRemain":6354},"next":{"flight":"3490","from":"SFO","to":"SAN","std":"1140"},"acarsRwys":[{"rwy":"02L","ix":null,"len":5700,"pmtow":7887,"efp":"SPECIAL"},{"rwy":"02L","ix":"E","len":4600,"pmtow":7397,"efp":"SPECIAL"},{"rwy":"20R","ix":null,"len":5700,"pmtow":7887,"efp":"DT H196"},{"rwy":"20R","ix":"K","len":5360,"pmtow":7887,"efp":"DT H196"}],"seProc":{"02L":"900 LT H210 1056"},"remarks":["-GOV TURB SIGMET ... (example)"],"mel":[],"fixes":[["KSNA",33.675,-117.868],["STREL",33.572,-117.9],["DOLLF",33.48,-118.002],["MIKAA",33.41,-118.147],["SNYPR",33.44,-118.3],["HHERO",33.522,-118.488],["FAYHE",33.665,-118.712],["IKAYE",34.143,-119.01],["TOC",34.358,-119.425],["RIZIN",34.412,-119.533],["SPLNT",35.088,-120.373],["STOKD",35.483,-120.818],["SERFR",36.068,-121.365],["TOD",36.337,-121.573],["NRRLI",36.495,-121.7],["WWAVS",36.742,-121.895],["EPICK",36.95,-121.953],["FOLET",37.275,-122.08],["EDDYY",37.375,-122.118],["KSFO",37.618,-122.375]]};
 let setTab = 'rel';
-const HOTEL_LAST = 'cbHotelRefreshLast';
-let hotelBusy = false, hotelLast = null;
-try { hotelLast = JSON.parse(localStorage.getItem(HOTEL_LAST)); } catch (e) {}
+const HOTEL_LAST = 'cbHotelRefreshLast', HOTEL_FAIL = 'cbHotelRefreshFail', HOTEL_FAIL_MS = 10 * 6e4;
+let hotelBusy = false, hotelLast = null, hotelFail = null;
+try { hotelLast = JSON.parse(localStorage.getItem(HOTEL_LAST)); hotelFail = JSON.parse(localStorage.getItem(HOTEL_FAIL)); } catch (e) {}
+if (hotelLast && !hotelLast.ok) { hotelLast = null; try { localStorage.removeItem(HOTEL_LAST); } catch (e) {} }
+const hotelFailMs = f => (f.why === 'wait' ? 30e3 : HOTEL_FAIL_MS);
+function hotelFailClear() { hotelFail = null; try { localStorage.removeItem(HOTEL_FAIL); } catch (e) {} }
+function hotelFailOn() {
+  if (!hotelFail) return false;
+  const gone = Date.now() - hotelFail.at;
+  if (gone >= 0 && gone < hotelFailMs(hotelFail)) return true;
+  hotelFailClear();
+  return false;
+}
+function hotelFailTimer() {
+  if (!hotelFailOn()) return;
+  const f = hotelFail;
+  setTimeout(() => { if (hotelFail === f) hotelFailClear(); if (tab === 'set') render(); }, hotelFailMs(f) - (Date.now() - f.at) + 1000);
+}
+hotelFailTimer();
 function hotelLine() {
-  if (hotelBusy) return '읽는 중…';
+  if (hotelFailOn()) {
+    const why = { login: '로그인', 'no-layovers': '목록 없음', retrieve: '목록 없음', other: '목록 없음', timeout: '시간 초과', wait: '30초 뒤', noapp: '연결 실패' };
+    return why[hotelFail.why] || '읽지 못함';
+  }
   const r = hotelLast;
   if (!r) return '';
-  const d = new Date(r.at), at = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-  const why = { login: '로그인 필요', 'no-layovers': '목록 없음', retrieve: '목록 없음', other: '목록 없음', timeout: '시간 초과', wait: '30초 뒤 다시', noapp: '앱 연결 실패' };
-  return r.ok ? `호텔 ${r.hotels} · 레인지 ${r.micro} · ${at}` : `${why[r.why] || '읽지 못함'} · ${at}`;
+  const d = new Date(r.at);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
-const hotelBtn = () => document.documentElement.dataset.cbHotelRefresh ? `<div class="hotel-cell" data-testid="hotel-refresh"><div class="hi">Hotel info${hotelLine() ? `<small data-testid="hotel-refresh-line">${esc(hotelLine())}</small>` : ''}</div><button class="hotel-rf${hotelBusy ? ' busy' : ''}" data-hotel-refresh aria-label="Refresh hotel info"${hotelBusy ? ' disabled' : ''}><span aria-hidden="true">↻</span></button></div>` : '';
+const HOTEL_ORB = '<svg class="orb" viewBox="0 0 28 28" aria-hidden="true"><defs><radialGradient id="cbRfB" cx="45%" cy="38%" r="70%"><stop offset="0" stop-color="#2453b0"/><stop offset=".55" stop-color="#1a3f8f"/><stop offset="1" stop-color="#0e2a68"/></radialGradient><linearGradient id="cbRfG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.38"/><stop offset=".85" stop-color="#fff" stop-opacity="0"/></linearGradient><linearGradient id="cbRfR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a9c0ee" stop-opacity="0.85"/><stop offset="1" stop-color="#6f8fd2" stop-opacity="0.85"/></linearGradient><linearGradient id="cbRfA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#e9edf3"/></linearGradient><filter id="cbRfS" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="1" stdDeviation=".8" flood-color="#06163d" flood-opacity=".45"/></filter></defs><circle cx="14" cy="14" r="12.4" fill="url(#cbRfB)" filter="url(#cbRfS)"/><ellipse cx="14" cy="5.4" rx="8" ry="3.4" fill="url(#cbRfG)"/><circle cx="14" cy="14" r="12.00" fill="none" stroke="url(#cbRfR)" stroke-width="0.8"/><g class="arw"><g transform="translate(14 14.6) scale(.6) translate(-12 -12)" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.3"><g stroke="#06163d" stroke-opacity=".6" transform="translate(0 1.4)"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v4.5h-4.5"/></g><g stroke="url(#cbRfA)"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v4.5h-4.5"/></g></g></g></svg>';
+const hotelBtn = () => document.documentElement.dataset.cbHotelRefresh ? `<div class="hotel-cell" data-testid="hotel-refresh"><span class="lb">Hotel info</span>${hotelLine() ? `<small data-testid="hotel-refresh-line"${hotelFailOn() ? ' class="bad"' : ''}>${esc(hotelLine())}</small>` : ''}<button class="hotel-rf${hotelBusy ? ' busy' : ''}" data-hotel-refresh aria-label="Refresh hotel info"${hotelBusy ? ' disabled' : ''}>${HOTEL_ORB}</button></div>` : '';
 function hotelKeep(r) {
-  hotelBusy = false; hotelLast = Object.assign({ at: Date.now() }, r);
-  if (r.why !== 'wait') try { localStorage.setItem(HOTEL_LAST, JSON.stringify(hotelLast)); } catch (e) {}
+  const asked = hotelBusy;
+  hotelBusy = false;
+  if (r.ok) {
+    hotelLast = Object.assign({ at: Date.now() }, r); hotelFail = null;
+    try { localStorage.setItem(HOTEL_LAST, JSON.stringify(hotelLast)); localStorage.removeItem(HOTEL_FAIL); } catch (e) {}
+    return;
+  }
+  if (!asked) return;
+  hotelFail = { at: Date.now(), why: r.why };
+  if (r.why !== 'wait') try { localStorage.setItem(HOTEL_FAIL, JSON.stringify(hotelFail)); } catch (e) {}
+  hotelFailTimer();
 }
 document.addEventListener('click', e => {
   if (!e.target.closest?.('[data-hotel-refresh]') || hotelBusy) return;
@@ -1197,9 +1231,8 @@ function legOt(l) {
 
 const HOTEL_INFO = 'cbHotelInfo';
 const hotelInfoAll = () => { try { return (JSON.parse(localStorage.getItem(HOTEL_INFO)) || []).filter(x => !hotelInfoBad(x)); } catch (e) { return []; } };   // 잘못 읽은 칸은 정보 없음 — 다음 읽기에 덮인다
-const HI_COMMON = new Set('hotel hotels inn suites suite airport resort the and by at of downtown city spa conference center centre marriott hilton hyatt ihg holiday courtyard place garden regency express westin sheraton renaissance kimpton embassy doubletree hampton homewood residence springhill fairfield towneplace crowne plaza best western radisson wyndham quinta aloft element'.split(' '));
-const hiWords = s => (String(s || '').toLowerCase().match(/[a-z0-9]{3,}/g) || []).filter(w => !HI_COMMON.has(w));
-const hotelSame = (name, hotel) => { const a = hiWords(hotel), b = hiWords(name); return !a.length || !b.length || a.some(w => b.some(v => v.startsWith(w))); };
+const hotelNorm = s => String(s || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]/g, '');
+const hotelSame = (name, hotel) => { const a = hotelNorm(name), b = hotelNorm(hotel); return !!b && (String(hotel).trim().length >= 24 ? a.startsWith(b) : a === b); };
 const dayShift = (date, k) => new Date(Date.parse(`${date}T00:00:00Z`) + k * 864e5).toISOString().slice(0, 10);
 const clockMs = (date, hm) => Date.parse(`${date}T00:00:00Z`) + mins(hm) * 6e4;
 function stayGap(d, x) {
