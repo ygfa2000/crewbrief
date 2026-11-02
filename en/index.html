@@ -729,7 +729,15 @@ function parseRelease(lines, raw) {
   }
   return r;
 }
-const hiLines = t => String(t || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+const HI_ICON_LINE = /^[a-z][a-z0-9_]*$/;
+const HI_ICONS = 'phone|call|event_available|event|cancel|directions_bus|directions_car|local_taxi|airport_shuttle|hotel|bed|king_bed|place|location_on|restaurant|map|schedule|check_circle|chevron_right|expand_more';
+const HI_ICON_HEAD = new RegExp(`^(?:${HI_ICONS})\\s+`), HI_ICON_TAIL = new RegExp(`\\s+(?:${HI_ICONS})$`), HI_PHONE_GLUED = new RegExp(`^(\\+?[\\d().\\s-]{7,}?)\\s*(?:${HI_ICONS})$`);
+function hiNoIcon(line) {
+  let s = line.trim(), t;
+  while ((t = s.replace(HI_ICON_HEAD, '').replace(HI_ICON_TAIL, '').replace(HI_PHONE_GLUED, '$1').trim()) !== s) s = t;
+  return HI_ICON_LINE.test(s) ? '' : s;
+}
+const hiLines = t => String(t || '').split(/\r?\n/).map(hiNoIcon).filter(Boolean);
 const hiIsPhone = s => /^\+?[\d().\s-]+$/.test(s) && s.replace(/\D/g, '').length >= 7;
 const HI_MON = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
 function hiDate(s) {
@@ -836,14 +844,16 @@ const HI_DATE_LINE = /^(?:(?:mon|tue|wed|thu|fri|sat|sun)\b)?\s*\d{0,2}\s*(?:(?:
 const hiMask = (s, words) => s.replace(/[\p{L}\p{N}]+/gu, w => (words && HI_WORDS.test(w) ? w : w.replace(/[\p{L}\p{N}]/gu, c => (/\p{N}/u.test(c) ? '9' : /\p{Lu}/u.test(c) ? 'X' : 'x'))));
 function hotelInfoMask(text) {
   return String(text || '').split('\n').map(line => {
-    const t = line.trim();
-    if (/^US$/.test(t)) return line;
-    if (t && HI_DATE_LINE.test(t)) return hiMask(line, true);
+    const whole = line.trim();
+    if (/^US$/.test(whole) || HI_ICON_LINE.test(whole)) return line;
+    const icon = (HI_ICON_HEAD.exec(whole) || [''])[0], t = whole.slice(icon.length);
+    if (t && HI_DATE_LINE.test(t)) return icon + hiMask(t, true);
     const m = HI_LABEL.exec(t);
-    if (!m) return hiMask(line, false);
-    return m[1] + hiMask(m[2], /^(Pick-?up[- ]date|Transit Time)$/i.test(m[1]));
+    if (!m) return icon + hiMask(t, false);
+    return icon + m[1] + hiMask(m[2], /^(Pick-?up[- ]date|Transit Time)$/i.test(m[1]));
   }).join('\n');
 }
+const hotelInfoBad = x => [x.hotel && x.hotel.name, x.toHotel && x.toHotel.provider, x.toAirport && x.toAirport.provider].some(v => HI_ICON_LINE.test(v || ''));
 
 const APP = 'https://ygfa2000.github.io/crewbrief/en/';
 const SYNC_JS = 'https://ygfa2000.github.io/crewbrief/sync-en.js';
@@ -1149,7 +1159,7 @@ function legOt(l) {
 }
 
 const HOTEL_INFO = 'cbHotelInfo';
-const hotelInfoAll = () => { try { return JSON.parse(localStorage.getItem(HOTEL_INFO)) || []; } catch (e) { return []; } };
+const hotelInfoAll = () => { try { return (JSON.parse(localStorage.getItem(HOTEL_INFO)) || []).filter(x => !hotelInfoBad(x)); } catch (e) { return []; } };
 const hotelInfoFor = (date, airport) => (document.documentElement.dataset.cbHotelInfo ? hotelInfoAll().find(x => x.date === date && x.airport === airport) : null);
 const lastTo = d => (d.legs[d.legs.length - 1] || {}).to || '';
 window.cbHotelInfoWanted = () => state.trips.some(t => t.end >= today && t.days.some(d => d.hotel));
