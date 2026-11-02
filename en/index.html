@@ -356,7 +356,7 @@
   .seg .hotel-cell small.bad { color:#a8483f; font-weight:500; text-decoration:none; }
   .seg .hotel-cell small.bad::before { content:"\26A0\FE0E"; margin-right:2px; font-size:.9em; }
   @media (prefers-color-scheme: dark) { .seg .hotel-cell small.bad { color:#e8907f; } }
-  .seg .hotel-rf { flex:none; margin-left:auto; width:36px; height:36px; padding:0; border:0; border-radius:50%; background:transparent; display:grid; place-items:center; cursor:pointer; }
+  .seg .hotel-rf { flex:none; margin-left:auto; width:36px; height:36px; padding:0; border:0; border-radius:50%; background:transparent; display:grid; place-items:center; cursor:pointer; -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
   .seg .hotel-rf .orb { width:27px; height:27px; display:block; overflow:visible; }
   .seg .hotel-rf .arw { transform-box:view-box; transform-origin:50% 52%; }
   .seg .hotel-rf:active .orb { transform:scale(.94); }
@@ -1065,10 +1065,29 @@ function hotelKeep(r) {
 }
 document.addEventListener('click', e => {
   if (!e.target.closest?.('[data-hotel-refresh]') || hotelBusy) return;
+  if (hotelHeld) { hotelHeld = false; return; }
+  hotelAsk();
+});
+let hotelHold = null, hotelHeld = false;
+document.addEventListener('pointerdown', e => {
+  hotelHeld = false;
+  clearTimeout(hotelHold);
+  if (!e.target.closest?.('[data-hotel-refresh]') || hotelBusy) return;
+  hotelHold = setTimeout(() => { hotelHeld = true; hotelRecheck(); hotelAsk(); }, 1000);
+});
+['pointerup', 'pointercancel'].forEach(n => document.addEventListener(n, () => clearTimeout(hotelHold)));
+document.addEventListener('contextmenu', e => { if (e.target.closest?.('[data-hotel-refresh]')) e.preventDefault(); });
+function hotelRecheck() {
+  const all = hotelInfoAll();
+  all.forEach(x => { delete x.hotel.microwave; });
+  try { localStorage.setItem(HOTEL_INFO, JSON.stringify(all)); localStorage.removeItem(HOTEL_MICRO); localStorage.removeItem(HOTEL_MISS); } catch (e) {}
+  hotelRowsRefresh();
+}
+function hotelAsk() {
   hotelBusy = true;
   try { window.webkit.messageHandlers.cbhotel.postMessage({ cmd: 'refresh' }); } catch (err) { hotelKeep({ ok: false, why: 'noapp' }); }
   render();
-});
+}
 window.addEventListener('cbhotelinfo', e => {
   const r = e.detail || {};
   hotelKeep(r.ok ? Object.assign({ ok: true, hotels: r.hotels, micro: r.micro }, hotelCounts()) : { ok: false, why: String(r.why || '') });
@@ -1261,7 +1280,7 @@ const hotelMicroKey = x => `${x.airport}|${x.hotel.name}|${hiPlain(x.hotel.addre
 const hotelMicroSure = k => k.split('|').pop();
 const hotelMicroGet = (memo, x) => (Object.prototype.hasOwnProperty.call(memo, hotelMicroKey(x)) ? memo[hotelMicroKey(x)] : null);
 const HOTEL_NOLINE_MS = 30 * 864e5;
-const hotelMicroRead = (memo, x) => { const v = hotelMicroGet(memo, x); return !!v && (!v.none || Math.abs(Date.now() - v.at) < HOTEL_NOLINE_MS); };
+const hotelMicroRead = (memo, x) => { const v = hotelMicroGet(memo, x); return !!v && Math.abs(Date.now() - v.at) < HOTEL_NOLINE_MS; };
 function hotelMicroOn(x, memo) {
   const v = hotelMicroGet(memo, x);
   if (v && !v.none) x.hotel.microwave = v; else delete x.hotel.microwave;
@@ -1270,8 +1289,9 @@ const hotelInfoAll = () => {
   try {
     const all = (JSON.parse(localStorage.getItem(HOTEL_INFO)) || []).filter(x => !hotelInfoBad(x)), memo = hotelMicroAll();
     let moved = false;
+    Object.keys(memo).forEach(k => { if (!memo[k].none && !memo[k].at) { memo[k].at = Date.now(); moved = true; } });
     all.forEach(x => {
-      if (x.hotel.microwave && !hotelMicroRead(memo, x) && hotelMicroSure(hotelMicroKey(x)) && new Set(all.filter(y => y.hotel.name === x.hotel.name).map(hotelMicroKey)).size === 1) { memo[hotelMicroKey(x)] = x.hotel.microwave; moved = true; }
+      if (x.hotel.microwave && !hotelMicroGet(memo, x) && hotelMicroSure(hotelMicroKey(x)) && new Set(all.filter(y => y.hotel.name === x.hotel.name).map(hotelMicroKey)).size === 1) { memo[hotelMicroKey(x)] = Object.assign({}, x.hotel.microwave, { at: Date.now() }); moved = true; }
       hotelMicroOn(x, memo);
     });
     if (moved) hotelMicroSave(memo);
@@ -1338,35 +1358,55 @@ window.cbHotelInfoFeed = text => {
   const memo = hotelMicroAll();
   list.forEach(x => hotelMicroOn(x, memo));
   const all = old.filter(y => y.date >= cut && !list.some(x => mine(x) === mine(y))).concat(list);
-  try { localStorage.setItem(HOTEL_INFO, JSON.stringify(all)); } catch (e) {}
+  try { localStorage.setItem(HOTEL_INFO, JSON.stringify(all, (k, v) => (k === 'microwave' ? undefined : v))); } catch (e) {}
   hotelRowsRefresh();
   const soon = list.filter(x => x.date >= dayShift(today, -1));
   if (document.documentElement.dataset.cbHotelRefresh) return JSON.stringify([...new Set(soon.filter(x => !hotelMicroRead(memo, x)).sort((a, b) => a.date.localeCompare(b.date)).map(x => x.hotel.name))]);
   return JSON.stringify([...new Set(soon.sort((a, b) => !!a.hotel.microwave - !!b.hotel.microwave || a.date.localeCompare(b.date)).map(x => x.hotel.name))]);
 };
+const HOTEL_MISS = 'cbHotelMiss', HOTEL_MISS_GAP = 6 * 36e5;
+const hotelMissAll = () => { try { return JSON.parse(localStorage.getItem(HOTEL_MISS)) || {}; } catch (e) { return {}; } };
+const hotelMissSave = miss => { try { localStorage.setItem(HOTEL_MISS, JSON.stringify(miss)); } catch (e) {} };
+function hotelMissClear(key) { const miss = hotelMissAll(); if (miss[key]) { delete miss[key]; hotelMissSave(miss); } }
 function hotelMicroHit(name, text) {
   const keys = [...new Set(hotelInfoAll().filter(x => x.hotel.name === name).map(hotelMicroKey))], page = hiPlain(text);
   const hit = keys.filter(k => hotelMicroSure(k) && (keys.length === 1 || page.includes(hotelMicroSure(k))));
   return hit.length === 1 ? hit[0] : null;
 }
 window.cbHotelInfoDetail = (name, text) => {
-  const m = parseHotelDetail(text);
+  const m = parseHotelDetail(text), key = hotelMicroHit(name, text);
+  if (key) hotelMissClear(key);
   if (!m) return false;
-  const key = hotelMicroHit(name, text);
   if (key) {
     const memo = hotelMicroAll();
-    memo[key] = m;
+    memo[key] = Object.assign({}, m, { at: Date.now() });
     hotelMicroSave(memo);
     hotelRowsRefresh();
   }
   return true;
+};
+window.cbHotelInfoMiss = (name, kind, text) => {
+  const k = kind === 'nomic' && (/microwave/i.test(text) || !/crew benefits/i.test(text)) ? 'other' : kind, key = hotelMicroHit(name, text);
+  if (!key) return 0;
+  if (k !== 'nolink' && k !== 'nomic') { hotelMissClear(key); return 0; }
+  const memo = hotelMicroAll(), old = memo[key], real = old && !old.none;
+  if (real && Math.abs(Date.now() - old.at) < HOTEL_NOLINE_MS) return 0;
+  const miss = hotelMissAll(), m = miss[key];
+  if (!m || m.k !== k) { miss[key] = { k, n: 1, at: Date.now() }; hotelMissSave(miss); return 1; }
+  if (Math.abs(Date.now() - m.at) < HOTEL_MISS_GAP) return 1;
+  memo[key] = real && k === 'nolink' ? Object.assign(old, { at: Date.now() }) : { none: true, at: Date.now(), why: k };
+  hotelMicroSave(memo);
+  hotelRowsRefresh();
+  delete miss[key];
+  hotelMissSave(miss);
+  return 2;
 };
 window.cbHotelInfoNoLine = (name, text) => {
   if (/microwave/i.test(text) || !/crew benefits/i.test(text)) return false;
   const key = hotelMicroHit(name, text);
   if (!key) return false;
   const memo = hotelMicroAll();
-  if (memo[key] && !memo[key].none) return false;
+  if (memo[key] && !memo[key].none) { memo[key].at = Date.now(); hotelMicroSave(memo); return false; }
   memo[key] = { none: true, at: Date.now() };
   hotelMicroSave(memo);
   return true;
