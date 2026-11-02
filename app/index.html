@@ -2068,17 +2068,17 @@ function doorView() {
     if (!ps && !doorTried) { doorTried = true; doorLoad(); }
     return seg + (msg ? `<div class="warn">${msg}</div>` : '<div class="empty">불러오는 중…</div>');
   }
-  const doors = data.doors || {}, pub = !doorKey;
+  const doors = data.doors || {}, pub = !doorKey, all = pub || ps;
   hereWant(false);
   const day = state.trips.flatMap(t => t.days).find(d => d.date >= today);
   const mine = day ? [...new Set(day.legs.flatMap(l => [l.from, l.to]))] : [];
-  const ahead = pub ? [...new Set(state.trips.flatMap(t => t.days).filter(d => d.date >= today).flatMap(d => d.legs.flatMap(l => [l.from, l.to])))].filter(Boolean) : [];
+  const ahead = all ? [...new Set(state.trips.flatMap(t => t.days).filter(d => d.date >= today).flatMap(d => d.legs.flatMap(l => [l.from, l.to])))].filter(Boolean) : [];
   const q = doorQ.trim().toUpperCase();
   const city = id => (doors[id] || {}).name || DOOR_APTS[id] || '';
   const has = id => DOOR_CARRIERS.some(c => (doors[id] || {})[c]);
   const ms = id => new Date((doors[id] || {}).at || 0).getTime() || 0, fresh = id => Date.now() - ms(id) < 7 * 864e5;
-  const ids = [...new Set([...(doorHere ? [doorHere] : []), ...Object.keys(doors), ...ahead, ...(pub ? Object.keys(DOOR_APTS) : [])])].filter(id => !q || id.startsWith(q) || city(id).toUpperCase().includes(q))
-    .sort(ps ? (a, b) => (b === doorHere) - (a === doorHere) || ms(b) - ms(a) || a.localeCompare(b) : (a, b) => (b === doorHere) - (a === doorHere) || (mine.includes(b) - mine.includes(a)) || (ahead.includes(b) - ahead.includes(a)) || (has(b) - has(a)) || a.localeCompare(b));
+  const ids = [...new Set([...(doorHere ? [doorHere] : []), ...Object.keys(doors), ...ahead, ...(all ? Object.keys(DOOR_APTS) : [])])].filter(id => !q || id.startsWith(q) || city(id).toUpperCase().includes(q))
+    .sort((a, b) => (b === doorHere) - (a === doorHere) || (mine.includes(b) - mine.includes(a)) || (ahead.includes(b) - ahead.includes(a)) || (has(b) - has(a)) || a.localeCompare(b));
   if (!ps && doorEdit && !ids.includes(doorEdit)) ids.unshift(doorEdit);
   const when = x => x ? new Date(x).toLocaleDateString('ko-KR', { timeZone: ZONE, month: 'numeric', day: 'numeric' }) : '';
   const card = id => {
