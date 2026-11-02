@@ -733,6 +733,8 @@ const hiLines = t => String(t || '').split(/\r?\n/).map(s => s.trim()).filter(Bo
 const hiIsPhone = s => /^\+?[\d().\s-]+$/.test(s) && s.replace(/\D/g, '').length >= 7;
 const HI_MON = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
 function hiDate(s) {
+  const iso = /^\d{4}-\d{2}-\d{2}$/.exec((s || '').trim());
+  if (iso) return iso[0];
   const m = /(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/.exec(s || ''), k = m ? HI_MON.indexOf(m[2].toLowerCase()) : -1;
   return k < 0 ? '' : `${m[3]}-${String(k + 1).padStart(2, '0')}-${m[1].padStart(2, '0')}`;
 }
@@ -740,53 +742,77 @@ function hiField(ls, i, re) {
   const m = re.exec(ls[i]);
   if (!m) return null;
   const v = m[1].trim();
-  return v || (ls[i + 1] || '').includes(':') || i + 1 >= ls.length ? [v, i + 1] : [ls[i + 1], i + 2];
+  return v || /^[A-Za-z][\w -]*:|^(Pick-?up|Transit Time)\b/i.test(ls[i + 1] || '') || i + 1 >= ls.length ? [v, i + 1] : [ls[i + 1], i + 2];
 }
 function hiRide(ls, at) {
   const o = { provider: '', phone: '', date: '', time: '', transit: '', location: '' };
   if (hiIsPhone(ls[at - 1] || '')) o.phone = ls[at - 1];
   const h = ls[at - (o.phone ? 2 : 1)] || '';
-  if (h && !hiIsPhone(h) && !/[:,]/.test(h)) o.provider = h;
+  if (h && !hiIsPhone(h) && !/[:,]/.test(h) && !/^(planned|confirmed|number)$/i.test(h)) o.provider = h;
   let i = at + 1;
   for (;;) {
     let f;
-    if ((f = hiField(ls, i, /^Pick-?up date\s*:?(.*)$/i))) o.date = hiDate(f[0]);
-    else if ((f = hiField(ls, i, /^Pick-?up time\s*:?(.*)$/i))) o.time = f[0].replace('.', ':');
+    if ((f = hiField(ls, i, /^Pick-?up[- ]date\s*:?(.*)$/i))) o.date = hiDate(f[0]);
+    else if ((f = hiField(ls, i, /^Pick-?up[- ]time\s*:?(.*)$/i))) o.time = f[0].replace('.', ':');
     else if ((f = hiField(ls, i, /^Transit Time\s*:?(.*)$/i))) o.transit = f[0];
-    else if ((f = hiField(ls, i, /^Pick-?up location\s*:?(.*)$/i))) o.location = f[0];
+    else if ((f = hiField(ls, i, /^Pick-?up[- ]location\s*:?(.*)$/i))) o.location = f[0];
     else break;
     i = f[1];
   }
   return [o, i];
 }
 const hiNote = ls => { const k = ls.findIndex(s => /^(Around Me|OpenTable|Open Table)$/i.test(s)); return (k < 0 ? ls : ls.slice(0, k)).join(' '); };
+function hiHotel(zone) {
+  const name = zone[0] || '', rest = zone.slice(1);
+  const c = rest.findIndex(s => /^CONFIRMATION/i.test(s)), before = c < 0 ? rest : rest.slice(0, c);
+  let conf = '';
+  if (c >= 0) {
+    conf = rest[c].replace(/^CONFIRMATION(\s+NUMBER)?\s*:?\s*/i, '');
+    let j = c + 1;
+    if (!conf && /^number\s*:?$/i.test(rest[j] || '')) j++;
+    if (!conf) conf = rest[j] || '';
+  }
+  let address = '';
+  const at = before.findIndex(s => /^Address\s*:?$/i.test(s));
+  if (at >= 0) {
+    const lines = [];
+    for (let i = at + 1; i < before.length && !hiIsPhone(before[i]); i++) lines.push(before[i]);
+    address = lines.join(' ');
+  } else {
+    const i = before.findIndex(s => !hiIsPhone(s));
+    if (i >= 0) address = before[i] + (/^[A-Z]{2}$/.test(before[i + 1] || '') ? ` ${before[i + 1]}` : '');
+  }
+  return { name, address, phone: before.find(hiIsPhone) || '', confirmation: conf };
+}
 function parseHotelList(text) {
   const ls = hiLines(text), out = [];
-  const starts = ls.flatMap((s, i) => (/^Pairing ID\s*:/i.test(s) ? [i] : []));
+  const starts = ls.flatMap((s, i) => (/^Pairing ID\b/i.test(s) ? [i] : []));
   starts.forEach((i, k) => {
     const next = starts[k + 1];
     let end = next ?? ls.length;
     if (next != null) for (let j = next - 1; j > i && j >= next - 6; j--) if (/^[A-Z]{3,4}$/.test(ls[j])) { end = j; break; }
     const head = ls.slice(Math.max(k ? starts[k - 1] + 1 : 0, i - 6), i);
     const airport = head.filter(s => /^[A-Z]{3,4}$/.test(s)).pop() || '';
-    const date = hiDate(head.filter(s => hiDate(s)).pop());
-    const body = ls.slice(i + 1, end);
-    const a = body.findIndex(s => /^Transportation to Hotel/i.test(s)), b = body.findIndex(s => /^Transportation to Airport/i.test(s));
-    let toHotel = null, toAirport = null, from = 0, to = body.length, note = '';
-    if (a >= 0) [toHotel, from] = hiRide(body, a);
-    if (b >= 0) { let e; [toAirport, e] = hiRide(body, b); note = hiNote(body.slice(e)); to = b - (toAirport.phone ? 1 : 0) - (toAirport.provider ? 1 : 0); }
-    if (a < 0) while (from < to && (hiIsPhone(body[from]) || /^Use\b/i.test(body[from]))) from++;
-    const zone = body.slice(from, to), stop = zone.findIndex(s => /^(Around Me|OpenTable|Open Table)$/i.test(s));
-    if (stop >= 0) zone.length = stop;
-    while (zone.length && zone[0].length > 60) zone.shift();
-    const name = zone[0] || '', rest = zone.slice(1);
-    const c = rest.findIndex(s => /^CONFIRMATION NUMBER/i.test(s));
-    const conf = c >= 0 ? hiField(rest, c, /^CONFIRMATION NUMBER\s*:?(.*)$/i)[0] : '';
-    const pm = /^Pairing ID\s*:\s*([^/\s]*)/i.exec(ls[i]);
-    if (airport && date && name && !/^CONFIRMATION NUMBER/i.test(name) && !hiIsPhone(name)) out.push({
-      airport, date, pairing: pm ? pm[1] : '', toHotel, toAirport, note,
-      hotel: { name, address: rest[0] && c !== 0 && !hiIsPhone(rest[0]) ? rest[0] + (/^[A-Z]{2}$/.test(rest[1] || '') ? ` ${rest[1]}` : '') : '', phone: rest.find(hiIsPhone) || '', confirmation: conf },
-    });
+    let pairing = /^Pairing ID\s*:?\s*([^/\s]*)/i.exec(ls[i])[1], from = i + 1;
+    if (!pairing && from < end) { pairing = ls[from].split('/')[0]; from++; }
+    const body = ls.slice(from, end), used = new Set();
+    const ride = re => {
+      const at = body.findIndex(s => re.test(s));
+      if (at < 0) return [null, -1];
+      const [o, e] = hiRide(body, at);
+      for (let j = at - (o.phone ? 1 : 0) - (o.provider ? 1 : 0); j < e; j++) used.add(j);
+      return [o, e];
+    };
+    const [toHotel] = ride(/^Transportation (to Hotel|from Airport)/i), [toAirport, afterAir] = ride(/^Transportation (to Airport|from Hotel)/i);
+    let z = 0;
+    const skip = j => used.has(j) || hiIsPhone(body[j]) || /^Use\b/i.test(body[j]) || body[j].length > 60;
+    while (z < body.length && skip(z)) z++;
+    const zone = [];
+    for (let j = z; j < body.length && !used.has(j) && !/^(Around Me|OpenTable|Open Table)$/i.test(body[j]); j++) zone.push(body[j]);
+    const hotel = hiHotel(zone);
+    const date = hiDate(head.filter(s => hiDate(s)).pop()) || (toHotel ? toHotel.date : '');
+    const note = toAirport && afterAir >= 0 && z < afterAir ? hiNote(body.slice(afterAir)) : '';
+    if (airport && date && hotel.name && !/^CONFIRMATION/i.test(hotel.name)) out.push({ airport, date, pairing, toHotel, toAirport, note, hotel });
   });
   return out;
 }
@@ -1118,7 +1144,7 @@ window.cbHotelInfoFeed = text => {
   const all = old.filter(y => y.date >= cut && !list.some(x => mine(x) === mine(y))).concat(list);
   try { localStorage.setItem(HOTEL_INFO, JSON.stringify(all)); } catch (e) {}
   hotelRowsRefresh();
-  return JSON.stringify([...new Set(list.map(x => x.hotel.name))]);
+  return JSON.stringify([...new Set(list.slice().sort((a, b) => !!a.hotel.microwave - !!b.hotel.microwave).map(x => x.hotel.name))]);
 };
 window.cbHotelInfoDetail = (name, text) => {
   const m = parseHotelDetail(text), all = hotelInfoAll();
@@ -1127,6 +1153,15 @@ window.cbHotelInfoDetail = (name, text) => {
   try { localStorage.setItem(HOTEL_INFO, JSON.stringify(all)); } catch (e) {}
   hotelRowsRefresh();
   return true;
+};
+window.cbHotelInfoCovers = text => {
+  const list = parseHotelList(text);
+  return state.trips.flatMap(t => t.days).filter(d => d.hotel && d.date >= today).every(d => list.some(x => x.date === d.date && x.airport === lastTo(d)));
+};
+window.cbHotelInfoWidenDates = () => {
+  const ends = state.trips.filter(t => t.end >= today && t.days.some(d => d.hotel)).map(t => t.end).sort(), max = ymd(Date.now() + 62 * 864e5);
+  const end = ends.length ? ends[ends.length - 1] : ymd(Date.now() + 31 * 864e5);
+  return { start: today, end: end > max ? max : end };
 };
 window.cbHotelInfoStart = () => {
   for (const t of state.trips.filter(t => t.end >= today).sort((a, b) => a.start.localeCompare(b.start))) {
@@ -1145,7 +1180,7 @@ function hotelPhones(x) {
 }
 function hotelRow(d, open) {
   const x = hotelInfoFor(d.date, lastTo(d)), id = `data-hd="${esc(d.date)}" data-ha="${esc(lastTo(d))}"`;
-  const line = `${esc(d.hotel)}${hotelMap(d)} · layover ${esc(d.layover)}`;
+  const line = `${esc(x ? x.hotel.name : d.hotel)}${hotelMap(d)} · layover ${esc(d.layover)}`;
   if (!x) return `<div class="hotel" ${id}>${line}</div>`;
   const ride = (label, r, date) => (r ? `<div class="hi-row"><b>${label}</b><span>${[hotelShuttle(r) ? '' : r.provider, date && r.date ? md(r.date) : '', r.time, r.transit].filter(Boolean).map(esc).join(' · ') || '—'}</span></div>` : '');
   const m = x.hotel.microwave, phones = hotelPhones(x);
@@ -1161,10 +1196,10 @@ function hotelRowsRefresh() {
   });
 }
 function hotelMap(d) {
-  const to = lastTo(d);
-  if (!/^[A-Z]{3,4}$/.test(to)) return '';
-  const city = DOOR_APTS[to] || '';
-  const url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(`${to} airport${city ? `, ${city}` : ''}`)}&destination=${encodeURIComponent(`${d.hotel}${city ? `, ${city}` : ''}`)}&travelmode=driving`;
+  const to = lastTo(d), x = hotelInfoFor(d.date, to);
+  if (!/^[A-Z]{3,4}$/.test(to) || !x || !x.hotel.address) return '';
+  const city = DOOR_APTS[to] || '', dest = `${x.hotel.name}, ${x.hotel.address}`;
+  const url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(`${to} airport${city ? `, ${city}` : ''}`)}&destination=${encodeURIComponent(dest)}&travelmode=driving`;
   return ` <a class="hotel-map" href="${esc(url)}" target="_blank" rel="noopener" aria-label="Directions from the airport to the hotel"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="5.5" fill="#fff"/><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z" fill="#34a853"/><path d="M12 9 7.05 4.05A7 7 0 0 0 5 9c0 2.5 1.75 5.75 3.5 8.375z" fill="#fbbc04"/><path d="M12 9 7.05 4.05A7 7 0 0 1 12 2z" fill="#ea4335"/><path d="M12 9V2a7 7 0 0 1 7 7z" fill="#4285f4"/><circle cx="12" cy="9" r="2.6" fill="#fff"/></svg></a>`;
 }
 function dayBlock(trip, d, fold) {
@@ -1768,6 +1803,7 @@ function syncStep(t, run) {
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['11/02', 'Hotel line: map pin and full hotel name come from the hotel page the app reads; tap a hotel to unfold shuttle times, phone and microwave details (iPhone app)'],
   ['11/02', 'Hotel line: tap a hotel to unfold shuttle times, phone and microwave details (iPhone app)'],
   ['11/02', 'Hotel line: map pin opens Google Maps directions from the arrival airport to the hotel'],
   ['11/02', 'Calculator: Credit box next to IN time shows the credit of the flight you pick and how it differs from block time (in brackets); OUT and Block Time side by side, today’s flights in a row below (swipe when there are more than five), No Flight Today on days off, calculated in UTC'],
