@@ -411,6 +411,9 @@
   /* 위쪽(로고·시계·탭)은 스크롤해도 그대로 — 아래 내용만 움직인다 */
   .pin { position:sticky; top:0; z-index:5; background:var(--bg); margin:-16px -16px 0; padding:16px 16px 0; }
   .pin .tabs { position:static; }
+  /* 내 트립: 연 트립의 머리줄이 화면 밖(위로 지나감·아래)이면 위쪽 고정 칸 바로 아래에 같은 줄을 띄운다 — 닫을 때까지. 누르면 닫힌다 */
+  .trip-pin { position:absolute; top:100%; left:16px; right:16px; background:var(--card); border:1px solid var(--line); border-radius:22px; padding:20px 22px 14px; display:flex; justify-content:space-between; gap:4px 8px; flex-wrap:wrap; align-items:baseline; cursor:pointer; box-shadow:0 6px 14px rgba(0,0,0,.16); }
+  .trip-pin b { font-weight:700; font-size:18px; }
   /* 설정은 탭 줄이 아니라 머리 오른쪽 끝 */
   .gear { flex:none; width:38px; height:38px; margin-left:-4px; border-radius:50%; border:0; background:transparent; color:var(--ink2,var(--mute)); font-size:19px; line-height:1; padding:0; cursor:pointer; }
   /* 업데이트는 마지막 동기화 칸 안에 동그란 아이콘만 (글자는 aria-label 대신 그대로 두고 크기 0) */
@@ -491,6 +494,7 @@
 <div class="status"><div class="utcbox"><div class="utc1"><span class="k">UTC</span><span class="zulu" id="zulu"></span></div><div class="zones" id="zones"></div></div><div><span class="k">Last sync</span><span class="sub" id="synced"></span><a class="upd" target="_top" href="#cbsync" data-u="aHR0cHM6Ly93d3cuc2t5d2VzdG9ubGluZS5jb20vU0tZVy9Ta2VkUGx1cy9NeVNjaGVkdWxlLmFzcHg="><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3.2h-3.2"/></svg></span>Update</a></div></div>
 <button class="script-warn" id="scriptWarn" hidden></button>
 <nav class="tabs"><button data-tab="sked">Sked+</button><button data-tab="today">Today</button><button data-tab="up">My Trip</button><button data-tab="atis">D-ATIS</button><button data-tab="door" id="doorTab" aria-label="Jet bridge code" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.6" y=".9" width="11.8" height="22.2" rx="5.2" fill="#f4f5f8" stroke="#1f2430" stroke-width=".9"/><rect x="5.3" y="2.7" width="8.4" height="10.2" rx="2.1" fill="#2b2d42"/><g fill="#fff"><circle cx="7.3" cy="4.7" r=".6"/><circle cx="9.5" cy="4.7" r=".6"/><circle cx="11.7" cy="4.7" r=".6"/><circle cx="7.3" cy="6.8" r=".6"/><circle cx="9.5" cy="6.8" r=".6"/><circle cx="11.7" cy="6.8" r=".6"/><circle cx="7.3" cy="8.9" r=".6"/><circle cx="9.5" cy="8.9" r=".6"/><circle cx="11.7" cy="8.9" r=".6"/><circle cx="7.3" cy="11" r=".6"/><circle cx="9.5" cy="11" r=".6"/><circle cx="11.7" cy="11" r=".6"/></g><circle cx="9.5" cy="17.4" r="3.1" fill="#d5d8e0" stroke="#1f2430" stroke-width=".9"/><rect x="7.9" y="15.9" width="15" height="3" rx="1.5" fill="#e8e9ee" stroke="#1f2430" stroke-width=".9"/><rect x="9.6" y="16.7" width="5" height="1.1" rx=".55" fill="#fff"/></svg></button><button data-tab="calc" aria-label="Calculator"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.3" y="1.3" width="15.4" height="21.4" rx="3.2" fill="#1c1c1e" stroke="rgba(255,255,255,.35)" stroke-width=".7"/><rect x="6.9" y="3.9" width="10.2" height="4.8" rx="1.1" fill="#a1a1a6"/><circle cx="8.3" cy="12.4" r="1.4" fill="#d4d4d8"/><circle cx="12" cy="12.4" r="1.4" fill="#d4d4d8"/><circle cx="15.7" cy="12.4" r="1.4" fill="#ff9f0a"/><circle cx="8.3" cy="15.8" r="1.4" fill="#d4d4d8"/><circle cx="12" cy="15.8" r="1.4" fill="#d4d4d8"/><circle cx="15.7" cy="15.8" r="1.4" fill="#ff9f0a"/><circle cx="8.3" cy="19.2" r="1.4" fill="#d4d4d8"/><circle cx="12" cy="19.2" r="1.4" fill="#d4d4d8"/><circle cx="15.7" cy="19.2" r="1.4" fill="#ff9f0a"/></svg></button></nav>
+<div class="trip-pin" id="tripPin" role="button" tabindex="0" hidden></div>
 </div>
 
 
@@ -1458,7 +1462,7 @@ const tripTitle = trip => `${esc(trip.pairing)} · ${md(trip.start)}${trip.end !
 
 function tripCard(trip, open) {
   const days = trip.days.map(d => dayBlock(trip, d)).join('');
-  return `<details class="card trip"${open ? ' open' : ''}>
+  return `<details class="card trip" data-k="${esc(trip.pairing)}|${esc(trip.start)}"${open ? ' open' : ''}>
     <summary><b>${tripTitle(trip)}</b>
       <span class="sub">Block ${esc(trip.block)} · Credit ${esc(trip.credit)} · TAFB ${esc(trip.tafb)}</span></summary>
     ${days}</details>`;
@@ -1633,7 +1637,7 @@ function render() {
   document.getElementById('atis').hidden = tab !== 'atis';
   if (tab === 'atis') atisChips();
   if (tab === 'calc') { today = ymd(Date.now()); calcLegs(); }
-  if (tab === 'calc' || tab === 'atis') return skedSync();
+  if (tab === 'calc' || tab === 'atis') { tripPinSync(); return skedSync(); }
   document.getElementById('view').innerHTML =
     tab === 'home' ? changesCard() + homeView() + incentiveCard()
     : tab === 'today' ? todayView()
@@ -1643,6 +1647,7 @@ function render() {
     : myTripView();
   if (tab === 'door') document.querySelectorAll('.door-card textarea').forEach(doorGrow);
   skedSync();
+  tripPinSync();
 }
 let tripTab = 'up';
 function myTripView() {
@@ -1741,6 +1746,36 @@ function skedSync() {
 }
 addEventListener('scroll', skedSync, { passive: true });
 addEventListener('resize', skedSync);
+var tripPinKey = '';
+function tripPinCard() {
+  const open = [...document.querySelectorAll('#view details.trip[open]')];
+  return document.getElementById('view').hidden ? null : open.find(d => d.dataset.k === tripPinKey) || open.pop() || null;
+}
+function tripPinSync() {
+  const pin = document.getElementById('tripPin'), d = tripPinCard();
+  if (!d) { pin.hidden = true; return; }
+  const top = pin.parentNode.getBoundingClientRect().bottom, r = d.querySelector('summary').getBoundingClientRect();
+  const show = r.top < top || r.top >= innerHeight;
+  if (show && pin.innerHTML !== d.querySelector('summary').innerHTML) { pin.innerHTML = d.querySelector('summary').innerHTML; pin.setAttribute('aria-label', d.querySelector('summary b').textContent); }
+  pin.hidden = !show;
+}
+addEventListener('scroll', tripPinSync, { passive: true });
+addEventListener('resize', tripPinSync);
+document.addEventListener('toggle', e => {
+  if (!e.target.classList?.contains('trip')) return;
+  if (e.target.open) tripPinKey = e.target.dataset.k;
+  tripPinSync();
+}, true);
+function tripPinClose() {
+  const d = tripPinCard();
+  if (!d) return;
+  d.open = false;
+  const top = document.getElementById('tripPin').parentNode.getBoundingClientRect().bottom;
+  scrollBy(0, d.getBoundingClientRect().top - top - 10);
+  tripPinSync();
+}
+document.getElementById('tripPin').addEventListener('click', tripPinClose);
+document.getElementById('tripPin').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tripPinClose(); } });
 
 document.querySelectorAll('.tabs, .gear').forEach(el => el.addEventListener('click', e => {
   const b = e.target.closest('[data-tab]');
