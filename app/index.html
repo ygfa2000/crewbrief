@@ -1629,6 +1629,7 @@ function render() {
   if (!state.syncedAt) document.getElementById('howto').open = true;
   scriptWarn();
   document.querySelectorAll('.tabs button, .gear').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  if (tab !== 'up') tripFocus = '';
   if (tab === 'set' && setTab === 'upd') updSeenNow();   // Update history 를 보는 중이면 숫자를 그리기 전에 본 것으로
   if (tab === 'set' && setTab === 'fb') fbSeenNow();   // 피드백도 — 여는 순간 ⚙·탭 숫자가 같이 사라진다 (새 글·새 답변)
   { const g = document.querySelector('.gear'), n = newFb() + newApp() + newUpd(), old = g.querySelector('.nbadge'); if (old) old.remove(); if (n) g.insertAdjacentHTML('beforeend', badge(n)); }
@@ -1650,6 +1651,12 @@ function render() {
   tripPinSync();
 }
 let tripTab = 'up';
+let tripFocus = '';
+function tripList(seg, trips, empty) {
+  const f = trips.find(x => `${x.pairing}|${x.start}` === tripFocus);
+  if (!f) tripFocus = '';
+  return seg + (f ? tripCard(f, true) : trips.map(x => tripCard(x, false)).join('') || empty);
+}
 function myTripView() {
   if (tripTab === 'cur') tripTab = 'up';   // 예전에 현재 트립 칸이 있을 때 저장된 자리
   const seg = `<div class="seg trip-seg"><button data-tt="up"${tripTab === 'up' ? ' class="on"' : ''}>다가오는 트립</button><button data-tt="past"${tripTab === 'past' ? ' class="on"' : ''}>지난 트립</button><button data-tt="lt"${tripTab === 'lt' ? ' class="on"' : ''}>LogTen</button></div>`;
@@ -1657,12 +1664,12 @@ function myTripView() {
   if (tripTab === 'lt') return seg + logtenView();
   if (tripTab === 'up') {
     const next = state.trips.filter(x => x.start > today).sort((a, b) => a.start.localeCompare(b.start)).slice(0, 3);
-    return seg + (next.map(x => tripCard(x, false)).join('') || '<div class="empty">다가오는 트립이 없습니다.</div>');
+    return tripList(seg, next, '<div class="empty">다가오는 트립이 없습니다.</div>');
   }
   const since = ymd(Date.now() - 28 * 864e5);
   const past = state.trips.filter(x => x.start < today && x.end >= since).sort((a, b) => b.start.localeCompare(a.start))
     .map(x => x.end < today ? x : { ...x, days: x.days.filter(d => d.date < today) });
-  return seg + (past.map(x => tripCard(x, false)).join('') || '<div class="empty">지난 4주 동안의 트립이 없습니다.</div>');
+  return tripList(seg, past, '<div class="empty">지난 4주 동안의 트립이 없습니다.</div>');
 }
 const LT_CHUNK = 30;
 let ltFrom = '', ltTo = '', ltOff = new Set();
@@ -1730,7 +1737,7 @@ document.addEventListener('click', e => {
   if (c) { window.webkit.messageHandlers.cbsked.postMessage({ cmd: c }); return; }
   if (e.target.closest?.('[data-skt]')) { const t = curTrip(); if (t) window.webkit.messageHandlers.cbsked.postMessage({ cmd: 'trip', pairing: t.pairing, date: t.start.replace(/-/g, '') }); return; }
   if (!tt) return;
-  tripTab = tt; render();
+  tripTab = tt; tripFocus = ''; render();
 });
 function curTrip() {
   const gap = t => t.start > today ? Date.parse(t.start) - Date.parse(today) : t.end < today ? Date.parse(today) - Date.parse(t.end) : 0;
@@ -1746,11 +1753,7 @@ function skedSync() {
 }
 addEventListener('scroll', skedSync, { passive: true });
 addEventListener('resize', skedSync);
-var tripPinKey = '';
-function tripPinCard() {
-  const open = [...document.querySelectorAll('#view details.trip[open]')];
-  return document.getElementById('view').hidden ? null : open.find(d => d.dataset.k === tripPinKey) || open.pop() || null;
-}
+const tripPinCard = () => document.getElementById('view').hidden ? null : document.querySelector('#view details.trip[open]');
 function tripPinSync() {
   const pin = document.getElementById('tripPin'), d = tripPinCard();
   if (!d) { pin.hidden = true; return; }
@@ -1762,17 +1765,29 @@ function tripPinSync() {
 addEventListener('scroll', tripPinSync, { passive: true });
 addEventListener('resize', tripPinSync);
 document.addEventListener('toggle', e => {
-  if (!e.target.classList?.contains('trip')) return;
-  if (e.target.open) tripPinKey = e.target.dataset.k;
+  const d = e.target, k = d.dataset?.k;
+  if (!d.classList?.contains('trip')) return;
+  if (d.open === (tripFocus === k)) return tripPinSync();
+  tripFocus = d.open ? k : '';
+  render();
+  const c = [...document.querySelectorAll('#view details.trip')].find(x => x.dataset.k === k);
+  if (tripFocus) scrollTo(0, 0);
+  else if (c) scrollBy(0, c.getBoundingClientRect().top - document.getElementById('tripPin').parentNode.getBoundingClientRect().bottom - 10);
+  if (c) c.querySelector('summary').focus({ preventScroll: true });
   tripPinSync();
+}, true);
+document.addEventListener('toggle', e => {
+  const l = e.target, box = l.open && l.classList?.contains('leg') && l.closest('details.trip, .card');
+  if (!box) return;
+  const others = [...box.querySelectorAll('details.leg[open]')].filter(x => x !== l);
+  if (!others.length) return;
+  const s = l.querySelector('summary'), y = s.getBoundingClientRect().top;
+  others.forEach(x => { x.open = false; });
+  scrollBy(0, s.getBoundingClientRect().top - y);
 }, true);
 function tripPinClose() {
   const d = tripPinCard();
-  if (!d) return;
-  d.open = false;
-  const top = document.getElementById('tripPin').parentNode.getBoundingClientRect().bottom;
-  scrollBy(0, d.getBoundingClientRect().top - top - 10);
-  tripPinSync();
+  if (d) d.open = false;
 }
 document.getElementById('tripPin').addEventListener('click', tripPinClose);
 document.getElementById('tripPin').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tripPinClose(); } });
