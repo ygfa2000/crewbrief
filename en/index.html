@@ -361,6 +361,16 @@
   .plane-ic svg { width:28px; height:28px; filter:drop-shadow(0 1px 2px rgba(0,0,0,.45)); }
   .apt-ic { font:700 11px -apple-system,system-ui,sans-serif; color:#fff; background:#1b4fd0; padding:2px 5px; border-radius:6px; white-space:nowrap; box-shadow:0 1px 3px rgba(0,0,0,.3); }
   .hotel { color:var(--ink2); background:var(--soft); border-radius:12px; padding:10px 12px; margin-top:8px; }
+  .hotelx > summary { position:relative; padding-right:34px; min-height:24px; }
+  .hx-chev { position:absolute; top:-2px; right:0; width:26px; height:26px; box-sizing:border-box; border-radius:50%; background:var(--card); border:1px solid var(--line); color:var(--ink2); display:flex; align-items:center; justify-content:center; }
+  .hx-chev svg { width:16px; height:16px; transition:transform .18s ease; }
+  .hotelx[open] .hx-chev svg { transform:rotate(180deg); }
+  @media (prefers-reduced-motion: reduce) { .hx-chev svg { transition:none; } }
+  .hx-body { margin-top:10px; padding-top:10px; border-top:1px solid var(--line); font-size:14px; display:grid; gap:8px; } .hx-body p { margin:0; }
+  .hi-row { display:grid; grid-template-columns:7.2em 1fr; gap:8px; } .hi-row b { font-weight:600; }
+  .hx-tels { display:flex; flex-wrap:wrap; gap:8px; } .hx-tel { color:var(--acc); background:var(--card); border-radius:10px; padding:8px 12px; font-weight:600; text-decoration:none; }
+  .hotel-map { display:inline-block; padding:4px; margin:-4px 0; vertical-align:middle; line-height:0; }
+  .hotel-map svg { width:20px; height:20px; display:block; border-radius:5px; box-shadow:0 0 0 .5px rgba(0,0,0,.18); }
   .atis-in input, #calc input, .door-top input { border:0; background:var(--soft); border-radius:12px; }
   .atis-in button, .bm { background:var(--acc); border:0; border-radius:12px; font-weight:700; }
   .atis-apt, .door-top button, .door-card button, .setbtns button, .chips button { border:0; background:var(--pill); color:var(--ink2); border-radius:10px; font-weight:600; }
@@ -719,6 +729,78 @@ function parseRelease(lines, raw) {
   }
   return r;
 }
+const hiLines = t => String(t || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+const hiIsPhone = s => /^\+?[\d().\s-]+$/.test(s) && s.replace(/\D/g, '').length >= 7;
+const HI_MON = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+function hiDate(s) {
+  const m = /(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/.exec(s || ''), k = m ? HI_MON.indexOf(m[2].toLowerCase()) : -1;
+  return k < 0 ? '' : `${m[3]}-${String(k + 1).padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+}
+function hiField(ls, i, re) {
+  const m = re.exec(ls[i]);
+  if (!m) return null;
+  const v = m[1].trim();
+  return v || (ls[i + 1] || '').includes(':') || i + 1 >= ls.length ? [v, i + 1] : [ls[i + 1], i + 2];
+}
+function hiRide(ls, at) {
+  const o = { provider: '', phone: '', date: '', time: '', transit: '', location: '' };
+  if (hiIsPhone(ls[at - 1] || '')) o.phone = ls[at - 1];
+  const h = ls[at - (o.phone ? 2 : 1)] || '';
+  if (h && !hiIsPhone(h) && !/[:,]/.test(h)) o.provider = h;
+  let i = at + 1;
+  for (;;) {
+    let f;
+    if ((f = hiField(ls, i, /^Pick-?up date\s*:?(.*)$/i))) o.date = hiDate(f[0]);
+    else if ((f = hiField(ls, i, /^Pick-?up time\s*:?(.*)$/i))) o.time = f[0].replace('.', ':');
+    else if ((f = hiField(ls, i, /^Transit Time\s*:?(.*)$/i))) o.transit = f[0];
+    else if ((f = hiField(ls, i, /^Pick-?up location\s*:?(.*)$/i))) o.location = f[0];
+    else break;
+    i = f[1];
+  }
+  return [o, i];
+}
+const hiNote = ls => { const k = ls.findIndex(s => /^(Around Me|OpenTable|Open Table)$/i.test(s)); return (k < 0 ? ls : ls.slice(0, k)).join(' '); };
+function parseHotelList(text) {
+  const ls = hiLines(text), out = [];
+  const starts = ls.flatMap((s, i) => (/^Pairing ID\s*:/i.test(s) ? [i] : []));
+  starts.forEach((i, k) => {
+    const next = starts[k + 1];
+    let end = next ?? ls.length;
+    if (next != null) for (let j = next - 1; j > i && j >= next - 6; j--) if (/^[A-Z]{3,4}$/.test(ls[j])) { end = j; break; }
+    const head = ls.slice(Math.max(k ? starts[k - 1] + 1 : 0, i - 6), i);
+    const airport = head.filter(s => /^[A-Z]{3,4}$/.test(s)).pop() || '';
+    const date = hiDate(head.filter(s => hiDate(s)).pop());
+    const body = ls.slice(i + 1, end);
+    const a = body.findIndex(s => /^Transportation to Hotel/i.test(s)), b = body.findIndex(s => /^Transportation to Airport/i.test(s));
+    let toHotel = null, toAirport = null, from = 0, to = body.length, note = '';
+    if (a >= 0) [toHotel, from] = hiRide(body, a);
+    if (b >= 0) { let e; [toAirport, e] = hiRide(body, b); note = hiNote(body.slice(e)); to = b - (toAirport.phone ? 1 : 0) - (toAirport.provider ? 1 : 0); }
+    if (a < 0) while (from < to && (hiIsPhone(body[from]) || /^Use\b/i.test(body[from]))) from++;
+    const zone = body.slice(from, to), stop = zone.findIndex(s => /^(Around Me|OpenTable|Open Table)$/i.test(s));
+    if (stop >= 0) zone.length = stop;
+    while (zone.length && zone[0].length > 60) zone.shift();
+    const name = zone[0] || '', rest = zone.slice(1);
+    const c = rest.findIndex(s => /^CONFIRMATION NUMBER/i.test(s));
+    const conf = c >= 0 ? hiField(rest, c, /^CONFIRMATION NUMBER\s*:?(.*)$/i)[0] : '';
+    const pm = /^Pairing ID\s*:\s*([^/\s]*)/i.exec(ls[i]);
+    if (airport && date && name && !/^CONFIRMATION NUMBER/i.test(name) && !hiIsPhone(name)) out.push({
+      airport, date, pairing: pm ? pm[1] : '', toHotel, toAirport, note,
+      hotel: { name, address: rest[0] && c !== 0 && !hiIsPhone(rest[0]) ? rest[0] + (/^[A-Z]{2}$/.test(rest[1] || '') ? ` ${rest[1]}` : '') : '', phone: rest.find(hiIsPhone) || '', confirmation: conf },
+    });
+  });
+  return out;
+}
+function parseHotelDetail(text) {
+  const ls = hiLines(text);
+  let available = '', details = '';
+  ls.forEach((s, i) => {
+    const d = hiField(ls, i, /^Microwave Details?\b\s*:?(.*)$/i);
+    if (d) { if (!details) details = d[0]; return; }
+    const m = hiField(ls, i, /^Microwave\b\s*:?(.*)$/i);
+    if (m && !available) available = m[0];
+  });
+  return available || details ? { available, details } : null;
+}
 
 const APP = 'https://ygfa2000.github.io/crewbrief/en/';
 const SYNC_JS = 'https://ygfa2000.github.io/crewbrief/sync-en.js';
@@ -752,7 +834,7 @@ const api = (fn, arg) => fetch(`${RELAY}?f=atis&ids=${arg.join(',')}`)
     Object.keys(p.raws || {}).forEach(k => { try { localStorage.setItem('cbRaw:' + k, p.raws[k]); if (!rk.includes(k)) rk.push(k); } catch (e) {} });
     rk.sort();
     while (rk.length > 8) { try { localStorage.removeItem('cbRaw:' + rk.shift()); } catch (e) { rk.shift(); } }
-    state = { rawKeys: rk, syncedAt: p.syncedAt, script: p.script || '', trips: p.trips, releases: keep(state.releases, p.releases), flows: keep(state.flows, p.flows), opentime: p.opentime || state.opentime || null, checkin: p.checkin || null };
+    state = { rawKeys: rk, syncedAt: p.syncedAt, script: p.script || '', trips: p.trips, releases: keep(state.releases, p.releases), flows: keep(state.flows, p.flows), opentime: p.opentime || state.opentime || null, checkin: p.checkin || null, hotels: Object.fromEntries(Object.entries(Object.assign({}, state.hotels, p.hotels)).filter(([k]) => p.trips.some(t => `${t.pairing}|${t.start}` === k))) };
     try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {}
     render();
   } catch (e) { alert('Crew Brief: ' + e.message); }
@@ -1023,6 +1105,68 @@ function legOt(l) {
   return !ff || !ff.std ? '' : `<span class="ot ${dl >= 5 ? 'late' : 'ok'}">${ph}${dl >= 5 ? `<b>+${fmtHM(dl)}</b>` : ''}</span>`;
 }
 
+const HOTEL_INFO = 'cbHotelInfo';
+const hotelInfoAll = () => { try { return JSON.parse(localStorage.getItem(HOTEL_INFO)) || []; } catch (e) { return []; } };
+const hotelInfoFor = (date, airport) => (document.documentElement.dataset.cbHotelInfo ? hotelInfoAll().find(x => x.date === date && x.airport === airport) : null);
+const lastTo = d => (d.legs[d.legs.length - 1] || {}).to || '';
+window.cbHotelInfoWanted = () => state.trips.some(t => t.end >= today && t.days.some(d => d.hotel));
+window.cbHotelInfoFeed = text => {
+  const list = parseHotelList(text);
+  if (!list.length) return '[]';
+  const old = hotelInfoAll(), cut = new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10), mine = x => `${x.date}|${x.airport}`;
+  list.forEach(x => { const o = old.find(y => mine(y) === mine(x) && y.hotel.name === x.hotel.name); if (o && o.hotel.microwave) x.hotel.microwave = o.hotel.microwave; });
+  const all = old.filter(y => y.date >= cut && !list.some(x => mine(x) === mine(y))).concat(list);
+  try { localStorage.setItem(HOTEL_INFO, JSON.stringify(all)); } catch (e) {}
+  hotelRowsRefresh();
+  return JSON.stringify([...new Set(list.map(x => x.hotel.name))]);
+};
+window.cbHotelInfoDetail = (name, text) => {
+  const m = parseHotelDetail(text), all = hotelInfoAll();
+  if (!m) return false;
+  all.filter(x => x.hotel.name === name).forEach(x => { x.hotel.microwave = m; });
+  try { localStorage.setItem(HOTEL_INFO, JSON.stringify(all)); } catch (e) {}
+  hotelRowsRefresh();
+  return true;
+};
+window.cbHotelInfoStart = () => {
+  for (const t of state.trips.filter(t => t.end >= today).sort((a, b) => a.start.localeCompare(b.start))) {
+    const u = Object.values(((state.hotels || {})[`${t.pairing}|${t.start}`] || {}).days || {}).find(x => /^https?:\/\//i.test(x));
+    if (u) return u;
+  }
+  return '';
+};
+const telLink = ([who, p]) => `<a class="hx-tel" href="tel:${esc(p.replace(/[^\d+]/g, ''))}">${esc(who)} ${esc(p)}</a>`;
+const hotelShuttle = r => !r.provider || /hotel shuttle/i.test(r.provider);
+function hotelPhones(x) {
+  const out = [], seen = new Set(), add = (who, p) => { const n = (p || '').replace(/\D/g, ''); if (n && !seen.has(n)) { seen.add(n); out.push([who, p]); } };
+  add('Hotel', x.hotel.phone);
+  [x.toHotel, x.toAirport].forEach(r => { if (r) add(hotelShuttle(r) ? 'Shuttle' : r.provider.replace(/^(Use|The)\s+/i, '').split(' ')[0], r.phone); });
+  return out;
+}
+function hotelRow(d, open) {
+  const x = hotelInfoFor(d.date, lastTo(d)), id = `data-hd="${esc(d.date)}" data-ha="${esc(lastTo(d))}"`;
+  const line = `${esc(d.hotel)}${hotelMap(d)} · layover ${esc(d.layover)}`;
+  if (!x) return `<div class="hotel" ${id}>${line}</div>`;
+  const ride = (label, r, date) => (r ? `<div class="hi-row"><b>${label}</b><span>${[hotelShuttle(r) ? '' : r.provider, date && r.date ? md(r.date) : '', r.time, r.transit].filter(Boolean).map(esc).join(' · ') || '—'}</span></div>` : '');
+  const m = x.hotel.microwave, phones = hotelPhones(x);
+  return `<details class="hotel hotelx" ${id}${open ? ' open' : ''}><summary>${line}<span class="hx-chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></summary><div class="hx-body">
+    ${ride('Shuttle to hotel', x.toHotel)}${ride('Shuttle to airport', x.toAirport, true)}
+    ${phones.length ? `<div class="hx-tels">${phones.map(telLink).join('')}</div>` : ''}
+    ${m ? `<p>Microwave: ${esc(m.available || '—')}${m.details ? ` — ${esc(m.details)}` : ''}</p>` : ''}</div></details>`;
+}
+function hotelRowsRefresh() {
+  document.querySelectorAll('.hotel[data-hd]').forEach(el => {
+    const d = state.trips.flatMap(t => t.days).find(y => y.date === el.dataset.hd && y.hotel && lastTo(y) === el.dataset.ha);
+    if (d) el.outerHTML = hotelRow(d, el.open);
+  });
+}
+function hotelMap(d) {
+  const to = lastTo(d);
+  if (!/^[A-Z]{3,4}$/.test(to)) return '';
+  const city = DOOR_APTS[to] || '';
+  const url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(`${to} airport${city ? `, ${city}` : ''}`)}&destination=${encodeURIComponent(`${d.hotel}${city ? `, ${city}` : ''}`)}&travelmode=driving`;
+  return ` <a class="hotel-map" href="${esc(url)}" target="_blank" rel="noopener" aria-label="Directions from the airport to the hotel"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="5.5" fill="#fff"/><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z" fill="#34a853"/><path d="M12 9 7.05 4.05A7 7 0 0 0 5 9c0 2.5 1.75 5.75 3.5 8.375z" fill="#fbbc04"/><path d="M12 9 7.05 4.05A7 7 0 0 1 12 2z" fill="#ea4335"/><path d="M12 9V2a7 7 0 0 1 7 7z" fill="#4285f4"/><circle cx="12" cy="9" r="2.6" fill="#fff"/></svg></a>`;
+}
 function dayBlock(trip, d, fold) {
   const allLegs = trip.days.flatMap(x => x.legs);
   const head = `<span>${fold ? `Day ${trip.days.indexOf(d) + 1} · ` : ''}${md(d.date)}</span><span class="sub">Report ${reportAt(d)} · Release ${esc(d.release)}${d.duty ? ` · Duty ${esc(d.duty)}` : ''}</span>`;
@@ -1058,7 +1202,7 @@ function dayBlock(trip, d, fold) {
               `${l.date}-${l.flight}-${l.from}`)}
           </div></details>`;
       }).join('')}
-      ${d.hotel ? `<div class="hotel">🏨 ${esc(d.hotel)} · layover ${esc(d.layover)}</div>` : ''}
+      ${d.hotel ? hotelRow(d) : ''}
     ${fold ? '</details>' : '</div>'}`;
 }
 
@@ -1624,6 +1768,8 @@ function syncStep(t, run) {
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['11/02', 'Hotel line: tap a hotel to unfold shuttle times, phone and microwave details (iPhone app)'],
+  ['11/02', 'Hotel line: map pin opens Google Maps directions from the arrival airport to the hotel'],
   ['11/02', 'Calculator: Credit box next to IN time shows the credit of the flight you pick and how it differs from block time (in brackets); OUT and Block Time side by side, today’s flights in a row below (swipe when there are more than five), No Flight Today on days off, calculated in UTC'],
   ['11/02', 'Jet bridge code: your location puts the airport you’re at on top (📍 Here) — iPhone app asks once when you open the tab, the website only when you tap Use my location'],
   ['11/02', 'Jet bridge code: longer codes (up to 120 characters per airline) and notes (up to 300), and long codes wrap inside the card'],

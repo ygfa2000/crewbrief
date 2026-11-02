@@ -95,6 +95,75 @@ function parseCheckIn(html) {
   return { checked: /<img|✓|&#10003;|check/i.test(cell), cell: cell.slice(-200) };
 }
 
+const unent = s => s.replace(/&nbsp;/g, ' ').replace(/&quot;/g, '"').replace(/&#0*39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+const plain = s => unent(s.replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+function absUrl(u, base) {
+  u = u.trim();
+  if (/^https?:\/\//i.test(u)) return u;
+  if (u.startsWith('//')) return `https:${u}`;
+  if (!u || u[0] === '#' || /^[a-z][a-z0-9+.-]*:/i.test(u)) return '';
+  const m = /^(https?:\/\/[^/?#]+)([^?#]*)/i.exec(base);
+  if (!m) return '';
+  if (u[0] === '/') return m[1] + u;
+  const [path, rest] = /^([^?#]*)(.*)$/.exec(u).slice(1);
+  const out = m[2].split('/').slice(0, -1);
+  for (const x of path.split('/')) { if (x === '..') { if (out.length > 1) out.pop(); } else if (x !== '.') out.push(x); }
+  return m[1] + out.join('/') + rest;
+}
+function linkOf(attrs, base) {
+  const attr = k => { const m = new RegExp(`\\s${k}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, 'i').exec(attrs); return m ? unent(m[1] ?? m[2] ?? m[3]) : ''; };
+  const href = attr('href').trim();
+  if (/^tel:/i.test(href)) return '';
+  const direct = absUrl(href, base);
+  if (direct) return direct;
+  const m = /['"]((?:https?:\/\/|\/\/)[^'"\s]+|[^'"\s]+\.(?:aspx|html?|php)(?:[?#][^'"]*)?)['"]/i.exec(`${attr('onclick')} ${/^javascript:/i.test(href) ? href : ''}`);
+  return m ? absUrl(m[1], base) : '';
+}
+function cellShape(cell) {
+  const tag = /<([a-z][a-z0-9]*)\b((?:"[^"]*"|'[^']*'|[^'">])*)>/gi, shape = [];
+  let m;
+  while ((m = tag.exec(cell))) {
+    const names = m[2].replace(/"[^"]*"|'[^']*'/g, '""').replace(/=\s*[^\s>]+/g, '=').match(/[a-z][a-z0-9-]*(?=\s*=)/gi) || [];
+    const one = `${m[1].toLowerCase()}${names.length ? `[${names.map(x => x.toLowerCase()).join(',')}]` : ''}`;
+    if (!shape.includes(one)) shape.push(one);
+  }
+  const text = plain(cell.replace(tag, ' ')).split(' ').filter(w => !/:\/\/|^\/\/|^www\.|[?=<>]|\.aspx|^javascript:/i.test(w)).join(' ');
+  return { cell: text.slice(0, 200), shape: shape.join(' ').slice(0, 120) };
+}
+function parseHotels(html, base) {
+  const out = [], re = /Hotel\s*:/gi;
+  let m, prev = 0;
+  while ((m = re.exec(html))) {
+    const rest = html.slice(re.lastIndex, re.lastIndex + 1500);
+    const stop = rest.search(/Layover\s*:|Hotel\s*:/i), cell = stop < 0 ? rest : rest.slice(0, stop);
+    let name = '', url = '', a;
+    const el = /<([a-z]+)\b([^>]*\b(?:href|onclick)\s*=[^>]*)>([\s\S]*?)<\/\1>/gi;
+    while (!url && (a = el.exec(cell))) {
+      const text = plain(a[3]), u = linkOf(a[2], base);
+      if (u && /[A-Za-z]{2}/.test(text)) { name = text; url = u; }   // 숫자뿐인 글(전화)은 건너뜀
+    }
+    if (!name) name = plain(cell).split('(')[0].trim();
+    const d = /(\d{1,2})[-/](\d{1,2})[-/](\d{4})/g, before = plain(html.slice(prev, m.index));
+    let last = null, x;
+    while ((x = d.exec(before))) last = x;
+    prev = re.lastIndex;
+    if (name) out.push({ name, url, date: last ? `${last[3]}-${last[1].padStart(2, '0')}-${last[2].padStart(2, '0')}` : '', cell: stop < 0 ? '' : cell });
+  }
+  return out;
+}
+function hotelLinks(trip, html, base) {
+  const items = parseHotels(html, base);
+  if (!items.length) return null;
+  const words = s => String(s).toLowerCase().match(/[a-z]{3,}/g) || [];
+  const same = (a, b) => words(a).some(w => words(b).includes(w));
+  const hd = trip.days.filter(d => d.hotel), days = {};
+  hd.forEach((d, i) => {
+    const it = items.length === hd.length ? items[i] : items.find(x => x.date === d.date) || items.find(x => words(x.name).join() === words(d.hotel).join());
+    if (it && it.url && same(it.name, d.hotel)) days[d.date] = it.url;
+  });
+  return Object.keys(days).length ? { days } : { days, ...cellShape(items[0].cell) };
+}
+
 function parseOpenTime(html) {
   const cell = s => s.replace(/<[^>]+>/g, '').replace(/&nbsp;| /g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
   const when = s => { const m = /(\d+)\/(\d+)\/(\d+) (\d+:\d+)/.exec(s); return m ? [`20${m[3]}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`, m[4]] : ['', '']; };
@@ -443,13 +512,34 @@ async function run() {
       flows[`${date}-${tail}`] = { at: new Date().toISOString(), flights: parseFlowBoard(await get(`${atob('L1NLWVcvRmxpZ2h0U2NyZWVuL0Zsb3dCb2FyZC5hc3B4')}?${q}`)) };
     }
 
-    const checkin = {};
+    const checkin = {}, tripPages = {};
+    const tripPage = t => tripPages[t.pairing + t.start] || (tripPages[t.pairing + t.start] = get(`${atob('L1NLWVcvU2tlZFBsdXMvVHJpcERldGFpbC5hc3B4')}?PairingName=${encodeURIComponent(t.pairing)}&PairingDate=${t.start.replace(/-/g, '')}&OTPosition=&SBID=0`));
     for (const t of scoped.filter(t => t.start === ymd(now))) {
       try {
         say(`Check-in (${t.pairing})`);
-        const r = parseCheckIn(await get(`${atob('L1NLWVcvU2tlZFBsdXMvVHJpcERldGFpbC5hc3B4')}?PairingName=${encodeURIComponent(t.pairing)}&PairingDate=${t.start.replace(/-/g, '')}&OTPosition=&SBID=0`));
+        const r = parseCheckIn(await tripPage(t));
         if (r) checkin[`${t.pairing}|${t.start}`] = r;
       } catch (e) {}
+    }
+
+    let hotels;
+    if (typeof CB_BG === 'undefined' || CB_BG !== true) {
+      const today = ymd(now), page = `https://${location.hostname}${atob('L1NLWVcvU2tlZFBsdXMvVHJpcERldGFpbC5hc3B4')}`;
+      let seen = {}, n = 0;
+      try { seen = JSON.parse(localStorage.getItem('cbHotels')) || {}; } catch (e) {}
+      for (const t of scoped.filter(t => t.end >= today && t.days.some(d => d.hotel)).sort((a, b) => a.start.localeCompare(b.start))) {
+        const k = `${t.pairing}|${t.start}`;
+        if (seen[k] && seen[k].at === today) continue;
+        if (n++ >= 5 || Date.now() - now > 12000) break;   // 앱 동기화 한도 25초
+        try {
+          say(`Hotel (${t.pairing})`);
+          const r = hotelLinks(t, await tripPage(t), page);
+          if (r) seen[k] = Object.assign({ at: today }, r);
+        } catch (e) { break; }
+      }
+      hotels = {};
+      trips.forEach(t => { const k = `${t.pairing}|${t.start}`; if (seen[k]) hotels[k] = seen[k]; });
+      try { localStorage.setItem('cbHotels', JSON.stringify(hotels)); } catch (e) {}
     }
 
     let opentime = null;
@@ -467,7 +557,7 @@ async function run() {
     } catch (e) { opentime = { at: new Date().toISOString(), trips: [], err: String(e.message || e).slice(0, 80) }; }
 
     if (typeof CB_DONE === 'function') CB_DONE();
-    const payload = { syncedAt: now.toISOString(), trips, releases, flows, raws, opentime, checkin, script: typeof CB_SCRIPT_VER === 'string' ? CB_SCRIPT_VER : 'bookmark' };
+    const payload = { syncedAt: now.toISOString(), trips, releases, flows, raws, opentime, checkin, hotels, script: typeof CB_SCRIPT_VER === 'string' ? CB_SCRIPT_VER : 'bookmark' };
     if (lite) payload.lite = { months: lite.months, why: lite.why, trips: lite.only.size };
     if (!CB_EXEC) {
       say(`완료 — 트립 ${trips.length}개, Release ${Object.keys(releases).length}건, Flow ${Object.keys(flows).length}대 · 앱으로 돌아갑니다…`);
