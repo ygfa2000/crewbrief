@@ -185,11 +185,12 @@
   .crow { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1.4fr); gap:8px; align-items:end; }
   #cLegs { margin-top:8px; }
   .pick-none { margin-top:8px; display:flex; align-items:center; justify-content:center; height:38px; box-sizing:border-box; border:1px solid var(--line); border-radius:8px; color:var(--mute); font-size:12px; font-weight:600; opacity:.7; }
-  .sk-nav { display:flex; justify-content:space-between; margin:10px 0 6px; }
-  .sk-nav button { font:600 13px -apple-system,system-ui,sans-serif; padding:6px 12px; border:1px solid var(--line); border-radius:9px; background:var(--card); color:var(--ink); }
-  .sk-nav.sk-menu { display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:6px; }
-  .sk-menu button { padding:6px 4px; white-space:nowrap; }
-  .sk-menu button:disabled { opacity:.4; }
+  /* Sked+ menu: same colors as the Sked+ page under it (sampled from the reference screenshot: header #5480af, trip bar #00007a) — white on navy 16.4:1, navy vs strip 3.97:1 */
+  .sk-nav { display:flex; justify-content:space-between; gap:6px; margin:10px -6px 6px; padding:6px; border-radius:10px; background:#5480af; }
+  .sk-nav button { font:700 13px -apple-system,system-ui,sans-serif; padding:8px 12px; border:1px solid #00007a; border-radius:8px; background:#00007a; color:#fff; cursor:pointer; }
+  .sk-nav.sk-menu { display:grid; grid-auto-flow:column; grid-auto-columns:1fr; }
+  .sk-menu button { padding:8px 4px; white-space:nowrap; }
+  .sk-nav button:disabled { background:transparent; border:1px dashed rgba(255,255,255,.8); color:rgba(255,255,255,.8); cursor:default; }
   #skedSlot { border-radius:12px; background:var(--card); border:1px solid var(--line); }
   .pick { min-width:0; display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0, 1fr); gap:4px; }
   .pick button { display:flex; flex-direction:column; align-items:center; padding:4px 0; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:11px; line-height:1.25; cursor:pointer; min-width:0; }
@@ -348,12 +349,15 @@
   .seg { gap:6px; background:none; padding:0; border-radius:0; }
   .seg button { border:1px solid var(--line); border-radius:12px; background:var(--card); color:var(--mute); font:600 13px 'Pretendard Variable',Pretendard,sans-serif; padding:9px 4px; }
   .seg button.on { background:var(--accsoft); color:var(--acc); border-color:var(--acc); }
-  /* ⚙ 격자의 Hotel info ↻ (앱 Build 16) — 둘째 줄에 마지막 결과 */
-  .seg .hotel-btn .rf { display:inline-block; margin-left:2px; }
-  .seg .hotel-btn small { display:block; margin-top:2px; font-size:11px; font-weight:500; color:var(--mute); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .seg .hotel-btn.busy { opacity:.6; }
-  .seg .hotel-btn.busy .rf { animation:spin 1s linear infinite; }
-  @media (prefers-reduced-motion: reduce) { .seg .hotel-btn.busy .rf { animation:none; } }
+  /* ⚙ 격자의 Hotel info 칸(누름 없음 · 둘째 줄에 마지막 결과 — 칸 전체 너비로 한 줄) + 오른쪽 작은 둥근 ↻ 단추 (앱 Build 16) */
+  .seg .hotel-cell { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; column-gap:6px; min-width:0; border:1px solid var(--line); border-radius:12px; background:var(--card); color:var(--mute); font:600 13px 'Pretendard Variable',Pretendard,sans-serif; padding:5px 6px; cursor:default; }
+  .seg .hotel-cell .hi { display:contents; text-align:center; }
+  .seg .hotel-cell small { grid-column:1 / -1; min-width:0; margin-top:2px; font-size:11px; font-weight:500; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .seg .hotel-rf { grid-column:2; grid-row:1; width:30px; height:30px; padding:0; border-radius:50%; font:600 16px/1 -apple-system,system-ui,sans-serif; display:grid; place-items:center; cursor:pointer; }
+  .seg .hotel-rf span { display:block; }
+  .seg .hotel-rf.busy { opacity:.5; }
+  .seg .hotel-rf.busy span { animation:spin 1s linear infinite; }
+  @media (prefers-reduced-motion: reduce) { .seg .hotel-rf.busy span { animation:none; } }
   .frow { border-bottom:1px solid var(--line); }
   .frow.mine { background:var(--accsoft); }
   /* Flow 의 안 끝난 편마다 지도: 경로(Release 계획 경로, 없으면 최단 경로) · 날고 있으면 실시간 위치(공개 ADS-B) */
@@ -994,10 +998,10 @@ function hotelLine() {
   const r = hotelLast;
   if (!r) return '';
   const d = new Date(r.at), at = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-  const why = { login: '로그인 필요', 'no-layovers': '목록 없음', retrieve: '목록 없음', other: '목록 없음', timeout: '시간 초과', wait: '30초 뒤 다시 누르세요', noapp: '앱에 전하지 못했습니다' };
-  return r.ok ? `호텔 ${r.hotels}곳 · 전자레인지 ${r.micro}곳 · ${at}` : `${why[r.why] || '읽지 못함'} · ${at}`;
+  const why = { login: '로그인 필요', 'no-layovers': '목록 없음', retrieve: '목록 없음', other: '목록 없음', timeout: '시간 초과', wait: '30초 뒤 다시', noapp: '앱 연결 실패' };
+  return r.ok ? `호텔 ${r.hotels} · 레인지 ${r.micro} · ${at}` : `${why[r.why] || '읽지 못함'} · ${at}`;
 }
-const hotelBtn = () => document.documentElement.dataset.cbHotelRefresh ? `<button class="hotel-btn${hotelBusy ? ' busy' : ''}" data-hotel-refresh data-testid="hotel-refresh"${hotelBusy ? ' disabled' : ''}>Hotel info <span class="rf" aria-hidden="true">↻</span>${hotelLine() ? `<small data-testid="hotel-refresh-line">${esc(hotelLine())}</small>` : ''}</button>` : '';
+const hotelBtn = () => document.documentElement.dataset.cbHotelRefresh ? `<div class="hotel-cell" data-testid="hotel-refresh"><div class="hi">Hotel info${hotelLine() ? `<small data-testid="hotel-refresh-line">${esc(hotelLine())}</small>` : ''}</div><button class="hotel-rf${hotelBusy ? ' busy' : ''}" data-hotel-refresh aria-label="Refresh hotel info"${hotelBusy ? ' disabled' : ''}><span aria-hidden="true">↻</span></button></div>` : '';
 function hotelKeep(r) {
   hotelBusy = false; hotelLast = Object.assign({ at: Date.now() }, r);
   if (r.why !== 'wait') try { localStorage.setItem(HOTEL_LAST, JSON.stringify(hotelLast)); } catch (e) {}
@@ -1197,8 +1201,31 @@ const HI_COMMON = new Set('hotel hotels inn suites suite airport resort the and 
 const hiWords = s => (String(s || '').toLowerCase().match(/[a-z0-9]{3,}/g) || []).filter(w => !HI_COMMON.has(w));
 const hotelSame = (name, hotel) => { const a = hiWords(hotel), b = hiWords(name); return !a.length || !b.length || a.some(w => b.some(v => v.startsWith(w))); };
 const dayShift = (date, k) => new Date(Date.parse(`${date}T00:00:00Z`) + k * 864e5).toISOString().slice(0, 10);
+const clockMs = (date, hm) => Date.parse(`${date}T00:00:00Z`) + mins(hm) * 6e4;
+function stayGap(d, x) {
+  if (!/^\d{1,2}:\d{2}$/.test(d.release || '')) return Infinity;
+  const a = /^\d{1,2}:\d{2}$/.test(d.report || '') ? aptMs(d.legs[0]?.from, d.date, d.report) : null, b = aptMs(lastTo(d), d.date, d.release);
+  if (a == null || b == null) return Infinity;   // 시간대를 모르면 자정 넘김을 못 가린다 — 시각으로 짝 안 함(날짜 규칙으로)
+  const rel = clockMs(d.date, d.release) + (b < a ? 864e5 : 0);   // 자정을 넘긴 Release 는 다음 날
+  const gaps = [x.toHotel && Math.abs(clockMs(x.toHotel.date, x.toHotel.time) - rel), x.toAirport && Math.abs(clockMs(x.toAirport.date, x.toAirport.time) - rel - mins(d.layover) * 6e4)].filter(Number.isFinite);
+  return gaps.length ? gaps.reduce((p, q) => p + q) / gaps.length : Infinity;
+}
+const STAY_GAP_MAX = 6 * 36e5;
+function staysByTime(list, days, named) {
+  const pairs = days.flatMap(d => list.filter(x => !named || hotelSame(x.hotel.name, d.hotel)).map(x => [stayGap(d, x), d, x])).filter(p => p[0] <= STAY_GAP_MAX).sort((p, q) => p[0] - q[0]);
+  const got = new Map(), used = new Set();
+  pairs.forEach(([, d, x]) => { if (!got.has(d) && !used.has(x)) { got.set(d, x); used.add(x); } });
+  return got;
+}
 function hotelStay(list, date, airport, hotel) {
-  const taken = dt => state.trips.some(t => t.days.some(d => d.hotel && d.date === dt && lastTo(d) === airport));
+  const days = state.trips.flatMap(t => t.days).filter(d => d.hotel && lastTo(d) === airport), me = days.find(d => d.date === date);
+  if (me && days.some(d => d !== me && Math.abs(Date.parse(d.date) - Date.parse(date)) <= 2 * 864e5)) {
+    const got = staysByTime(list.filter(y => y.airport === airport), days, hotel != null);
+    if (got.has(me)) return got.get(me);
+    const used = new Set(got.values());
+    list = list.filter(y => !used.has(y));
+  }
+  const taken = dt => days.some(d => d.date === dt);
   for (const k of [0, 1, -1]) {
     const dt = dayShift(date, k);
     if (k && taken(dt)) continue;
@@ -1244,7 +1271,7 @@ window.cbHotelInfoDetail = (name, text) => {
 };
 window.cbHotelInfoCovers = text => {
   const list = parseHotelList(text);
-  return state.trips.flatMap(t => t.days).filter(d => d.hotel && d.date >= today).every(d => hotelStay(list, d.date, lastTo(d)));
+  return state.trips.flatMap(t => t.days).filter(d => d.hotel && d.date >= today).every(d => hotelStay(list, d.date, lastTo(d), d.hotel));
 };
 window.cbHotelInfoWidenDates = () => {
   const ends = state.trips.filter(t => t.end >= today && t.days.some(d => d.hotel)).map(t => t.end).sort(), max = ymd(Date.now() + 62 * 864e5);
