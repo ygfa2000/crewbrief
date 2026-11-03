@@ -383,9 +383,17 @@
   .hx-chev svg { width:16px; height:16px; transition:transform .18s ease; }
   .hotelx[open] .hx-chev svg { transform:rotate(180deg); }
   @media (prefers-reduced-motion: reduce) { .hx-chev svg { transition:none; } }
-  .hx-body { margin-top:10px; padding-top:10px; border-top:1px solid var(--line); font-size:14px; display:grid; gap:8px; } .hx-body p { margin:0; }
-  .hi-row { display:grid; grid-template-columns:7.2em 1fr; gap:8px; } .hi-row b { font-weight:600; }
-  .hx-tels { display:flex; flex-wrap:wrap; gap:8px; } .hx-tel { color:var(--acc); background:var(--card); border-radius:10px; padding:8px 12px; font-weight:600; text-decoration:none; }
+  .hx-body { margin-top:10px; padding-top:10px; border-top:1px solid var(--line); display:grid; gap:6px; }
+  /* 호텔 줄 (워치 6안): 접힌 줄 = 이름 · 지도 핀 · 달 레이오버, 펴면 줄마다 둥근 아이콘 칸 · 작은 라벨 위 · 굵은 값 아래. 전화 줄은 줄 전체를 누르면 전화(아이콘 칸 초록) */
+  .htx-name { color:var(--ink); font-weight:700; font-size:15px; }
+  .htx-lay { display:flex; width:fit-content; align-items:center; gap:5px; margin-top:6px; padding:3px 10px 3px 8px; border-radius:10px; background:var(--card); color:var(--ink2); font-size:13px; font-weight:600; }
+  .htx-lay b { color:var(--ink); font-weight:800; font-variant-numeric:tabular-nums; } .htx-lay .htx-ic { width:13px; height:13px; }
+  .htx-ic { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; display:block; }
+  .htx-row { display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:8px 10px; color:var(--ink); text-decoration:none; }
+  .htx-row .k { display:block; color:var(--mute); font-size:11.5px; font-weight:600; } .htx-row .v { display:block; font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .htx-tile { width:30px; height:30px; border-radius:9px; display:grid; place-items:center; flex:none; background:var(--accsoft); color:var(--acc); }
+  .hx-tel .htx-tile { background:#e3f6ea; color:#1a9b4b; } .hx-tel .v { color:#1a9b4b; }
+  @media (prefers-color-scheme: dark) { .hx-tel .htx-tile { background:#15331f; color:#1fb35a; } .hx-tel .v { color:#3ccf73; } }
   .hotel-map { display:inline-block; padding:4px; margin:-4px 0; vertical-align:middle; line-height:0; }
   .hotel-map svg { width:20px; height:20px; display:block; border-radius:5px; box-shadow:0 0 0 .5px rgba(0,0,0,.18); }
   .atis-in input, #calc input, .door-top input { border:0; background:var(--soft); border-radius:12px; }
@@ -1428,7 +1436,6 @@ window.cbHotelInfoStart = () => {
   }
   return '';
 };
-const telLink = ([who, p]) => `<a class="hx-tel" href="tel:${esc(p.replace(/[^\d+]/g, ''))}">${esc(who)} ${esc(p)}</a>`;
 const hotelShuttle = r => !r.provider || /hotel shuttle/i.test(r.provider);
 function hotelPhones(x) {
   const out = [], seen = new Set(), add = (who, p) => { const n = (p || '').replace(/\D/g, ''); if (n && !seen.has(n)) { seen.add(n); out.push([who, p]); } };
@@ -1436,16 +1443,31 @@ function hotelPhones(x) {
   [x.toHotel, x.toAirport].forEach(r => { if (r) add(hotelShuttle(r) ? 'Shuttle' : r.provider.replace(/^(Use|The)\s+/i, '').split(' ')[0], r.phone); });
   return out;
 }
+const HX_IC = {
+  phone: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
+  bus: '<rect x="4" y="3" width="16" height="15" rx="3"/><path d="M4 11h16M8 18v2M16 18v2"/>',
+  in: '<path d="M3 12h12M11 8l4 4-4 4M15 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/>',
+  out: '<path d="M2 16l20-6-6 10-3-5zM2 16l6 1"/>',
+  micro: '<rect x="2" y="5" width="20" height="14" rx="2.5"/><rect x="5" y="8" width="10" height="8" rx="1"/><path d="M18.5 9v1M18.5 13v2"/>',
+  moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4 6.5 6.5 0 0 0 20 14.5z"/>',
+};
+const hxIc = k => `<svg class="htx-ic" viewBox="0 0 24 24" aria-hidden="true">${HX_IC[k]}</svg>`;
+const hxRow = (k, label, value, tel) => `<${tel ? `a class="htx-row hx-tel" href="tel:${esc(tel.replace(/[^\d+]/g, ''))}"` : 'div class="htx-row"'}><span class="htx-tile">${hxIc(k)}</span><span><span class="k">${esc(label)}</span><span class="v">${esc(value)}</span></span></${tel ? 'a' : 'div'}>`;
 function hotelRow(d, open) {
   const x = hotelInfoFor(d.date, lastTo(d), d.hotel), id = `data-hd="${esc(d.date)}" data-ha="${esc(lastTo(d))}"`;
-  const line = `${esc(x ? x.hotel.name : d.hotel)}${hotelMap(d)} · layover ${esc(d.layover)}`;
+  const line = `<span class="htx-name">${esc(x ? x.hotel.name : d.hotel)}</span>${hotelMap(d)}<span class="htx-lay">${hxIc('moon')}Layover <b>${esc(d.layover)}</b></span>`;
   if (!x) return `<div class="hotel" ${id}>${line}</div>`;
-  const ride = (label, r, date) => (r ? `<div class="hi-row"><b>${label}</b><span>${[hotelShuttle(r) ? '' : r.provider, date && r.date ? md(r.date) : '', r.time, r.transit].filter(Boolean).map(esc).join(' · ') || '—'}</span></div>` : '');
-  const m = x.hotel.microwave, phones = hotelPhones(x);
-  return `<details class="hotel hotelx" ${id}${open ? ' open' : ''}><summary>${line}<span class="hx-chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></summary><div class="hx-body">
-    ${ride('Shuttle to hotel', x.toHotel)}${ride('Shuttle to airport', x.toAirport, true)}
-    ${phones.length ? `<div class="hx-tels">${phones.map(telLink).join('')}</div>` : ''}
-    ${m ? `<p>Microwave: ${esc(m.available || '—')}${m.details ? ` — ${esc(m.details)}` : ''}</p>` : ''}</div></details>`;
+  const firm = r => (!r || !r.provider ? '' : hotelShuttle(r) ? 'Hotel shuttle' : r.provider), shown = firm(x.toHotel) || firm(x.toAirport);
+  const when = (r, date) => [firm(r) !== shown ? firm(r) : '', date && r.date ? md(r.date) : '', r.time, (r.transit || '').replace(/ minutes?$/, ' min')].filter(Boolean).join(' · ') || '—';
+  const m = x.hotel.microwave, phones = hotelPhones(x), hotelTel = phones.find(p => p[0] === 'Hotel'), rows = [];
+  if (hotelTel) rows.push(hxRow('phone', 'Hotel phone', hotelTel[1], hotelTel[1]));
+  if (shown) rows.push(hxRow('bus', 'Shuttle', shown));
+  phones.filter(p => p !== hotelTel).forEach(([who, p]) => rows.push(hxRow('phone', `${who} phone`, p, p)));
+  if (x.toHotel) rows.push(hxRow('in', 'Shuttle to hotel', when(x.toHotel)));
+  if (x.toAirport) rows.push(hxRow('out', 'Shuttle to airport', when(x.toAirport, true)));
+  if (m) rows.push(hxRow('micro', 'Microwave', `${m.available || '—'}${m.details ? ` — ${m.details}` : ''}`));
+  if (!rows.length) return `<div class="hotel" ${id}>${line}</div>`;
+  return `<details class="hotel hotelx" ${id}${open ? ' open' : ''}><summary>${line}<span class="hx-chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></summary><div class="hx-body">${rows.join('')}</div></details>`;
 }
 function hotelRowsRefresh() {
   document.querySelectorAll('.hotel[data-hd]').forEach(el => {
