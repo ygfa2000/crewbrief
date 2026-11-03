@@ -450,13 +450,22 @@
   .status .upd, .status .upd:active { background:transparent; box-shadow:none; }
   .status .upd .ico { background:linear-gradient(180deg,#ffffff,#d3d8df); box-shadow:inset 0 1px 0 #fff, 0 0 0 1px rgba(31,36,48,.12), 0 2px 5px rgba(31,36,48,.18); }
   .status .upd .ico svg { stroke:#6b7380; }
-  .gear { display:grid; place-items:center; } .gear img { width:34px; height:34px; display:block; }
-  .gear { position:relative; }
+  .gear { display:grid; place-items:center; position:relative; -webkit-tap-highlight-color:transparent; transition:background .12s ease; }
+  .gear img { width:34px; height:34px; display:block; transition:transform .1s ease, opacity .1s ease; }
   .nbadge { display:inline-grid; place-items:center; min-width:18px; height:18px; padding:0 5px; margin-left:5px; border-radius:9px; background:#f04452; color:#fff; font:700 11px/1 -apple-system,system-ui,sans-serif; vertical-align:1px; }
   .gear .nbadge { position:absolute; top:-2px; right:-4px; margin:0; box-shadow:0 0 0 2px var(--bg); }
   .gear.on { background:rgba(25,31,40,.22); }
-  /* 다크: 둥근 바탕 없이(선택된 것처럼 보였다) 톱니 그림만 밝게 · 설정을 연 동안만 아주 옅은 바탕 (오너 11/02 시안 C) */
-  @media (prefers-color-scheme: dark) { .gear { background:transparent; } .gear img { filter:brightness(2.4); } .gear.on { background:rgba(255,255,255,.10); } }
+  .gear:active, .gear.pressed { background:rgba(25,31,40,.14); }
+  .gear.on:active, .gear.on.pressed { background:rgba(25,31,40,.30); }
+  .gear:active img, .gear.pressed img { transform:scale(.90); opacity:.72; }
+  /* 다크: 둥근 바탕 없이(선택된 것처럼 보였다) 톱니 그림만 밝게 · 설정을 연 동안 또렷한 바탕 · 누르는 중 둥근 그늘+작아짐 */
+  @media (prefers-color-scheme: dark) {
+    .gear { background:transparent; }
+    .gear img { filter:brightness(2.4); }
+    .gear.on { background:rgba(255,255,255,.24); }
+    .gear:active, .gear.pressed { background:rgba(255,255,255,.18); }
+    .gear.on:active, .gear.on.pressed { background:rgba(255,255,255,.32); }
+  }
   .tabs button { white-space:nowrap; }
   @media (max-width:370px) {
     .hdr { gap:8px; } .mark { width:32px; height:32px; } .word { font-size:20px; }
@@ -1898,6 +1907,26 @@ document.querySelectorAll('.tabs, .gear').forEach(el => el.addEventListener('cli
   }
   if (b) { tab = b.dataset.tab; if (tab === 'door' && doorData) doorLoad(); if (tab === 'door') pubTried = false; render(); scrollTo(0, 0); }
 }));
+{
+  const g = document.querySelector('.gear');
+  if (g) {
+    let t0 = 0, timer = 0;
+    g.addEventListener('touchstart', () => {
+      clearTimeout(timer);
+      t0 = Date.now();
+      g.classList.add('pressed');
+    }, { passive: true });
+    g.addEventListener('touchend', () => {
+      const rem = 180 - (Date.now() - t0);
+      if (rem > 0) timer = setTimeout(() => g.classList.remove('pressed'), rem);
+      else g.classList.remove('pressed');
+    }, { passive: true });
+    g.addEventListener('touchcancel', () => {
+      clearTimeout(timer);
+      g.classList.remove('pressed');
+    }, { passive: true });
+  }
+}
 
 {
   const $ = id => document.getElementById(id), pad = n => String(n).padStart(2, '0'), hm = m => `${Math.floor(m / 60)}:${pad(m % 60)}`;
