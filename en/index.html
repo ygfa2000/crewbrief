@@ -246,6 +246,10 @@
   .setrow .k { color:var(--mute); font-size:12px; letter-spacing:.04em; }
   .setrow .v { font-weight:600; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
   .setrow .v small { font-weight:400; color:var(--mute); }
+  .stat-row { display:flex; justify-content:space-between; gap:12px; padding:6px 2px; border-bottom:1px solid var(--line); }
+  .stat-row .k { color:var(--mute); font-size:12px; letter-spacing:.04em; }
+  .stat-row .v { font-weight:600; font-variant-numeric:tabular-nums; text-align:right; }
+  .stat-row .v small { font-weight:400; color:var(--mute); }
   .setrow input { width:18px; height:18px; margin:0; }
   .setrow .pos { width:56px; height:32px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font:600 15px -apple-system,system-ui,sans-serif; text-align:center; text-align-last:center; }
   .setbtns { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:12px; }
@@ -2892,20 +2896,21 @@ function fbLoad(again) {
   fetch(`${RELAY}?f=fb&dk=${encodeURIComponent(doorKey)}`).then(r => r.json()).then(r => {
     if (seq !== fbSeq) return;
     if (!r.ok) throw new Error(r.error);
+    const wasAdmin = fbData.admin;
     fbData = r;
     if (fbMsg === fbErr) fbMsg = '';
     fcmSync();
-    if ((tab === 'set' && setTab === 'fb') || newFb()) render();
+    if ((tab === 'set' && setTab === 'fb') || newFb() || (tab === 'set' && setTab === 'share' && !wasAdmin !== !r.admin)) render();
   }).catch(err => {
     if (seq !== fbSeq) return;
     const final = NO_ACCESS.test(err.message);
     if (!again && !final) { setTimeout(() => { if (seq === fbSeq) fbLoad(true); }, 1500); return; }
     if (final) fbData = { list: [] };
-    fbMsg = fbErr = `Couldn't load list: ${err.message}`; if (tab === 'set' && setTab === 'fb') render();
+    fbMsg = fbErr = `Couldn't load list: ${err.message}`; if (tab === 'set' && (setTab === 'fb' || (final && setTab === 'share'))) render();
   });
 }
 const NO_ACCESS = /^no (door )?access$/;
-function listsReset() { fbData = null; appReqs = null; fbSeq++; appSeq++; fbMsg = ''; }
+function listsReset() { fbData = null; appReqs = null; fbSeq++; appSeq++; fbMsg = ''; shareStats = null; statsAt = 0; statsMsg = ''; statsSeq++; }
 const FRIEND_URL = 'https://crewbrief.pages.dev/friend/';
 const SHARE_API = 'https://crewbrief-share.bidpeek.workers.dev/', SHARE_MAX = 2;
 let shareData = null, shareMsg = '', shareKind = 'friend', shareCode = '';
@@ -2959,7 +2964,37 @@ function shareBox() {
   : `<div class="card box"><b>New phone?</b>
     <p class="sub" style="margin:4px 0 8px">Enter the share code from your old phone to keep your keys.</p>
     <input id="shOld" class="kin" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="24" autocomplete="off" autocapitalize="characters">
-    <div class="setbtns"><button id="shUse">Use code</button></div></div>`}`;
+    <div class="setbtns"><button id="shUse">Use code</button></div></div>`}
+  ${statsBox()}`;
+}
+let shareStats = null, statsAt = 0, statsMsg = '', statsSeq = 0;
+const STATS_FINAL = /^(no (door )?access|not set up)$/;
+function statsLoad(again) {
+  const seq = ++statsSeq;
+  statsAt = Date.now();
+  fetch(`${RELAY}?f=shareStats&dk=${encodeURIComponent(doorKey)}`).then(r => r.json()).then(r => {
+    if (seq !== statsSeq) return;
+    if (!r.ok) throw new Error(r.error);
+    shareStats = r; statsMsg = ''; statsPaint();
+  }).catch(err => {
+    if (seq !== statsSeq) return;
+    if (!again && !STATS_FINAL.test(err.message)) { setTimeout(() => { if (seq === statsSeq) statsLoad(true); }, 1500); return; }
+    shareStats = null; statsMsg = `Couldn't load stats: ${err.message}`; statsPaint();
+  });
+}
+function statsBody() {
+  if (!shareStats) return `<p class="sub" style="margin:6px 0 0">${esc(statsMsg || 'Loading…')}</p>`;
+  const v = x => x == null ? '—' : esc(String(x));
+  return `<div class="setlist">${[['People with a share code', v(shareStats.owners)], ['People who made a key', v(shareStats.keyOwners)], ['Keys', `${v(shareStats.keys)} <small>Family ${v(shareStats.spouse)} · Friend ${v(shareStats.friend)}</small>`],
+    ['People who uploaded a schedule', v(shareStats.uploaders)], ['Uploaded in the last 7 days', v(shareStats.uploaders7d)], ['Uploaded in the last 30 days', v(shareStats.uploaders30d)], ['Last upload', `${v(shareStats.lastUpload)} <small>UTC</small>`]]
+    .map(([k, x]) => `<div class="stat-row"><span class="k">${k}</span><span class="v">${x}</span></div>`).join('')}</div>
+    <p class="sub" style="margin:8px 0 0">Counts keys that exist now. Deleted keys aren't counted.</p>`;
+}
+const statsPaint = () => { const el = document.getElementById('shStats'); if (el) el.innerHTML = statsBody(); };
+function statsBox() {
+  if (!fbData || !fbData.admin || !doorKey) return '';
+  if (Date.now() - statsAt > 60e3) statsLoad();
+  return `<div class="card box" data-testid="share-stats"><b>Share stats</b><div id="shStats">${statsBody()}</div></div>`;
 }
 document.addEventListener('click', e => {
   const k = e.target.closest('[data-shk]');
