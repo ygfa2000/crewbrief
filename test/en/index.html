@@ -1607,7 +1607,7 @@ function todayView() {
   const td = ymd(Date.now()), cd = curDuty(), day = cd ? cd.d.date : td;
   const trip = cd ? cd.t : state.trips.find(t => t.days.some(d => d.date === td));
   if (!trip) {
-    const next = state.trips.find(t => t.start > today);
+    const next = state.trips.find(t => t.start > td);
     return `<div class="card box"><b>No flying today</b>${next
       ? `<div class="sub" style="margin-top:4px">Next trip: ${tripTitle(next)} · Report ${reportAt(next.days[0])}</div>` : ''}</div>`;
   }
