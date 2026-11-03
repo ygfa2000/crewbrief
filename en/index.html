@@ -455,7 +455,8 @@
   .nbadge { display:inline-grid; place-items:center; min-width:18px; height:18px; padding:0 5px; margin-left:5px; border-radius:9px; background:#f04452; color:#fff; font:700 11px/1 -apple-system,system-ui,sans-serif; vertical-align:1px; }
   .gear .nbadge { position:absolute; top:-2px; right:-4px; margin:0; box-shadow:0 0 0 2px var(--bg); }
   .gear.on { background:rgba(25,31,40,.22); }
-  @media (prefers-color-scheme: dark) { .gear { background:rgba(255,255,255,.16); } .gear.on { background:rgba(255,255,255,.32); } }
+  /* 다크: 둥근 바탕 없이(선택된 것처럼 보였다) 톱니 그림만 밝게 · 설정을 연 동안만 아주 옅은 바탕 (오너 11/02 시안 C) */
+  @media (prefers-color-scheme: dark) { .gear { background:transparent; } .gear img { filter:brightness(2.4); } .gear.on { background:rgba(255,255,255,.10); } }
   .tabs button { white-space:nowrap; }
   @media (max-width:370px) {
     .hdr { gap:8px; } .mark { width:32px; height:32px; } .word { font-size:20px; }
