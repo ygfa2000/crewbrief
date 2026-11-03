@@ -1532,6 +1532,7 @@ function dayBlock(trip, d, fold) {
               <div class="info">
                 ${l.crew && (l.crew.ca || l.crew.fo) ? `<span class="lbl">${l.crew.ca ? 'CA' : 'FO'}</span><span>${l.crew.ca ? name(l.crew.ca) : name(l.crew.fo)}${l.crew.ca && l.crew.fo ? `<span class="lbl fo">FO</span>${name(l.crew.fo)}` : ''}</span>` : ''}
                 ${l.crew && l.crew.fa.length ? `<span class="lbl">FA</span><span>${l.crew.fa.map(name).join(', ')}</span>` : ''}
+                ${l.crew && (l.crew.ff || []).length ? `<span class="lbl">FF</span><span>${l.crew.ff.map(name).join(', ')}</span>` : ''}
               </div></div>` +
               (rel ? releaseCard(rel) : `<div class="sub" style="margin-top:10px">Release 아직 없음</div>`),
               (state.flows || {})[`${l.date}-${l.tail}`] ? flowPanel(l, state.flows[`${l.date}-${l.tail}`]) : `<div class="panel"><h4>FLOW</h4>${flow(l, allLegs, rel)}</div>`,
@@ -2279,6 +2280,7 @@ function syncStep(t, run) {
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['11/03', 'My Trip: crew names (CA · FO) show again on trips where no FA is assigned yet or only FF is listed, and FF now has its own line — tap Update once'],
   ['11/03', 'Today: after midnight your current duty stays on screen until 4 hours after it ends, or until your next report if that comes first'],
   ['11/03', 'Today: between flights, a countdown to the next departure (Flow ETD if there is one, otherwise STD) and when to be back at the plane (35 min before)'],
   ['11/03', 'Feedback: tapping a notification shows the new item right away, even if the first load fails'],

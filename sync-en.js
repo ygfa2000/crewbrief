@@ -38,9 +38,11 @@ function parseTxtDet(text) {
     } else if ((m = /^\w+day (\d{2}-\d{2}-\d{4})\s+Report:\s*(\S+)\s+Release:\s*(\S+)/.exec(line))) {
       day = { date: iso(m[1]), report: m[2], release: m[3], legs: [] };
       trip.days.push(day);
+    } else if (/^\s*Crew Members/.test(line)) {
+      day = null;
     } else if (/^\s+Flight\s+Tail\s+Org/.test(line)) {
       cut = cutter(line);
-    } else if (day && cut && /^\s*\d+\.\s+\S/.test(line) && !/CA:/.test(line)) {
+    } else if (day && cut && /^\s*\d+\.\s+\S/.test(line) && !/^\s*\d+\.\s+[A-Z]{2}:/.test(line)) {
       const c = cut(line);
       legNo = Number(/^\s*(\d+)\./.exec(line)[1]) || legNo + 1;
       day.legs.push({
@@ -53,8 +55,10 @@ function parseTxtDet(text) {
       Object.assign(day, { dayBlock: m[1], dayCredit: m[2], duty: m[3] });
     } else if (day && (m = /^Hotel:\s*(.*?)\s{2,}Layover:\s*(\S+)/.exec(line))) {
       Object.assign(day, { hotel: m[1].trim(), layover: m[2] });
-    } else if ((m = /^\s*(\d+)\.\s+CA:\s*(.*?)\s+FO:\s*(.*?)\s+FA:\s*(.*?)(?:\s+FF:\s*(.*?))?\s*$/.exec(line))) {
-      trip.crew[Number(m[1]) - 1] = { ca: m[2], fo: m[3], fa: [m[4], m[5]].filter(Boolean) };
+    } else if ((m = /^\s*(\d+)\.\s+([A-Z]{2}:.*)$/.exec(line))) {
+      const f = {};
+      m[2].split(/(?:^|\s{2,}|\s(?=[A-Z]{2}:\s*\d{6}\b))([A-Z]{2}):/).slice(1).forEach((v, i, a) => { if (i % 2 && v.trim()) (f[a[i - 1]] ||= []).push(v.trim()); });
+      trip.crew[Number(m[1]) - 1] = { ca: (f.CA || [''])[0], fo: (f.FO || [''])[0], fa: f.FA || [], ff: f.FF || [] };
     }
   }
   for (const t of trips) {
