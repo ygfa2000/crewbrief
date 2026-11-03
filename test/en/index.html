@@ -1742,6 +1742,15 @@ function legCd(n, nf, t, between) {
   return `<div class="leg-cd" data-ms="${t.dep}" data-back="${between ? back : ''}"><div class="hx-lbl">${'Departs in'} · ${esc(n.flight)}</div><div class="cd">${countdown(t.dep)}</div>
     <div class="hx-when">${src}</div>${between ? `<div class="hx-when">${'Back by'} ${hmOf(back)} <span class="lc-left">(${'35 min before departure'} · <i>${backLeft(back)}</i>)</span></div>` : ''}</div>`;
 }
+window.cbSyncHint = () => {
+  const cd = curDuty(); if (!cd) return null;
+  const legs = cd.d.legs.filter(l => l.from !== l.to), lt = dutyTimes(cd.d).times;
+  const fw = l => (((state.flows || {})[`${l.date}-${l.tail}`] || {}).flights || []).find(x => x.flight === l.flight && x.from === l.from) || {};
+  const i = legs.findIndex(l => { const f = fw(l); return !f.out && !f.in; });
+  if (i < 0 || lt[i].dep == null) return null;
+  const f = fw(legs[i]);
+  return { dep: lt[i].dep, etd: !!(f.etd && f.std) };
+};
 setInterval(() => document.querySelectorAll('.leg-cd').forEach(el => {
   el.querySelector('.cd').innerHTML = countdown(+el.dataset.ms);
   const i = el.querySelector('.lc-left i'); if (i && el.dataset.back) i.textContent = backLeft(+el.dataset.back);
