@@ -124,6 +124,7 @@
   .cd { display:flex; align-items:baseline; gap:4px; margin-top:6px; font-variant-numeric:tabular-nums; }
   .cd b { font-size:56px; font-weight:800; letter-spacing:-.03em; line-height:1; }
   .cd i { font-style:normal; font-size:20px; font-weight:700; opacity:.7; margin-right:8px; }
+  .leg-cd { margin:14px 0 4px; padding-top:12px; border-top:1px solid rgba(255,255,255,.25); } .leg-cd .cd b { font-size:40px; } .leg-cd .cd i { font-size:16px; } .lc-left { opacity:.7; } .lc-pass { font-size:22px; font-weight:800; }
   .hx-when { margin-top:10px; font-size:15px; font-weight:600; opacity:.85; font-variant-numeric:tabular-nums; }
   .rp-mine { opacity:.75; font-weight:500; white-space:nowrap; }
   .rp-mine .tz { margin-left:0; }
@@ -234,6 +235,13 @@
   .door-card textarea { width:100%; box-sizing:border-box; margin-top:6px; font:14px -apple-system,system-ui,sans-serif; padding:6px 8px; border:1px solid var(--line); border-radius:7px; background:var(--bg); color:var(--ink); }
   .door-btns { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:8px; }
   .setlist { display:grid; gap:2px; }
+  .wake-row { display:flex; align-items:center; gap:8px; min-height:44px; margin:0 0 10px; padding:0 14px; box-sizing:border-box; cursor:pointer; }
+  .wake-k { flex:1; font-weight:700; }
+  .wake-v { color:var(--mute); font-size:14px; }
+  .wake-row input { appearance:none; -webkit-appearance:none; position:relative; width:44px; height:26px; margin:0; border-radius:13px; background:var(--line); cursor:pointer; transition:background .15s; }
+  .wake-row input::after { content:''; position:absolute; top:2px; left:2px; width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.3); transition:left .15s; }
+  .wake-row input:checked { background:var(--acc); }
+  .wake-row input:checked::after { left:20px; }
   .setrow { display:grid; grid-template-columns:22px 92px 1fr auto; align-items:center; gap:6px; padding:6px 2px; border-bottom:1px solid var(--line); cursor:pointer; }
   .setrow .k { color:var(--mute); font-size:12px; letter-spacing:.04em; }
   .setrow .v { font-weight:600; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
@@ -1127,7 +1135,7 @@ function settingsView() {
     const [v, sub] = f ? f(r) : id === 'seproc' ? [esc((r.acarsRwys || []).filter(x => !x.ix).map(x => `${x.rwy} ${x.efp}`).join(' · ') || '—')] : [esc(id === 'route' ? r.route || '—' : ((id === 'remarks' ? r.remarks : r.mel)[0] || '없음').slice(0, 40))];
     return `<label class="setrow"><input type="checkbox" data-f="${id}"${relShow.includes(id) ? ' checked' : ''}><span class="k">${k}</span><span class="v">${v}${sub ? ` <small>${sub}</small>` : ''}</span>${num(i)}</label>`;
   }).join('');
-  let seg = `<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release 항목</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>${IN_APP ? 'Update history' : '업데이트'}${scriptOld() ? ' ●' : ''}${badge(newUpd())}</button>${setTab === 'key' ? `<button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>도어 키</button>` : ''}${doorKey && !IN_APP ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}<button data-st="fb"${setTab === 'fb' ? ' class="on"' : ''}>피드백${badge(newFb())}</button><button data-st="share"${setTab === 'share' ? ' class="on"' : ''}>Schedule share</button><button data-st="app"${setTab === 'app' ? ' class="on"' : ''}>Share app${badge(newApp())}</button>${hotelBtn()}</div>`;
+  let seg = `${wakeBox()}<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release 항목</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>${IN_APP ? 'Update history' : '업데이트'}${scriptOld() ? ' ●' : ''}${badge(newUpd())}</button>${setTab === 'key' ? `<button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>도어 키</button>` : ''}${doorKey && !IN_APP ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}<button data-st="fb"${setTab === 'fb' ? ' class="on"' : ''}>피드백${badge(newFb())}</button><button data-st="share"${setTab === 'share' ? ' class="on"' : ''}>Schedule share</button><button data-st="app"${setTab === 'app' ? ' class="on"' : ''}>Share app${badge(newApp())}</button>${hotelBtn()}</div>`;
   seg += `<a class="hublink" href="${IN_APP ? 'x-safari-https://crewbrief.pages.dev/' : 'https://crewbrief.pages.dev/'}" target="_blank" rel="noopener">공지사항 · 링크 ›</a>`;
   if (setTab === 'upd') return seg + scriptBox();
   if (setTab === 'watch' && doorKey && !IN_APP) return seg + watchBox(); // 앱 설정에는 Apple Watch 안내를 두지 않는다
@@ -1544,24 +1552,76 @@ function tripCard(trip, open) {
     ${days}</details>`;
 }
 
+const DUTY_HOLD = 4 * 36e5;
+const wallMs = (apt, date, hm) => {
+  if (!/^\d{1,2}:\d{2}$/.test(hm || '')) return null;
+  const x = aptMs(apt, date, hm);
+  if (x != null) return x;
+  const [y, m, dd] = date.split('-').map(Number), [h, mi] = hm.split(':').map(Number);
+  return zoneMs(y, m, dd, h, mi);
+};
+const flowOf = l => (((state.flows || {})[`${l.date}-${l.tail}`] || {}).flights || []).find(x => x.flight === l.flight && x.from === l.from) || {};
+const flowEtd = f => f && f.etd && f.std ? f.etd : '';
+const dutyOn = (x, ref) => { if (x == null) return ref; while (ref != null && x < ref - 6 * 36e5) x += 864e5; return x; };
+const dutyLate = (x, sched) => x == null || sched == null ? x : x + Math.ceil((sched - 2 * 36e5 - x) / 864e5) * 864e5;
+const dutyAfter = (x, ref) => { if (x == null || ref == null) return x; x += Math.ceil((ref - x) / 864e5) * 864e5; return x; };
+const blockMin = b => /^\d+:\d{2}$/.test(b || '') ? mins(b) : null;
+function dutyTimes(d) {
+  const legs = d.legs.filter(l => l.from !== l.to);
+  const fw = flowOf;
+  const start = wallMs(legs[0]?.from, d.date, d.report);
+  let t = start, open = false;
+  const times = legs.map(l => {
+    const f = fw(l), date = l.date || d.date;
+    const sDep = t = dutyOn(wallMs(l.from, date, l.dep), t), sArr = t = dutyOn(wallMs(l.to, date, l.arr), t);
+    const dep = f.out || flowEtd(f) ? dutyLate(wallMs(l.from, date, f.out || flowEtd(f)), sDep) : sDep;
+    const est = f.in || f.on || f.eta, bm = blockMin(l.block);
+    let arr = est ? dutyAfter(wallMs(l.to, date, est), dep) : (f.out || flowEtd(f)) && bm != null && dep != null ? dep + bm * 6e4 : sArr;
+    if (arr != null && dep != null) while (arr < dep) arr += 864e5;
+    if (f.out && !f.in) open = true;
+    return { dep, arr };
+  });
+  const release = dutyOn(wallMs(legs[legs.length - 1]?.to, d.date, d.release), t);
+  return { times, start: start ?? times[0]?.dep, open, release, last: times.reduce((a, x) => x.arr != null && x.arr > a ? x.arr : a, -Infinity) };
+}
+const nextLegIdx = (legs, lt) => legs.findIndex((l, i) => { const f = flowOf(l); return !f.in && !(!f.std && lt[i].arr != null && Date.now() > lt[i].arr + 36e5); });
+function dutyEndMs(d) { const x = dutyTimes(d); return Math.max(x.last ?? -Infinity, x.release ?? -Infinity); }
+const dutyDays = () => state.trips.flatMap(t => t.days.map(d => ({ t, d }))).sort((a, b) => a.d.date.localeCompare(b.d.date));
+function curDuty(days = dutyDays()) {
+  const now = Date.now(), work = days.filter(x => x.d.legs.some(l => l.from !== l.to)).map(x => {
+    const dt = dutyTimes(x.d);
+    return { x, s: dt.start, e: Math.max(dt.last ?? -Infinity, dt.release ?? -Infinity), open: dt.open };
+  }).filter(w => w.s != null && isFinite(w.e)).sort((a, b) => a.s - b.s);
+  const live = work.filter(w => now >= w.s && (now <= w.e + DUTY_HOLD || (w.open && now <= w.s + 30 * 36e5)));
+  const cur = live[live.length - 1];
+  if (cur) {
+    const nx = work.find(w => w.s > cur.s);
+    if (now > cur.e && !cur.open && nx && nx.s <= cur.e + DUTY_HOLD) return nx.x;   // 끝났고 다음 근무가 4시간 안
+    return cur.x;
+  }
+  const td = ymd(now);   // 앱을 켜 둔 채 자정을 넘겨도 지금 날짜로
+  return days.find(x => x.d.date === td && x.d.legs.some(l => l.from !== l.to));
+}
+
 function todayView() {
-  const trip = state.trips.find(t => t.days.some(d => d.date === today));
+  const td = ymd(Date.now()), cd = curDuty(), day = cd ? cd.d.date : td;   // 앱을 켜 둔 채 자정을 넘겨도 지금 날짜로
+  const trip = cd ? cd.t : state.trips.find(t => t.days.some(d => d.date === td));
   if (!trip) {
-    const next = state.trips.find(t => t.start > today);
+    const next = state.trips.find(t => t.start > td);
     return `<div class="card box"><b>오늘 비행 없음</b>${next
       ? `<div class="sub" style="margin-top:4px">다음 트립: ${tripTitle(next)} · Report ${reportAt(next.days[0])}</div>` : ''}</div>`;
   }
-  const i = trip.days.findIndex(d => d.date === today);
+  const i = trip.days.findIndex(d => d.date === day);
   return `<div class="card">
     <div class="box" style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline">
       <b style="font-size:17px">${esc(trip.pairing)} · Day ${i + 1}/${trip.days.length}</b>
       <span class="sub">${tripTitle(trip)}</span></div>
-    ${trip.days.map(d => dayBlock(trip, d, d.date === today ? 'open' : 'closed')).join('')}</div>`;
+    ${trip.days.map(d => dayBlock(trip, d, d.date === day ? 'open' : 'closed')).join('')}</div>`;
 }
 
 function homeView() {
-  const days = state.trips.flatMap(t => t.days.map(d => ({ t, d }))).sort((a, b) => a.d.date.localeCompare(b.d.date));
-  const cur = days.find(x => x.d.date === today && x.d.legs.some(l => l.from !== l.to));
+  const days = dutyDays();
+  const cur = curDuty(days);
   if (!cur) {
     const nx = days.find(x => x.d.date > today && x.d.report);
     if (!nx) return `<div class="card box"><b>예정된 비행 없음</b><div class="sub" style="margin-top:4px">↻ 업데이트로 스케줄을 받아 오세요.</div></div>${ckinBtns()}`;
@@ -1579,8 +1639,8 @@ function homeView() {
   const { t: trip, d } = cur;
   const fl = l => (((state.flows || {})[`${l.date}-${l.tail}`] || {}).flights || []).find(x => x.flight === l.flight && x.from === l.from) || {};
   const late = f => f.etd && f.std ? ((mins(f.etd) - mins(f.std) + 1440 + 720) % 1440) - 720 : 0;
-  const legs = d.legs.filter(l => l.from !== l.to);
-  const nextI = legs.findIndex(l => !fl(l).in);
+  const legs = d.legs.filter(l => l.from !== l.to), lt = dutyTimes(d).times;
+  const nextI = nextLegIdx(legs, lt);
   const plane = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15.5v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V8.5l-8 5v2l8-2.5V18l-2 1.5V21l3.5-1 3.5 1v-1.5L13 18v-5z" fill="currentColor" transform="rotate(90 12 12)"/></svg>';
   const n = legs[nextI], nf = n ? fl(n) : {}, nl = n ? late(nf) : 0;
   const st = f => f.in ? `IN ${f.in}` : f.on ? `ON ${f.on}` : f.off ? `OFF ${f.off}` : f.out ? `OUT ${f.out}` : '';
@@ -1590,6 +1650,7 @@ function homeView() {
         <div><b>${esc(n.from)}</b><span>${tzOf(n.from, n.date)}${esc(n.dep)}</span></div>
         <div class="hx-mid"><i></i>${plane}<i></i><small>${esc(n.block || '')}</small></div>
         <div class="r"><b>${esc(n.to)}</b><span>${tzOf(n.to, n.date)}${esc(n.arr)}</span></div></div>
+      ${legCd(n, nf, lt[nextI], nextI > 0)}
       <div class="hx-facts">
         <div><span>GATE</span><b>${esc(nf.depGate || '—')} → ${esc(nf.arrGate || '—')}</b></div>
         <div><span>TAIL</span><b>${esc(n.tail || '—')}</b></div>
@@ -1613,7 +1674,7 @@ function homeView() {
   }).join('') : '';
   return `<div class="home" data-go="today">
     <div class="hero">
-      <div class="hx-top"><span>오늘 · ${md(d.date)}</span><span class="pill">${esc(trip.pairing)} · Day ${trip.days.indexOf(d) + 1}/${trip.days.length}</span></div>
+      <div class="hx-top"><span>${d.date === ymd(Date.now()) ? '오늘' : '근무'} · ${md(d.date)}</span><span class="pill">${esc(trip.pairing)} · Day ${trip.days.indexOf(d) + 1}/${trip.days.length}</span></div>
       ${hero}</div>
     <div class="duty"><div><span>REPORT</span><b>${reportAt(d)}</b></div><div><span>RELEASE</span><b>${esc(d.release || '—')}</b></div><div><span>DUTY</span><b>${esc(d.duty || '—')}</b></div></div>
     <div class="card hcard"><div class="hc-h">${legs.length} LEGS</div>${rows}</div>
@@ -1674,6 +1735,32 @@ function countdown(at) {
 }
 setInterval(() => document.querySelectorAll('.hero.off').forEach(el => {
   el.querySelector('.cd').innerHTML = countdown(+el.dataset.ms);
+}), 30e3);
+const LEG_BACK = 35;
+const hmOf = x => { const p = loc(x); return `${String(p.hour % 24).padStart(2, '0')}:${String(p.minute).padStart(2, '0')}`; };
+const aptHm = (apt, x) => {
+  const k = TZ_APT[apt]; if (!k) return hmOf(x);
+  const off = TZ_NODST.has(apt) ? TZ_STD[k] * 60 : zoneOffAt(TZ_CLOCKS.find(c => c[0] === k)[1], x), t = new Date(x + off * 6e4);
+  return `${String(t.getUTCHours()).padStart(2, '0')}:${String(t.getUTCMinutes()).padStart(2, '0')}`;
+};
+const LEG_PASSED = '출발 시각 지남';
+const legLeft = (ms, noEtd) => noEtd && Date.now() > ms ? `<span class="lc-pass">${LEG_PASSED}</span>` : countdown(ms);
+const backLeft = b => Date.now() > b ? '지남' : `${countdown(b).replace(/<[^>]+>/g, '')} 남음`;
+function legCd(n, nf, t, between) {
+  if (nf.out || !t || t.dep == null) return '';
+  const etd = flowEtd(nf), src = etd ? `ETD ${esc(etd)} · Flow` : `STD ${esc(n.dep)} · ${'Flow ETD 아직 없음'}`, back = t.dep - LEG_BACK * 6e4;
+  return `<div class="leg-cd" data-ms="${t.dep}" data-back="${between ? back : ''}" data-noetd="${etd ? '' : '1'}"><div class="hx-lbl">${'출발까지'} · ${esc(n.flight)}</div><div class="cd">${legLeft(t.dep, !etd)}</div>
+    <div class="hx-when">${src}</div>${between ? `<div class="hx-when">${'돌아갈 시각'} ${tzOf(n.from, n.date)}${aptHm(n.from, back)} <span class="lc-left">(${'출발 −35분'} · <i>${backLeft(back)}</i>)</span></div>` : ''}</div>`;
+}
+window.cbSyncHint = () => {
+  const cd = curDuty(); if (!cd) return null;
+  const legs = cd.d.legs.filter(l => l.from !== l.to), lt = dutyTimes(cd.d).times, i = nextLegIdx(legs, lt);
+  if (i < 0 || lt[i].dep == null) return null;
+  return { dep: lt[i].dep, etd: !!flowEtd(flowOf(legs[i])) };
+};
+setInterval(() => document.querySelectorAll('.leg-cd').forEach(el => {
+  el.querySelector('.cd').innerHTML = legLeft(+el.dataset.ms, !!el.dataset.noetd);
+  const i = el.querySelector('.lc-left i'); if (i && el.dataset.back) i.textContent = backLeft(+el.dataset.back);
 }), 30e3);
 let otSig = '';
 setInterval(() => {
@@ -2192,6 +2279,9 @@ function syncStep(t, run) {
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['11/03', 'Today: after midnight your current duty stays on screen until 4 hours after it ends, or until your next report if that comes first'],
+  ['11/03', 'Today: between flights, a countdown to the next departure (Flow ETD if there is one, otherwise STD) and when to be back at the plane (35 min before)'],
+  ['11/03', 'Feedback: tapping a notification shows the new item right away, even if the first load fails'],
   ['11/02', 'Sorry for all the updates today — a few of today’s changes had problems, and we’ve been fixing them as they came up. Thanks for your patience.'],
   ['11/02', 'Jet bridge code: crew base airports (LAX, SFO, DEN …) have a blue ↗ button — tap it to open that base’s info page (crew lounge and more) in your browser; you may need to sign in there the first time'],
   ['11/02', 'Hotel: tap a hotel to see shuttle times, phone numbers and microwave details; the map pin opens Google Maps directions from the airport; Settings › Refresh hotel info reads it again right away (iPhone app)'],
@@ -2314,6 +2404,18 @@ function histGroups() {
     return `<details class="histv"><summary><b>${d}</b><span class="sub">${ts.length} update${ts.length > 1 ? 's' : ''}</span></summary><ul>${ts.map(t => `<li>${t}</li>`).join('')}</ul></details>`;
   }).join('');
 }
+function wakeBox() {
+  const w = document.documentElement.dataset.cbWake;
+  if (w !== '0' && w !== '1') return '';
+  return `<label class="card wake-row"><span class="wake-k">Notification</span><span class="wake-v" id="wakeV">${w === '1' ? 'On' : 'Off'}</span><input type="checkbox" id="wakeSw" role="switch"${w === '1' ? ' checked' : ''}></label>`;
+}
+document.addEventListener('change', e => {
+  if (e.target.id !== 'wakeSw' || !fcmApp()) return;
+  document.documentElement.dataset.cbWake = e.target.checked ? '1' : '0';
+  const v = document.getElementById('wakeV');
+  if (v) v.textContent = e.target.checked ? 'On' : 'Off';
+  fcmApp().postMessage({ cmd: 'wake', on: e.target.checked });
+});
 function scriptBox() {
   if (IN_APP) return `<div class="card box"><b>Update history</b> <span class="sub">App ${esc(IN_APP)}</span>
     ${histGroups()}</div>`;
@@ -2725,6 +2827,7 @@ document.addEventListener('click', e => {
   const id = e.target.id;
   if (id === 'kDel') {
     doorKey = ''; doorData = null; doorTried = false; doorEdit = null; keyMsg = '지웠습니다';
+    listsReset();
     try { ['cbDoorKey', 'cbDoors', 'cbWatchSent'].forEach(k => localStorage.removeItem(k)); } catch (er) {}
     fcmOff();
     render();
@@ -2742,6 +2845,7 @@ document.addEventListener('click', e => {
     doorKeep({ doors: r.doors, who: r.who, at: Date.now() });
     document.getElementById('doorTab').hidden = false;
     keyMsg = '저장했습니다 — Door 탭이 열렸습니다';
+    listsReset();
     render(); watchPush(); fbLoad();
   }).catch(err => say(`저장 못 함: ${err.message}`));
 });
@@ -2775,15 +2879,27 @@ const fbMineList = () => {
 };
 const replySeen = () => { try { return localStorage.getItem('cbFbReplySeen') || ''; } catch (e) { return ''; } };
 const newReply = () => fbMineList().filter(x => fbLastAt(x, 'admin') > replySeen()).length;
-function fbLoad() {
-  fbData = { list: [] };
+let fbSeq = 0, fbErr = '';
+function fbLoad(again) {
+  const seq = ++fbSeq;
+  if (!fbData) fbData = { list: [] };
   fetch(`${RELAY}?f=fb&dk=${encodeURIComponent(doorKey)}`).then(r => r.json()).then(r => {
+    if (seq !== fbSeq) return;
     if (!r.ok) throw new Error(r.error);
     fbData = r;
+    if (fbMsg === fbErr) fbMsg = '';
     fcmSync();
     if ((tab === 'set' && setTab === 'fb') || newFb()) render();
-  }).catch(err => { fbMsg = `목록을 못 받음: ${err.message}`; if (tab === 'set' && setTab === 'fb') render(); });
+  }).catch(err => {
+    if (seq !== fbSeq) return;
+    const final = NO_ACCESS.test(err.message);   // 키가 안 맞음 — 다시 받아도 같다, 앞 목록은 지운다
+    if (!again && !final) { setTimeout(() => { if (seq === fbSeq) fbLoad(true); }, 1500); return; }
+    if (final) fbData = { list: [] };
+    fbMsg = fbErr = `목록을 못 받음: ${err.message}`; if (tab === 'set' && setTab === 'fb') render();
+  });
 }
+const NO_ACCESS = /^no (door )?access$/;
+function listsReset() { fbData = null; appReqs = null; fbSeq++; appSeq++; fbMsg = ''; }
 const FRIEND_URL = 'https://crewbrief.pages.dev/friend/';
 const SHARE_API = 'https://crewbrief-share.bidpeek.workers.dev/', SHARE_MAX = 2;
 let shareData = null, shareMsg = '', shareKind = 'friend', shareCode = '';
@@ -2895,7 +3011,7 @@ function fbSeenNow() {
   const lr = fbMineList().reduce((a, x) => fbLastAt(x, 'admin') > a ? fbLastAt(x, 'admin') : a, '');
   if (lr && lr > replySeen()) try { localStorage.setItem('cbFbReplySeen', lr); } catch (e) {}
 }
-function badgeLoad() { fbMineLoad(); if (!doorKey) return; fbLoad(); appReqs = null; appReqLoad(); }
+function badgeLoad() { fbMineLoad(); if (!doorKey) return; fbLoad(); appReqLoad(true); }
 setTimeout(badgeLoad, 3000);
 setInterval(() => { if (!document.hidden) badgeLoad(); }, 10 * 60e3);
 const FCM_SENT = 'cbFcmSent';
@@ -2921,15 +3037,27 @@ addEventListener('cbfcm', e => {
     if (r.ok) try { localStorage.setItem(FCM_SENT, JSON.stringify({ token, dk, at: Date.now() })); } catch (er) {}
   }).catch(() => {});
 });
+addEventListener('cbpush', e => { if (e.detail === 'fb' || e.detail === 'app') badgeLoad(); });
 addEventListener('cbopen', e => {
   if (e.detail !== 'fb' && e.detail !== 'app') return;
   tab = 'set'; setTab = e.detail;
   badgeLoad(); render(); scrollTo(0, 0);
 });
-function appReqLoad() {
-  if (!doorKey || appReqs) return;
-  appReqs = { list: [] };
-  fetch(`${RELAY}?f=appReqs&dk=${encodeURIComponent(doorKey)}`).then(r => r.json()).then(r => { if (r.ok) { appReqs = r; if ((tab === 'set' && setTab === 'app') || newApp()) render(); } }).catch(() => {});
+let appSeq = 0;
+function appReqLoad(again, retry) {
+  if (!doorKey || (appReqs && !again)) return;
+  const seq = ++appSeq;
+  if (!appReqs) appReqs = { list: [] };
+  fetch(`${RELAY}?f=appReqs&dk=${encodeURIComponent(doorKey)}`).then(r => r.json()).then(r => {
+    if (seq !== appSeq) return;
+    if (!r.ok) throw new Error(r.error);
+    appReqs = r; if ((tab === 'set' && setTab === 'app') || newApp()) render();
+  }).catch(err => {
+    if (seq !== appSeq) return;
+    if (!retry && !NO_ACCESS.test(err.message)) { setTimeout(() => { if (seq === appSeq) appReqLoad(true, true); }, 1500); return; }
+    appReqs = { list: [] };   // 관리자가 아니게 됐거나 두 번 다 실패 — 앞 키·앞 권한의 목록(이메일)을 남기지 않는다
+    if (tab === 'set' && setTab === 'app') render();
+  });
 }
 function appBox() {
   appReqLoad();
