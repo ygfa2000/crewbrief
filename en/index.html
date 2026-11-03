@@ -130,7 +130,8 @@
   .rp { display:inline-flex; align-items:center; }
   .rp .tz { vertical-align:0; }
   .duty .rp-mine { display:block; font-size:12px; letter-spacing:0; color:inherit; }
-  .ckin { display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; margin:12px 0 0; padding:14px 18px; border:0; border-radius:18px; background:#2fb344; color:#fff; font:inherit; text-align:left; cursor:pointer; }
+  .ckin { display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; margin:12px 0 0; padding:14px 18px; border:0; border-radius:18px; background:#6b7684; color:#fff; font:inherit; text-align:left; cursor:pointer; }
+  .ckin.on { background:#2fb344; }
   .ckin b { font-size:18px; } .ckin span { font-size:13px; opacity:.9; }
   .duty { display:grid; grid-template-columns:repeat(3,1fr); background:var(--card); border:1px solid var(--line); border-radius:18px; }
   .duty > div { display:grid; gap:2px; padding:12px 14px; }
@@ -1528,7 +1529,7 @@ function homeView() {
   const cur = days.find(x => x.d.date === today && x.d.legs.some(l => l.from !== l.to));
   if (!cur) {
     const nx = days.find(x => x.d.date > today && x.d.report);
-    if (!nx) return `<div class="card box"><b>No upcoming flights</b><div class="sub" style="margin-top:4px">↻ Update to load your schedule.</div></div>`;
+    if (!nx) return `<div class="card box"><b>No upcoming flights</b><div class="sub" style="margin-top:4px">↻ Update to load your schedule.</div></div>${ckinBtns()}`;
     const nd = nx.t.days.filter(d => d.date >= nx.d.date).map(d => {
       const ls = d.legs.filter(l => l.from !== l.to), chain = ls.length ? [ls[0].from, ...ls.map(l => l.to)].join(' → ') : '—';
       return `<div class="nt-day"><span class="nt-d">${md(d.date)}</span><div><b>${esc(chain)}</b>
@@ -1538,7 +1539,7 @@ function homeView() {
       <div class="hx-lbl">Next report in</div><div class="cd">${countdown(reportMs(nx.d))}</div>
       <div class="hx-when">${md(nx.d.date)} · ${reportAt(nx.d)}</div></div>
       <div class="card hcard"><div class="hc-h">NEXT TRIP · ${esc(nx.t.pairing)}</div>
-        <div class="tl-sub">${tripTitle(nx.t)} · Block ${esc(nx.t.block)} · Credit ${esc(nx.t.credit)} · TAFB ${esc(nx.t.tafb)}</div>${nd}</div></div>`;
+        <div class="tl-sub">${tripTitle(nx.t)} · Block ${esc(nx.t.block)} · Credit ${esc(nx.t.credit)} · TAFB ${esc(nx.t.tafb)}</div>${nd}</div></div>${ckinBtns()}`;
   }
   const { t: trip, d } = cur;
   const fl = l => (((state.flows || {})[`${l.date}-${l.tail}`] || {}).flights || []).find(x => x.flight === l.flight && x.from === l.from) || {};
@@ -1582,7 +1583,7 @@ function homeView() {
     <div class="duty"><div><span>REPORT</span><b>${reportAt(d)}</b></div><div><span>RELEASE</span><b>${esc(d.release || '—')}</b></div><div><span>DUTY</span><b>${esc(d.duty || '—')}</b></div></div>
     <div class="card hcard"><div class="hc-h">${legs.length} LEGS</div>${rows}</div>
     </div>
-    ${d.date === trip.start && !((state.checkin || {})[`${trip.pairing}|${trip.start}`] || {}).checked ? `<button class="ckin" data-pairing="${esc(trip.pairing)}" data-start="${esc(trip.start)}"><b>Check In</b><span>${esc(trip.pairing)} · opens Trip Detail</span></button>` : ''}
+    ${ckinBtns()}
     ${doors ? `<div class="card hcard"><div class="hc-h">JET BRIDGE CODE</div>${doors}</div>` : ''}`;
 }
 function incentiveCard() {
@@ -1650,6 +1651,13 @@ setInterval(() => {
 document.addEventListener('click', e => {
   const b = e.target.closest?.('.ckin');
   if (!b) return;
+  if (skedIn() && document.documentElement.dataset.cbSkedTrip) {
+    const k = `${b.dataset.pairing}|${b.dataset.start}`;
+    if (!(k in ckinSeen)) try { sessionStorage.setItem(CKIN_AUTO, k); } catch (er) {}
+    window.webkit.messageHandlers.cbsked.postMessage({ cmd: 'trip', pairing: b.dataset.pairing, date: b.dataset.start.replace(/-/g, '') });
+    tab = 'sked'; render(); scrollTo(0, 0);
+    return;
+  }
   const u = new URL(document.querySelector('.upd').href);
   const url = `${u.origin}${u.pathname.replace(/[^/]+$/, 'TripDetail.aspx')}?PairingName=${encodeURIComponent(b.dataset.pairing)}&PairingDate=${b.dataset.start.replace(/-/g, '')}&OTPosition=&SBID=0`;
   if (document.documentElement.dataset.cbApp) location.href = url; else window.open(url, '_blank');
@@ -1659,8 +1667,31 @@ document.addEventListener('click', e => {
   if (h) { tab = h.dataset.go; render(); scrollTo(0, 0); }
 });
 
+const CKIN_SEEN = 'cbCheckedIn';
+let ckinSeen = {};
+try { ckinSeen = JSON.parse(localStorage.getItem(CKIN_SEEN)) || {}; } catch (e) {}
+function ckinRemember() {
+  const before = JSON.stringify(ckinSeen), next = {};
+  (state.trips || []).filter(t => t.end >= today).forEach(t => { const k = `${t.pairing}|${t.start}`; if (((state.checkin || {})[k] || {}).checked || ckinSeen[k] === t.end) next[k] = t.end; });
+  ckinSeen = next;
+  if (JSON.stringify(next) !== before) try { localStorage.setItem(CKIN_SEEN, JSON.stringify(next)); } catch (e) {}
+}
+const CKIN_AUTO = 'cbCkinAuto';
+function ckinLeave() {
+  if (tab === 'sked') return;
+  let k = null;
+  try { k = sessionStorage.getItem(CKIN_AUTO); if (k) sessionStorage.removeItem(CKIN_AUTO); } catch (e) {}
+  if (k && !(k in ckinSeen)) document.querySelector('.upd').click();
+}
+const ckinBtns = () => (state.trips || []).filter(t => t.start <= today && t.end >= today).map(t => {
+  const on = `${t.pairing}|${t.start}` in ckinSeen;
+  return `<button class="ckin${on ? ' on' : ''}" data-pairing="${esc(t.pairing)}" data-start="${esc(t.start)}"><b>${on ? 'Checked-in' : 'Check In'}</b><span>${esc(t.pairing)} · opens Trip Detail</span></button>`;
+}).join('');
+
 let tab = 'home';
 function render() {
+  ckinRemember();
+  ckinLeave();
   (state.trips || []).forEach(t => t.days.forEach(d => d.legs.forEach(l => { if (l.dhd && (l.dhd === 'N' || !/\d/.test(l.flight || ''))) l.dhd = null; })));
   try { sessionStorage.setItem('cbView', JSON.stringify({ tab, tripTab, setTab })); } catch (e) {}
   try { shareUp(); } catch (e) {}

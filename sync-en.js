@@ -512,15 +512,24 @@ async function run() {
       flows[`${date}-${tail}`] = { at: new Date().toISOString(), flights: parseFlowBoard(await get(`${atob('L1NLWVcvRmxpZ2h0U2NyZWVuL0Zsb3dCb2FyZC5hc3B4')}?${q}`)) };
     }
 
-    const checkin = {}, tripPages = {};
+    const checkin = {}, tripPages = {}, CKIN_SEEN = 'cbCheckedIn', day0 = ymd(now);
+    const inTrip = scoped.filter(t => t.start <= day0 && t.end >= day0);
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem(CKIN_SEEN)) || {}; } catch (e) {}
+    const ckinSeen = {};
+    inTrip.forEach(t => { const k = `${t.pairing}|${t.start}`; if (saved[k] === t.end) ckinSeen[k] = t.end; });
     const tripPage = t => tripPages[t.pairing + t.start] || (tripPages[t.pairing + t.start] = get(`${atob('L1NLWVcvU2tlZFBsdXMvVHJpcERldGFpbC5hc3B4')}?PairingName=${encodeURIComponent(t.pairing)}&PairingDate=${t.start.replace(/-/g, '')}&OTPosition=&SBID=0`));
-    for (const t of scoped.filter(t => t.start === ymd(now))) {
+    for (const t of inTrip) {
+      const k = `${t.pairing}|${t.start}`;
+      if (k in ckinSeen) { checkin[k] = { checked: true }; continue; }
       try {
         say(`Check-in (${t.pairing})`);
         const r = parseCheckIn(await tripPage(t));
-        if (r) checkin[`${t.pairing}|${t.start}`] = r;
+        if (r) checkin[k] = r;
+        if (r && r.checked) ckinSeen[k] = t.end;
       } catch (e) {}
     }
+    try { localStorage.setItem(CKIN_SEEN, JSON.stringify(ckinSeen)); } catch (e) {}
 
     let opentime = null;
     if (!lite) try {
