@@ -2697,6 +2697,7 @@ document.addEventListener('click', e => {
   if (id === 'kDel') {
     doorKey = ''; doorData = null; doorTried = false; doorEdit = null; keyMsg = '지웠습니다';
     try { ['cbDoorKey', 'cbDoors', 'cbWatchSent'].forEach(k => localStorage.removeItem(k)); } catch (er) {}
+    fcmOff();
     render();
   }
   if (id !== 'kSave') return;
@@ -2712,7 +2713,7 @@ document.addEventListener('click', e => {
     doorKeep({ doors: r.doors, who: r.who, at: Date.now() });
     document.getElementById('doorTab').hidden = false;
     keyMsg = '저장했습니다 — Door 탭이 열렸습니다';
-    render(); watchPush();
+    render(); watchPush(); fbLoad();
   }).catch(err => say(`저장 못 함: ${err.message}`));
 });
 let fbKind = 'bad', fbData = null, fbMsg = '';
@@ -2750,6 +2751,7 @@ function fbLoad() {
   fetch(`${RELAY}?f=fb&dk=${encodeURIComponent(doorKey)}`).then(r => r.json()).then(r => {
     if (!r.ok) throw new Error(r.error);
     fbData = r;
+    fcmSync();
     if ((tab === 'set' && setTab === 'fb') || newFb()) render();
   }).catch(err => { fbMsg = `목록을 못 받음: ${err.message}`; if (tab === 'set' && setTab === 'fb') render(); });
 }
@@ -2867,6 +2869,34 @@ function fbSeenNow() {
 function badgeLoad() { fbMineLoad(); if (!doorKey) return; fbLoad(); appReqs = null; appReqLoad(); }
 setTimeout(badgeLoad, 3000);
 setInterval(() => { if (!document.hidden) badgeLoad(); }, 10 * 60e3);
+const FCM_SENT = 'cbFcmSent';
+const fcmApp = () => window.webkit && webkit.messageHandlers && webkit.messageHandlers.cbpush;
+const fcmSent = () => { try { return JSON.parse(localStorage.getItem(FCM_SENT)) || null; } catch (e) { return null; } };
+function fcmSync() {
+  if (!fcmApp()) return;
+  if (fbData && fbData.admin) fcmApp().postMessage({ cmd: 'on' }); else fcmOff();
+}
+function fcmOff() {
+  const sent = fcmSent();
+  if (!sent) return;
+  try { localStorage.removeItem(FCM_SENT); } catch (e) {}
+  fetch(RELAY, { method: 'POST', body: JSON.stringify({ f: 'fcmDel', dk: sent.dk, token: sent.token }) }).catch(() => {});
+  if (fcmApp()) fcmApp().postMessage({ cmd: 'off' });
+}
+addEventListener('cbfcm', e => {
+  const token = e.detail, sent = fcmSent();
+  if (!token || !doorKey || !fbData || !fbData.admin) return;
+  if (sent && sent.token === token && sent.dk === doorKey && Date.now() - sent.at < 864e5) return;
+  const dk = doorKey;
+  fetch(RELAY, { method: 'POST', body: JSON.stringify({ f: 'fcmReg', dk, token }) }).then(r => r.json()).then(r => {
+    if (r.ok) try { localStorage.setItem(FCM_SENT, JSON.stringify({ token, dk, at: Date.now() })); } catch (er) {}
+  }).catch(() => {});
+});
+addEventListener('cbopen', e => {
+  if (e.detail !== 'fb' && e.detail !== 'app') return;
+  tab = 'set'; setTab = e.detail;
+  badgeLoad(); render(); scrollTo(0, 0);
+});
 function appReqLoad() {
   if (!doorKey || appReqs) return;
   appReqs = { list: [] };
