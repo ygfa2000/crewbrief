@@ -124,7 +124,7 @@
   .cd { display:flex; align-items:baseline; gap:4px; margin-top:6px; font-variant-numeric:tabular-nums; }
   .cd b { font-size:56px; font-weight:800; letter-spacing:-.03em; line-height:1; }
   .cd i { font-style:normal; font-size:20px; font-weight:700; opacity:.7; margin-right:8px; }
-  .leg-cd { margin:14px 0 4px; padding-top:12px; border-top:1px solid rgba(255,255,255,.25); } .leg-cd .cd b { font-size:40px; } .leg-cd .cd i { font-size:16px; } .lc-left { opacity:.7; }
+  .leg-cd { margin:14px 0 4px; padding-top:12px; border-top:1px solid rgba(255,255,255,.25); } .leg-cd .cd b { font-size:40px; } .leg-cd .cd i { font-size:16px; } .lc-left { opacity:.7; } .lc-pass { font-size:22px; font-weight:800; }
   .hx-when { margin-top:10px; font-size:15px; font-weight:600; opacity:.85; font-variant-numeric:tabular-nums; }
   .rp-mine { opacity:.75; font-weight:500; white-space:nowrap; }
   .rp-mine .tz { margin-left:0; }
@@ -1560,21 +1560,23 @@ const wallMs = (apt, date, hm) => {
   const [y, m, dd] = date.split('-').map(Number), [h, mi] = hm.split(':').map(Number);
   return zoneMs(y, m, dd, h, mi);
 };
+const flowOf = l => (((state.flows || {})[`${l.date}-${l.tail}`] || {}).flights || []).find(x => x.flight === l.flight && x.from === l.from) || {};
+const flowEtd = f => f && f.etd && f.std ? f.etd : '';
 const dutyOn = (x, ref) => { if (x == null) return ref; while (ref != null && x < ref - 6 * 36e5) x += 864e5; return x; };
 const dutyLate = (x, sched) => x == null || sched == null ? x : x + Math.ceil((sched - 2 * 36e5 - x) / 864e5) * 864e5;
 const dutyAfter = (x, ref) => { if (x == null || ref == null) return x; x += Math.ceil((ref - x) / 864e5) * 864e5; return x; };
 const blockMin = b => /^\d+:\d{2}$/.test(b || '') ? mins(b) : null;
 function dutyTimes(d) {
   const legs = d.legs.filter(l => l.from !== l.to);
-  const fw = l => (((state.flows || {})[`${l.date}-${l.tail}`] || {}).flights || []).find(x => x.flight === l.flight && x.from === l.from) || {};
+  const fw = flowOf;
   const start = wallMs(legs[0]?.from, d.date, d.report);
   let t = start, open = false;
   const times = legs.map(l => {
     const f = fw(l), date = l.date || d.date;
     const sDep = t = dutyOn(wallMs(l.from, date, l.dep), t), sArr = t = dutyOn(wallMs(l.to, date, l.arr), t);
-    const dep = f.out || f.etd ? dutyLate(wallMs(l.from, date, f.out || f.etd), sDep) : sDep;
+    const dep = f.out || flowEtd(f) ? dutyLate(wallMs(l.from, date, f.out || flowEtd(f)), sDep) : sDep;
     const est = f.in || f.on || f.eta, bm = blockMin(l.block);
-    let arr = est ? dutyAfter(wallMs(l.to, date, est), dep) : (f.out || f.etd) && bm != null && dep != null ? dep + bm * 6e4 : sArr;
+    let arr = est ? dutyAfter(wallMs(l.to, date, est), dep) : (f.out || flowEtd(f)) && bm != null && dep != null ? dep + bm * 6e4 : sArr;
     if (arr != null && dep != null) while (arr < dep) arr += 864e5;
     if (f.out && !f.in) open = true;
     return { dep, arr };
@@ -1582,6 +1584,7 @@ function dutyTimes(d) {
   const release = dutyOn(wallMs(legs[legs.length - 1]?.to, d.date, d.release), t);
   return { times, start: start ?? times[0]?.dep, open, release, last: times.reduce((a, x) => x.arr != null && x.arr > a ? x.arr : a, -Infinity) };
 }
+const nextLegIdx = (legs, lt) => legs.findIndex((l, i) => { const f = flowOf(l); return !f.in && !(!f.std && lt[i].arr != null && Date.now() > lt[i].arr + 36e5); });
 function dutyEndMs(d) { const x = dutyTimes(d); return Math.max(x.last ?? -Infinity, x.release ?? -Infinity); }
 const dutyDays = () => state.trips.flatMap(t => t.days.map(d => ({ t, d }))).sort((a, b) => a.d.date.localeCompare(b.d.date));
 function curDuty(days = dutyDays()) {
@@ -1637,7 +1640,7 @@ function homeView() {
   const fl = l => (((state.flows || {})[`${l.date}-${l.tail}`] || {}).flights || []).find(x => x.flight === l.flight && x.from === l.from) || {};
   const late = f => f.etd && f.std ? ((mins(f.etd) - mins(f.std) + 1440 + 720) % 1440) - 720 : 0;
   const legs = d.legs.filter(l => l.from !== l.to), lt = dutyTimes(d).times;
-  const nextI = legs.findIndex((l, i) => { const f = fl(l); return !f.in && !(!f.std && lt[i].arr != null && Date.now() > lt[i].arr + 36e5); });
+  const nextI = nextLegIdx(legs, lt);
   const plane = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15.5v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V8.5l-8 5v2l8-2.5V18l-2 1.5V21l3.5-1 3.5 1v-1.5L13 18v-5z" fill="currentColor" transform="rotate(90 12 12)"/></svg>';
   const n = legs[nextI], nf = n ? fl(n) : {}, nl = n ? late(nf) : 0;
   const st = f => f.in ? `IN ${f.in}` : f.on ? `ON ${f.on}` : f.off ? `OFF ${f.off}` : f.out ? `OUT ${f.out}` : '';
@@ -1735,24 +1738,28 @@ setInterval(() => document.querySelectorAll('.hero.off').forEach(el => {
 }), 30e3);
 const LEG_BACK = 35;
 const hmOf = x => { const p = loc(x); return `${String(p.hour % 24).padStart(2, '0')}:${String(p.minute).padStart(2, '0')}`; };
+const aptHm = (apt, x) => {
+  const k = TZ_APT[apt]; if (!k) return hmOf(x);
+  const off = TZ_NODST.has(apt) ? TZ_STD[k] * 60 : zoneOffAt(TZ_CLOCKS.find(c => c[0] === k)[1], x), t = new Date(x + off * 6e4);
+  return `${String(t.getUTCHours()).padStart(2, '0')}:${String(t.getUTCMinutes()).padStart(2, '0')}`;
+};
+const LEG_PASSED = 'Departure time passed';
+const legLeft = (ms, noEtd) => noEtd && Date.now() > ms ? `<span class="lc-pass">${LEG_PASSED}</span>` : countdown(ms);
 const backLeft = b => Date.now() > b ? 'passed' : `${countdown(b).replace(/<[^>]+>/g, '')} left`;
 function legCd(n, nf, t, between) {
   if (nf.out || !t || t.dep == null) return '';
-  const src = nf.etd && nf.std ? `ETD ${esc(nf.etd)} · Flow` : `STD ${esc(n.dep)} · ${'no Flow ETD yet'}`, back = t.dep - LEG_BACK * 6e4;
-  return `<div class="leg-cd" data-ms="${t.dep}" data-back="${between ? back : ''}"><div class="hx-lbl">${'Departs in'} · ${esc(n.flight)}</div><div class="cd">${countdown(t.dep)}</div>
-    <div class="hx-when">${src}</div>${between ? `<div class="hx-when">${'Back by'} ${hmOf(back)} <span class="lc-left">(${'35 min before departure'} · <i>${backLeft(back)}</i>)</span></div>` : ''}</div>`;
+  const etd = flowEtd(nf), src = etd ? `ETD ${esc(etd)} · Flow` : `STD ${esc(n.dep)} · ${'no Flow ETD yet'}`, back = t.dep - LEG_BACK * 6e4;
+  return `<div class="leg-cd" data-ms="${t.dep}" data-back="${between ? back : ''}" data-noetd="${etd ? '' : '1'}"><div class="hx-lbl">${'Departs in'} · ${esc(n.flight)}</div><div class="cd">${legLeft(t.dep, !etd)}</div>
+    <div class="hx-when">${src}</div>${between ? `<div class="hx-when">${'Back by'} ${tzOf(n.from, n.date)}${aptHm(n.from, back)} <span class="lc-left">(${'35 min before departure'} · <i>${backLeft(back)}</i>)</span></div>` : ''}</div>`;
 }
 window.cbSyncHint = () => {
   const cd = curDuty(); if (!cd) return null;
-  const legs = cd.d.legs.filter(l => l.from !== l.to), lt = dutyTimes(cd.d).times;
-  const fw = l => (((state.flows || {})[`${l.date}-${l.tail}`] || {}).flights || []).find(x => x.flight === l.flight && x.from === l.from) || {};
-  const i = legs.findIndex(l => { const f = fw(l); return !f.out && !f.in; });
+  const legs = cd.d.legs.filter(l => l.from !== l.to), lt = dutyTimes(cd.d).times, i = nextLegIdx(legs, lt);
   if (i < 0 || lt[i].dep == null) return null;
-  const f = fw(legs[i]);
-  return { dep: lt[i].dep, etd: !!(f.etd && f.std) };
+  return { dep: lt[i].dep, etd: !!flowEtd(flowOf(legs[i])) };
 };
 setInterval(() => document.querySelectorAll('.leg-cd').forEach(el => {
-  el.querySelector('.cd').innerHTML = countdown(+el.dataset.ms);
+  el.querySelector('.cd').innerHTML = legLeft(+el.dataset.ms, !!el.dataset.noetd);
   const i = el.querySelector('.lc-left i'); if (i && el.dataset.back) i.textContent = backLeft(+el.dataset.back);
 }), 30e3);
 let otSig = '';
