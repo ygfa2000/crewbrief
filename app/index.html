@@ -1128,6 +1128,7 @@ window.addEventListener('cbhotelinfo', e => {
   if (tab === 'set') render();
 });
 function settingsView() {
+  if (setTab === 'share' && !doorKey) setTab = 'rel';   // 일정 공유는 도어 키 있는 사람만 — 기억해 둔 탭이나 강제로 와도 열지 않는다
   const keys = Object.keys(state.releases || {}).sort();
   const last = keys.length ? state.releases[keys[keys.length - 1]] : null;
   const mine = last && last.weights ? last : null; // 새 항목이 생기기 전에 받은 Release 는 예시로 대신
@@ -1139,13 +1140,13 @@ function settingsView() {
     const [v, sub] = f ? f(r) : id === 'seproc' ? [esc((r.acarsRwys || []).filter(x => !x.ix).map(x => `${x.rwy} ${x.efp}`).join(' · ') || '—')] : [esc(id === 'route' ? r.route || '—' : ((id === 'remarks' ? r.remarks : r.mel)[0] || '없음').slice(0, 40))];
     return `<label class="setrow"><input type="checkbox" data-f="${id}"${relShow.includes(id) ? ' checked' : ''}><span class="k">${k}</span><span class="v">${v}${sub ? ` <small>${sub}</small>` : ''}</span>${num(i)}</label>`;
   }).join('');
-  let seg = `${wakeBox()}<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release 항목</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>${IN_APP ? 'Update history' : '업데이트'}${scriptOld() ? ' ●' : ''}${badge(newUpd())}</button>${setTab === 'key' ? `<button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>도어 키</button>` : ''}${doorKey && !IN_APP ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}<button data-st="fb"${setTab === 'fb' ? ' class="on"' : ''}>피드백${badge(newFb())}</button><button data-st="share"${setTab === 'share' ? ' class="on"' : ''}>Schedule share</button><button data-st="app"${setTab === 'app' ? ' class="on"' : ''}>Share app${badge(newApp())}</button>${hotelBtn()}</div>`;
+  let seg = `${wakeBox()}<div class="seg set-seg"><button data-st="rel"${setTab === 'rel' ? ' class="on"' : ''}>Release 항목</button><button data-st="upd"${setTab === 'upd' ? ' class="on"' : ''}>${IN_APP ? 'Update history' : '업데이트'}${scriptOld() ? ' ●' : ''}${badge(newUpd())}</button>${setTab === 'key' ? `<button data-st="key"${setTab === 'key' ? ' class="on"' : ''}>도어 키</button>` : ''}${doorKey && !IN_APP ? `<button data-st="watch"${setTab === 'watch' ? ' class="on"' : ''}>Apple Watch</button>` : ''}<button data-st="fb"${setTab === 'fb' ? ' class="on"' : ''}>피드백${badge(newFb())}</button>${doorKey ? `<button data-st="share"${setTab === 'share' ? ' class="on"' : ''}>Schedule share</button>` : ''}<button data-st="app"${setTab === 'app' ? ' class="on"' : ''}>Share app${badge(newApp())}</button>${hotelBtn()}</div>`;
   seg += `<a class="hublink" href="${IN_APP ? 'x-safari-https://crewbrief.pages.dev/' : 'https://crewbrief.pages.dev/'}" target="_blank" rel="noopener">공지사항 · 링크 ›</a>`;
   if (setTab === 'upd') return seg + scriptBox();
   if (setTab === 'watch' && doorKey && !IN_APP) return seg + watchBox(); // 앱 설정에는 Apple Watch 안내를 두지 않는다
   if (setTab === 'key') return seg + keyBox();   // 웹에서도 키만 지우거나 넣을 수 있게
   if (setTab === 'fb') { fbSeenNow(); return seg + fbBox(); }
-  if (setTab === 'share') return seg + shareBox();   // 도어 키 없이도 — 내 공유 코드로
+  if (setTab === 'share') return seg + shareBox();
   if (setTab === 'app') return seg + appBox();
   return `${seg}<div class="card box"><b>Release 항목</b>
     <p class="sub" style="margin:4px 0 10px">체크한 항목만 Release 칸에 보입니다. 오른쪽 번호로 순서를 정하고 저장하세요. 값은 ${src}.</p>
@@ -1821,6 +1822,7 @@ const ckinBtns = () => (state.trips || []).filter(t => t.start <= today && t.end
 
 let tab = 'home';
 function render() {
+  doorGate();   // 열어 둔 채 30일이 넘어가거나 방금 동기화해도 여기서 맞춘다
   ckinRemember();
   ckinLeave();
   (state.trips || []).forEach(t => t.days.forEach(d => d.legs.forEach(l => { if (l.dhd && (l.dhd === 'N' || !/\d/.test(l.flight || ''))) l.dhd = null; })));
@@ -2667,7 +2669,21 @@ try { doorKey = localStorage.getItem('cbDoorKey') || ''; doorData = JSON.parse(l
     if (/dk=/.test(location.hash)) history.replaceState(null, '', location.pathname + location.search);
   }
 }
-document.getElementById('doorTab').hidden = false;
+function jetOk() {
+  if (doorKey) return true;
+  const s = state && state.syncedAt;
+  if (typeof s !== 'string' || !/^\d{4}-\d{2}-\d{2}T/.test(s)) return false;
+  const age = Date.now() - Date.parse(s);
+  return age >= 0 && age <= 30 * 864e5;
+}
+let doorOff = false;
+function doorGate() {
+  const ok = jetOk();
+  document.getElementById('doorTab').hidden = !ok;
+  if (!ok) { doorData = null; doorEdit = null; doorTried = false; doorOff = true; if (tab === 'door') tab = 'home'; return; }
+  if (doorOff) { doorOff = false; if (!doorData) try { doorData = JSON.parse(localStorage.getItem(doorStore()) || 'null'); } catch (e) {} }
+}
+doorGate();
 let doorSide = 'mine', pubData = null, pubMsg = '', pubTried = false;
 try { doorSide = localStorage.getItem('cbDoorSide') === 'pub' ? 'pub' : 'mine'; if (doorKey) pubData = JSON.parse(localStorage.getItem('cbPubDoors') || 'null'); } catch (e) {}
 const pubSide = () => !!doorKey && doorSide === 'pub';
@@ -2732,6 +2748,7 @@ function watchPush() {
 setTimeout(watchPush, 2000); // 동기화 자료(#d=)를 다 받은 뒤
 const doorKeep = d => { doorData = d; try { localStorage.setItem(doorStore(), JSON.stringify(d)); } catch (e) {} };
 function doorLoad() {
+  if (!jetOk()) return;
   fetch(doorKey ? `${RELAY}?f=doors&dk=${encodeURIComponent(doorKey)}` : `${RELAY}?f=pubDoors`).then(r => r.json()).then(r => {
     if (!r.ok) throw new Error(r.error);
     doorKeep({ doors: r.doors, who: r.who, at: Date.now() });
@@ -2742,6 +2759,7 @@ function doorLoad() {
 function doorGrow(t) { t.style.height = 'auto'; t.style.height = t.scrollHeight + t.offsetHeight - t.clientHeight + 'px'; }
 document.addEventListener('input', e => { if (e.target.matches?.('.door-card textarea')) doorGrow(e.target); });
 function doorSave(apt, codes) {
+  if (!jetOk()) return;
   const ps = pubSide(), say = t => { if (ps) pubMsg = t; else doorMsg = t; };
   say('저장하는 중…'); render();
   fetch(RELAY, { method: 'POST', body: JSON.stringify(doorKey && !ps ? { f: 'door', dk: doorKey, apt, codes } : { f: 'pubDoor', apt, codes }) }).then(r => r.json()).then(r => {
@@ -2928,7 +2946,7 @@ function sharePayload() {
 function shareUp() {
   let on = '', done = '';
   try { on = localStorage.getItem('cbShareOn'); done = localStorage.getItem('cbShareUp'); } catch (e) {}
-  if (!shareCode || on !== '1' || !state.syncedAt || done === state.syncedAt) return;
+  if (!doorKey || !shareCode || on !== '1' || !state.syncedAt || done === state.syncedAt) return;
   const at = state.syncedAt;
   try { localStorage.setItem('cbShareUp', at); } catch (e) {}
   fetch(SHARE_API, { method: 'POST', body: JSON.stringify({ f: 'shareUp', sc: shareCode, data: sharePayload() }) }).then(r => r.json())
@@ -2936,6 +2954,7 @@ function shareUp() {
     .catch(() => { try { localStorage.removeItem('cbShareUp'); } catch (e) {} });   // 다음 화면 그릴 때 다시
 }
 function shareCall(body) {
+  if (!doorKey) return Promise.reject(new Error('no access'));
   return fetch(SHARE_API, { method: 'POST', body: JSON.stringify(Object.assign({ sc: shareCode }, body)) }).then(r => r.json()).then(r => {
     if (!r.ok) throw new Error(r.error);
     if (r.sc) { shareCode = r.sc; try { localStorage.setItem('cbShareCode', r.sc); } catch (e) {} }
