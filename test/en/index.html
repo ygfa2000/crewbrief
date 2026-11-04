@@ -1,9 +1,43 @@
 <!doctype html>
 <html lang="en">
-<head><meta name="robots" content="noindex">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Crew Brief</title>
+<script>
+(function () {
+  var on = false, real = null;
+  try { real = window.sessionStorage; on = window.cbDemoBundled === true || real.getItem('cbDemoOn') === '1'; } catch (e) {}
+  if (!on) return;
+  window.cbDemo = true;
+  document.documentElement.classList.add('cb-demo');
+  var csp = document.createElement('meta');
+  csp.httpEquiv = 'Content-Security-Policy';
+  csp.content = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'";
+  document.head.appendChild(csp);
+  var mem = function () {
+    var m = new Map();
+    return { getItem: function (k) { k = String(k); return m.has(k) ? m.get(k) : null; }, setItem: function (k, v) { m.set(String(k), String(v)); }, removeItem: function (k) { m.delete(String(k)); }, clear: function () { m.clear(); }, key: function (i) { return Array.from(m.keys())[i] || null; }, get length() { return m.size; } };
+  };
+  var hide = function (o, k, v) { Object.defineProperty(o, k, { value: v, configurable: true }); };
+  hide(window, 'localStorage', mem());
+  hide(window, 'sessionStorage', mem());
+  var no = function () { return new Error('demo: not sent'); }, shut = function () { throw no(); };
+  window.fetch = function (u, o) { return window.cbDemoFetch ? window.cbDemoFetch(String((u && u.url) || u), o) : Promise.reject(no()); };
+  window.XMLHttpRequest = shut; window.WebSocket = shut; window.EventSource = shut;
+  window.open = function () { return null; };
+  hide(navigator, 'sendBeacon', function () { return false; });
+  hide(navigator, 'share', function () { return Promise.reject(no()); });
+  hide(navigator, 'clipboard', { writeText: function () { return Promise.reject(no()); } });
+  hide(navigator, 'geolocation', { getCurrentPosition: function (a, b) { if (b) b(no()); } });
+  window.cbDemoExit = function () {
+    var h = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.cbdemo;
+    if (h) return h.postMessage({ cmd: 'exit' });
+    try { real.removeItem('cbDemoOn'); } catch (e) {}
+    location.reload();
+  };
+})();
+</script>
 <style>
   :root { --bg:#f4f5f7; --card:#fff; --ink:#1b1f24; --mute:#6b7380; --line:#e3e6ea; --acc:#1f6feb; --warn:#b54708; --soft:#eef3fb; }
   @media (prefers-color-scheme: dark) {
@@ -246,6 +280,10 @@
   .setrow .k { color:var(--mute); font-size:12px; letter-spacing:.04em; }
   .setrow .v { font-weight:600; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
   .setrow .v small { font-weight:400; color:var(--mute); }
+  .stat-row { display:flex; justify-content:space-between; gap:12px; padding:6px 2px; border-bottom:1px solid var(--line); }
+  .stat-row .k { color:var(--mute); font-size:12px; letter-spacing:.04em; }
+  .stat-row .v { font-weight:600; font-variant-numeric:tabular-nums; text-align:right; }
+  .stat-row .v small { font-weight:400; color:var(--mute); }
   .setrow input { width:18px; height:18px; margin:0; }
   .setrow .pos { width:56px; height:32px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font:600 15px -apple-system,system-ui,sans-serif; text-align:center; text-align-last:center; }
   .setbtns { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:12px; }
@@ -513,6 +551,14 @@
   .tz-star { font-style:normal; font-weight:800; font-size:11px; margin:0 2px 0 -2px; vertical-align:2px; color:var(--mute); }
   .hx-route .tz.tz-nd { color:#fff; box-shadow:inset 0 0 0 1.5px #fff; }
   .hx-route .tz { width:14px; height:14px; font-size:10px; line-height:14px; margin-right:4px; vertical-align:1px; box-shadow:0 0 0 1px rgba(255,255,255,.5); }
+  .cb-demo #howto, .cb-demo #doorTab, .cb-demo #secret, .cb-demo #scriptWarn, .cb-demo .tabs button[data-tab="sked"] { display:none !important; }
+  .cb-demo .pin { top:40px; }
+  .cb-demo body { padding-top:56px; }
+  #demoBar { position:fixed; left:0; right:0; top:0; z-index:60; height:40px; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:0 12px; background:#b54708; color:#fff; font-size:13px; font-weight:700; }
+  #demoBar button { border:1px solid #fff; background:transparent; color:#fff; border-radius:8px; padding:4px 10px; font:inherit; }
+  #demoSheet { position:fixed; inset:0; z-index:70; background:rgba(0,0,0,.5); display:flex; align-items:center; padding:16px; }
+  #demoSheet > div { background:var(--card); color:var(--ink); border-radius:14px; padding:14px; width:100%; max-height:75vh; overflow:auto; }
+  #demoSheet pre { white-space:pre-wrap; word-break:break-all; font:11px ui-monospace,monospace; margin:8px 0; }
 </style>
 </head>
 <body>
@@ -919,10 +965,92 @@ function hotelInfoMask(text) {
   }).join('\n');
 }
 const hotelInfoBad = x => [x.hotel && x.hotel.name, x.toHotel && x.toHotel.provider, x.toAirport && x.toAirport.provider].some(v => HI_ICON_LINE.test(v || ''));
+function demoData(nowMs) {
+  const pad = x => String(x).padStart(2, '0');
+  const now = new Date(nowMs);
+  const dayAt = off => { const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + off); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+  const hm = m => `${pad(Math.floor(m / 60) % 24)}:${pad(m % 60)}`;
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const CA = '100001 Alex Example', FO = '100002 Sam Sample', FA = '100003 Jo Placeholder';
+  const crew = { ca: CA, fo: FO, fa: [FA], ff: [] };
+  const TAILS = ['N100DM', 'N200DM', 'N300DM'];
+  const leg = (no, date, flight, tail, from, to, dep, mins) => ({ no, date, flight, tail, from, to, dep: hm(dep), arr: hm(dep + mins), pax: '50', block: `${Math.floor(mins / 60)}:${pad(mins % 60)}`, credit: `${Math.floor(mins / 60)}:${pad(mins % 60)}`, dpu: null, turn: null, dhd: null, crew });
+  const day = (date, legs, hotel, layover) => { const first = legs[0], last = legs[legs.length - 1], mm = s => +s.slice(0, 2) * 60 + +s.slice(3); return { date, report: hm(mm(first.dep) + 1440 - 45), release: hm(mm(last.arr) + 15), legs, hotel: hotel || '', layover: layover || '' }; };
+  const trip = (pairing, days) => ({ pairing, start: days[0].date, end: days[days.length - 1].date, block: '12:30', credit: '13:00', tafb: '50:15', days });
+
+  const h = Math.min(Math.max(now.getHours(), 5), 19) * 60;
+  const t0 = dayAt(0), t1 = dayAt(1);
+  const HOTEL = 'Example Inn Portland', HOTEL2 = 'Sample Suites Boise', HOTEL3 = 'Placeholder Lodge Phoenix';
+  const trips = [
+    trip('D1001', [
+      day(dayAt(-6), [leg(1, dayAt(-6), '101', TAILS[0], 'DEN', 'BOI', 8 * 60, 125), leg(2, dayAt(-6), '102', TAILS[0], 'BOI', 'SLC', 11 * 60, 70)], HOTEL3, '14:20'),
+      day(dayAt(-5), [leg(1, dayAt(-5), '103', TAILS[0], 'SLC', 'DEN', 9 * 60, 100)]),
+    ]),
+    trip('D1002', [
+      day(t0, [leg(1, t0, '201', TAILS[1], 'DEN', 'PDX', h - 120, 160), leg(2, t0, '202', TAILS[1], 'PDX', 'SFO', h + 90, 105)], HOTEL, '13:10'),
+      day(t1, [leg(1, t1, '203', TAILS[1], 'SFO', 'BOI', 10 * 60, 115), leg(2, t1, '204', TAILS[1], 'BOI', 'DEN', 13 * 60, 110)]),
+    ]),
+    trip('D1003', [
+      day(dayAt(4), [leg(1, dayAt(4), '301', TAILS[2], 'DEN', 'BOI', 7 * 60, 125), leg(2, dayAt(4), '302', TAILS[2], 'BOI', 'PHX', 10 * 60, 130)], HOTEL3, '15:00'),
+      day(dayAt(5), [leg(1, dayAt(5), '303', TAILS[2], 'PHX', 'SFO', 9 * 60, 120), leg(2, dayAt(5), '304', TAILS[2], 'SFO', 'BOI', 12 * 60 + 30, 115)], HOTEL2, '12:40'),
+      day(dayAt(6), [leg(1, dayAt(6), '305', TAILS[2], 'BOI', 'DEN', 8 * 60, 105)]),
+    ]),
+  ];
+
+  const mm = s => +s.slice(0, 2) * 60 + +s.slice(3);
+  const flights = (date, legs) => legs.map(l => {
+    const dep = mm(l.dep), arr = dep + mm(l.block), past = date < t0, doneOut = past || (date === t0 && nowMin >= dep), doneIn = past || (date === t0 && nowMin >= arr);
+    return { tail: l.tail, flight: l.flight, from: l.from, to: l.to, std: hm(dep), sta: hm(arr), stdZ: '', etd: '', eta: doneOut && !doneIn ? hm(arr) : '',
+      out: doneOut ? hm(dep + 2) : '', off: doneOut ? hm(dep + 14) : '', on: doneIn ? hm(arr - 6) : '', in: doneIn ? hm(arr - 1) : '',
+      captain: 'Alex Example', delayCode: '', delayReason: '', delayMin: '', depGate: 'A1', arrGate: 'B2' };
+  });
+  const flows = {};
+  trips.forEach(tr => tr.days.forEach(d => { flows[`${d.date}-${d.legs[0].tail}`] = { flights: flights(d.date, d.legs), updatedAt: new Date(nowMs).toISOString() }; }));
+
+  const release = l => ({
+    flight: l.flight, date: l.date, from: l.from, to: l.to, tail: l.tail, adsb: 'YES', route: `${l.from} EXAMPLE1 SAMPL DEMOO EXAMPLE2 ${l.to}`, fltlv: '360', cruise: 'M.78', climb: '290/.74', descent: '.74/290',
+    alt1: { id: 'SLC', dist: 210, ete: 48 }, alt2: null, reserve: { fuel: 1850, time: 45 }, taxiOut: { fuel: 300, time: 15 }, taxiIn: { fuel: 150, time: 8 }, burnoff: { fuel: 5200, time: mm(l.block) }, contin: { fuel: 300, time: 12 }, ldg: { fuel: 3900, time: 88 }, hold: { fuel: 800, time: 20 }, gaAlt: { fuel: 1500, time: 48, apt: 'SLC' },
+    crzWind: { dir: '270', spd: 45 }, isaDev: { crz: 'P02', clb: 'P01', dsc: 'P03' }, toc: { fuelRemain: 7800, fl: 'FL360', timeFromOrigin: 22 }, tas: 447, rlsf: 9300, minto: 8100, mintoTime: 165, rlsFuel: 9300, gateFuel: 9600,
+    dest: { id: l.to, ete: mm(l.block) - 12, dist: 820 },
+    weights: { zfw: 62000, tow: 71200, ldw: 66000, payload: 11500, maxPayload: 19000, pax: 50, seats: 76, bow: { wt: 50500, index: '45.2' }, maxCargo: { fwd: 2000, aft: 3000 } },
+    takeoff: { rwy: '17R', apt: l.from, flaps: '1', temp: '22C' }, landing: { rwy: '10L', apt: l.to, flaps: '5', temp: '18C' },
+    dispatcher: { name: 'D EXAMPLE', phone: '555-0100' }, pic: 'EXAMPLE', sic: 'SAMPLE', acarsRwys: [{ rwy: '17R', efp: 'EFP SAMPLE' }], warnings: [], remarks: ['-SAMPLE REMARK FOR DEMO ONLY'], mel: ['00-00-00 SAMPLE MEL ITEM (DEMO)'],
+  });
+  const releases = {}, rawKeys = [], store = {};
+  [...trips[0].days, ...trips[1].days].forEach(d => d.legs.forEach(l => {
+    const k = `${l.date}-${l.flight}-${l.from}`;
+    releases[k] = release(l);
+    rawKeys.push(k);
+    store[`cbRaw:${k}`] = `DEMO SAMPLE RELEASE ${l.flight} ${l.from}-${l.to}\nThis text is made up for the demo. It is not a real flight release.\nNOT FOR OPERATIONAL USE`;
+  }));
+
+  const ride = (provider, date, time, transit) => ({ provider, phone: '555-0101', date, time, transit, location: '' });
+  const stay = (airport, date, pairing, name, street, phone) => ({ airport, date, pairing, note: '',
+    toHotel: ride('Use Hotel Shuttle', date, '19:30', '15 minutes'), toAirport: ride('Example Crew Transport', date, '06:15', '20 minutes'),
+    hotel: { name, address: `${street}, Exampleville, ZZ 00000 US`, phone, confirmation: 'DEMO12345' } });
+  store.cbHotelInfo = JSON.stringify([
+    stay('PDX', t0, 'D1002', HOTEL, '100 Example St', '555-0102'),
+    stay('PHX', dayAt(4), 'D1003', HOTEL3, '200 Sample Ave', '555-0103'),
+    stay('BOI', dayAt(5), 'D1003', HOTEL2, '300 Placeholder Rd', '555-0104'),
+  ]);
+  store.cbShareCode = 'DEMO-0000-0000-0000';
+  store.cbShareOn = '1';
+  const syncedAt = new Date(nowMs - 3 * 6e4).toISOString();
+  store.cbShareUp = syncedAt;
+
+  const state = { syncedAt, script: 'demo', rawKeys, trips, releases, flows };
+  const time = () => { const d = new Date(nowMs - 12 * 6e4); return pad(d.getUTCHours()) + pad(d.getUTCMinutes()); };
+  const atis = ids => Object.fromEntries(ids.map(id => [id, [
+    { type: 'combined', code: 'D', airport: id, time: time(), updatedAt: new Date(nowMs).toISOString(), datis: `${id} ATIS INFO D ${time()}Z. SAMPLE DEMO WEATHER. 27010KT 10SM FEW050 22/08 A3001. VISUAL APPROACH IN USE. NOT FOR OPERATIONAL USE.` },
+    { type: 'metar', code: '', airport: id, time: time(), updatedAt: new Date(nowMs).toISOString(), datis: `${id.length === 3 ? 'K' + id : id} ${time()}Z 27010KT 10SM FEW050 22/08 A3001 RMK SAMPLE DEMO` },
+  ]]));
+  const share = { ok: true, sc: store.cbShareCode, keys: [{ label: 'Sam Sample', kind: 'spouse', sk: 'demo-key-example' }] };
+  return { state, store, atis, share };
+}
 
 const APP = 'https://ygfa2000.github.io/crewbrief/en/';
 const SYNC_JS = 'https://ygfa2000.github.io/crewbrief/sync-en.js';
-const RELAY = 'https://script.google.com/macros/s/AKfycbz8uCeKdYFBjVW8HQh8tD55JFDkTQ1PNQcmtlITo76RG3Wrtn48hrcEbhpl8labYZ5Z/exec', DK_PARAM = '';
+const RELAY = 'https://script.google.com/macros/s/AKfycbz8uCeKdYFBjVW8HQh8tD55JFDkTQ1PNQcmtlITo76RG3Wrtn48hrcEbhpl8labYZ5Z/exec', DK_PARAM = '', DEMO_OK = true;
 document.getElementById('home').href = APP;
 document.getElementById('home').addEventListener('click', () => { try { sessionStorage.removeItem('cbView'); } catch (e) {} });
 const UPD = document.querySelector('.upd');
@@ -957,6 +1085,20 @@ const api = (fn, arg) => fetch(`${RELAY}?f=atis&ids=${arg.join(',')}`)
     render();
   } catch (e) { alert('Crew Brief: ' + e.message); }
 })();
+if (window.cbDemo) {
+  const D = demoData(Date.now());
+  state = D.state;
+  Object.entries(D.store).forEach(([k, v]) => localStorage.setItem(k, v));
+  const ok = x => Promise.resolve(new Response(JSON.stringify(x), { headers: { 'content-type': 'application/json' } }));
+  window.cbDemoFetch = (u, o) => {
+    const m = /[?&]f=atis&ids=([^&]*)/.exec(u);
+    if (m) return ok(D.atis(decodeURIComponent(m[1]).split(',')));
+    let b = {};
+    try { b = JSON.parse((o && o.body) || '{}'); } catch (e) {}
+    if (b.f === 'shareList') return ok(D.share);
+    return Promise.reject(new Error('demo: not sent'));
+  };
+}
 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
 const n = v => (v == null ? '—' : Number(v).toLocaleString('en-US'));
@@ -1043,7 +1185,7 @@ function releaseCard(r) {
     ${r.warnings.length ? `<div class="warn">⚠ ${esc(r.warnings.join(' · '))}</div>` : ''}`;
 }
 
-const SAMPLE_REL = {"warnings":[],"flight":"3054","date":"16OCT26","from":"SNA","to":"SFO","tail":"N412SY","adsb":"SKW3054","tas":457,"route":"HHERO3 IKAYE DCT RIZIN DCT SPLNT DCT STOKD DCT SERFR SERFR4","cruise":"CSTID030","fltlv":"FL340","minto":7665,"rlsf":8900,"altsFromTable":[],"dest":{"id":"SFO","dist":358,"ete":56},"alt1":null,"alt2":null,"mintoTime":121,"rlsFuel":8886,"reserve":{"apt":null,"time":45,"fuel":2762},"hold":{"apt":null,"time":20,"fuel":982},"gaAlt":{"apt":null,"time":0,"fuel":0},"ldg":{"apt":null,"time":80,"fuel":4465},"taxiOut":{"apt":null,"time":20,"fuel":500},"burnoff":{"apt":null,"time":56,"fuel":3921},"contin":{"apt":null,"time":15,"fuel":721},"taxiIn":{"apt":null,"time":8,"fuel":200},"gateFuel":4265,"weights":{"payload":15912,"pax":68,"maxPayload":19327,"zfw":66471,"tow":74857,"ldw":70936,"bow":{"index":"69.1","wt":50559},"maxCargo":{"fwd":3306,"aft":2535},"seats":76},"takeoff":{"apt":"SNA","rwy":"02L","flaps":"04","temp":"P28"},"landing":{"apt":"SFO","rwy":"28R","flaps":"05","temp":"P22"},"climb":"270M73C1","descent":"290M78","crzWind":{"dir":"039","spd":57},"isaDev":{"clb":"8","crz":"10","dsc":"12"},"dispatcher":{"name":"J DOE","phone":"435-000-0000"},"pic":"SMITH","sic":"JONES","toc":{"fl":"FL340","distFromOrigin":111,"timeFromOrigin":19,"fuelRemain":6354},"next":{"flight":"3490","from":"SFO","to":"SAN","std":"1140"},"acarsRwys":[{"rwy":"02L","ix":null,"len":5700,"pmtow":7887,"efp":"SPECIAL"},{"rwy":"02L","ix":"E","len":4600,"pmtow":7397,"efp":"SPECIAL"},{"rwy":"20R","ix":null,"len":5700,"pmtow":7887,"efp":"DT H196"},{"rwy":"20R","ix":"K","len":5360,"pmtow":7887,"efp":"DT H196"}],"seProc":{"02L":"900 LT H210 1056"},"remarks":["-GOV TURB SIGMET ... (example)"],"mel":[],"fixes":[["KSNA",33.675,-117.868],["STREL",33.572,-117.9],["DOLLF",33.48,-118.002],["MIKAA",33.41,-118.147],["SNYPR",33.44,-118.3],["HHERO",33.522,-118.488],["FAYHE",33.665,-118.712],["IKAYE",34.143,-119.01],["TOC",34.358,-119.425],["RIZIN",34.412,-119.533],["SPLNT",35.088,-120.373],["STOKD",35.483,-120.818],["SERFR",36.068,-121.365],["TOD",36.337,-121.573],["NRRLI",36.495,-121.7],["WWAVS",36.742,-121.895],["EPICK",36.95,-121.953],["FOLET",37.275,-122.08],["EDDYY",37.375,-122.118],["KSFO",37.618,-122.375]]};
+const SAMPLE_REL = {"remarks":[],"mel":[]};
 let setTab = 'rel';
 const HOTEL_LAST = 'cbHotelRefreshLast', HOTEL_FAIL = 'cbHotelRefreshFail', HOTEL_FAIL_MS = 10 * 6e4;
 let hotelBusy = false, hotelLast = null, hotelFail = null;
@@ -1124,6 +1266,7 @@ window.addEventListener('cbhotelinfo', e => {
   if (tab === 'set') render();
 });
 function settingsView() {
+  if (window.cbDemo && (setTab === 'key' || setTab === 'watch')) setTab = 'rel';
   const keys = Object.keys(state.releases || {}).sort();
   const last = keys.length ? state.releases[keys[keys.length - 1]] : null;
   const mine = last && last.weights ? last : null;
@@ -1142,7 +1285,7 @@ function settingsView() {
   if (setTab === 'key') return seg + keyBox();
   if (setTab === 'fb') { fbSeenNow(); return seg + fbBox(); }
   if (setTab === 'share') return seg + shareBox();
-  if (setTab === 'app') return seg + appBox();
+  if (setTab === 'app') return seg + appBox() + demoCard();
   return `${seg}<div class="card box"><b>Release items</b>
     <p class="sub" style="margin:4px 0 10px">Only checked items are shown in the release box. Pick a number on the right to set the order, then Save. Values are from ${src}.</p>
     <div class="setlist">${rows}</div>
@@ -1215,7 +1358,11 @@ const tzOf = (apt, date) => {
   const cur = Object.keys(TZ_STD).find(x => TZ_STD[x] + (usDst(date) ? 1 : 0) === TZ_STD[k]) || k;
   return tzIcon(cur);
 };
-const icao = a => /^[A-Z]{4}$/.test(a) ? a : ({ HNL: 'PHNL', OGG: 'PHOG', KOA: 'PHKO', LIH: 'PHLI', ITO: 'PHTO', ANC: 'PANC', FAI: 'PAFA', JNU: 'PAJN', KTN: 'PAKT', SIT: 'PASI' })[a] || (/^Y/.test(a) ? 'C' + a : 'K' + a);
+const ICAO_APT = { HNL: 'PHNL', OGG: 'PHOG', KOA: 'PHKO', LIH: 'PHLI', ITO: 'PHTO', ANC: 'PANC', FAI: 'PAFA', JNU: 'PAJN', KTN: 'PAKT', SIT: 'PASI',
+  ACA: 'MMAA', AGU: 'MMAS', BJX: 'MMLO', CUN: 'MMUN', GDL: 'MMGL', HMO: 'MMHO', LAP: 'MMLP', LTO: 'MMLT', MEX: 'MMMX', MTY: 'MMMY', MZT: 'MMMZ', OAX: 'MMOX', PVR: 'MMPR', QRO: 'MMQT', SJD: 'MMSD', SLP: 'MMSP', TGZ: 'MMTG', TIJ: 'MMTJ', ZIH: 'MMZH', ZLO: 'MMZO',
+  ELH: 'MYEH', MHH: 'MYAM', SJU: 'TJSJ', MAO: 'SBEG',
+  BKG: 'KBBG', CLD: 'KCRQ', FCA: 'KGPI', MQT: 'KSAW', SCE: 'KUNV', YUM: 'KNYL', YIP: 'KYIP' };
+const icao = a => /^[A-Z]{4}$/.test(a) ? a : ICAO_APT[a] || (/^Y/.test(a) ? 'C' + a : 'K' + a);
 const LT_ICON = '<svg class="lt-ico" viewBox="0 0 40 40" aria-hidden="true"><defs><radialGradient id="ltg" cx=".5" cy=".42" r=".6"><stop offset="0" stop-color="#6cc0f2"/><stop offset="1" stop-color="#2f8fd6"/></radialGradient></defs><rect width="40" height="40" rx="10" fill="#fff"/><circle cx="20" cy="20" r="16.5" fill="url(#ltg)"/><rect x="19.3" y="5.6" width="1.4" height="3" rx=".7" fill="#fff" opacity=".9" transform="rotate(0 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(30 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(60 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="3" rx=".7" fill="#fff" opacity=".9" transform="rotate(90 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(120 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(150 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="3" rx=".7" fill="#fff" opacity=".9" transform="rotate(180 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(210 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(240 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="3" rx=".7" fill="#fff" opacity=".9" transform="rotate(270 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(300 20 20)"/><rect x="19.3" y="5.6" width="1.4" height="2" rx=".7" fill="#fff" opacity=".9" transform="rotate(330 20 20)"/><path d="M5.5 21.2 17 20h6l11.5 1.2v1.3L23 22.3h-6l-11.5.2z" fill="#fff"/><circle cx="20" cy="21.4" r="3" fill="#fff"/><path d="M19.1 12.5h1.8v7h-1.8z" fill="#fff"/><path d="M15.8 14.2h8.4v1.6h-8.4z" fill="#fff"/></svg>';
 const ltMdy = date => `${date.slice(5, 7)}/${date.slice(8, 10)}/${date.slice(0, 4)}`;
 const ltAt = (date, hm, after) => {
@@ -1532,6 +1679,7 @@ function dayBlock(trip, d, fold) {
               <div class="info">
                 ${l.crew && (l.crew.ca || l.crew.fo) ? `<span class="lbl">${l.crew.ca ? 'CA' : 'FO'}</span><span>${l.crew.ca ? name(l.crew.ca) : name(l.crew.fo)}${l.crew.ca && l.crew.fo ? `<span class="lbl fo">FO</span>${name(l.crew.fo)}` : ''}</span>` : ''}
                 ${l.crew && l.crew.fa.length ? `<span class="lbl">FA</span><span>${l.crew.fa.map(name).join(', ')}</span>` : ''}
+                ${l.crew && (l.crew.ff || []).length ? `<span class="lbl">FF</span><span>${l.crew.ff.map(name).join(', ')}</span>` : ''}
               </div></div>` +
               (rel ? releaseCard(rel) : `<div class="sub" style="margin-top:10px">No release yet</div>`),
               (state.flows || {})[`${l.date}-${l.tail}`] ? flowPanel(l, state.flows[`${l.date}-${l.tail}`]) : `<div class="panel"><h4>FLOW</h4>${flow(l, allLegs, rel)}</div>`,
@@ -1812,6 +1960,7 @@ const ckinBtns = () => (state.trips || []).filter(t => t.start <= today && t.end
 
 let tab = 'home';
 function render() {
+  if (window.cbDemo && (tab === 'door' || tab === 'sked')) tab = 'home';
   ckinRemember();
   ckinLeave();
   (state.trips || []).forEach(t => t.days.forEach(d => d.legs.forEach(l => { if (l.dhd && (l.dhd === 'N' || !/\d/.test(l.flight || ''))) l.dhd = null; })));
@@ -2279,6 +2428,10 @@ function syncStep(t, run) {
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['11/03', 'LogTen: Mexico and other airports outside the US and Canada now go to LogTen with the right code (for example Loreto MMLT, not KLTO)'],
+  ['11/03', 'Today: after midnight your current duty stays on screen until 4 hours after it ends, or until your next report if that comes first'],
+  ['11/03', 'Today: between flights, a countdown to the next departure (Flow ETD if there is one, otherwise STD) and when to be back at the plane (35 min before)'],
+  ['11/03', 'Feedback: tapping a notification shows the new item right away, even if the first load fails'],
   ['11/02', 'Sorry for all the updates today — a few of today’s changes had problems, and we’ve been fixing them as they came up. Thanks for your patience.'],
   ['11/02', 'Jet bridge code: crew base airports (LAX, SFO, DEN …) have a blue ↗ button — tap it to open that base’s info page (crew lounge and more) in your browser; you may need to sign in there the first time'],
   ['11/02', 'Hotel: tap a hotel to see shuttle times, phone numbers and microwave details; the map pin opens Google Maps directions from the airport; Settings › Refresh hotel info reads it again right away (iPhone app)'],
@@ -2477,7 +2630,7 @@ fetch(SCRIPT_URL, { cache: 'no-store' }).then(r => r.text()).then(t => {
   if (tab === 'set') render();
 }).catch(() => {});
 
-function fmapBox(leg, f, mine) { return `<div class="fmap"${mine && fmapOpen() ? '' : ' hidden'}${mine ? ' data-mine="1"' : ''} data-date="${esc(leg.date)}" data-flight="${esc(f.flight)}" data-from="${esc(f.from)}" data-to="${esc(f.to)}" data-tail="${esc(leg.tail)}"${f.out ? ' data-live="1"' : ''}><div class="fmap-m"></div><div class="fmap-i">Loading map…</div></div>`; }
+function fmapBox(leg, f, mine) { if (window.cbDemo) return ''; return `<div class="fmap"${mine && fmapOpen() ? '' : ' hidden'}${mine ? ' data-mine="1"' : ''} data-date="${esc(leg.date)}" data-flight="${esc(f.flight)}" data-from="${esc(f.from)}" data-to="${esc(f.to)}" data-tail="${esc(leg.tail)}"${f.out ? ' data-live="1"' : ''}><div class="fmap-m"></div><div class="fmap-i">Loading map…</div></div>`; }
 let leafletP = null, airportsP = null;
 function fmapOpen() { try { return localStorage.getItem('cbFmapOpen') !== '0'; } catch (e) { return true; } }
 document.addEventListener('click', e => {
@@ -2647,14 +2800,14 @@ let doorKey = '', doorData = null, doorEdit = null, doorQ = '', doorMsg = '', do
 const doorStore = () => doorKey ? 'cbDoors' : 'cbPubDoors';
 try { doorKey = localStorage.getItem('cbDoorKey') || ''; doorData = JSON.parse(localStorage.getItem(doorStore()) || 'null'); } catch (e) {}
 {
-  const dk = (/[#&]dk=([\w-]{16,})/.exec(location.hash) || [])[1] || DK_PARAM;
+  const dk = window.cbDemo ? '' : (/[#&]dk=([\w-]{16,})/.exec(location.hash) || [])[1] || DK_PARAM;
   if (dk) {
     doorKey = dk;
     try { localStorage.setItem('cbDoorKey', dk); } catch (e) {}
     if (/dk=/.test(location.hash)) history.replaceState(null, '', location.pathname + location.search);
   }
 }
-document.getElementById('doorTab').hidden = false;
+document.getElementById('doorTab').hidden = !!window.cbDemo;
 let doorSide = 'mine', pubData = null, pubMsg = '', pubTried = false;
 try { doorSide = localStorage.getItem('cbDoorSide') === 'pub' ? 'pub' : 'mine'; if (doorKey) pubData = JSON.parse(localStorage.getItem('cbPubDoors') || 'null'); } catch (e) {}
 const pubSide = () => !!doorKey && doorSide === 'pub';
@@ -2883,20 +3036,21 @@ function fbLoad(again) {
   fetch(`${RELAY}?f=fb&dk=${encodeURIComponent(doorKey)}`).then(r => r.json()).then(r => {
     if (seq !== fbSeq) return;
     if (!r.ok) throw new Error(r.error);
+    const wasAdmin = fbData.admin;
     fbData = r;
     if (fbMsg === fbErr) fbMsg = '';
     fcmSync();
-    if ((tab === 'set' && setTab === 'fb') || newFb()) render();
+    if ((tab === 'set' && setTab === 'fb') || newFb() || (tab === 'set' && setTab === 'share' && !wasAdmin !== !r.admin)) render();
   }).catch(err => {
     if (seq !== fbSeq) return;
     const final = NO_ACCESS.test(err.message);
     if (!again && !final) { setTimeout(() => { if (seq === fbSeq) fbLoad(true); }, 1500); return; }
     if (final) fbData = { list: [] };
-    fbMsg = fbErr = `Couldn't load list: ${err.message}`; if (tab === 'set' && setTab === 'fb') render();
+    fbMsg = fbErr = `Couldn't load list: ${err.message}`; if (tab === 'set' && (setTab === 'fb' || (final && setTab === 'share'))) render();
   });
 }
 const NO_ACCESS = /^no (door )?access$/;
-function listsReset() { fbData = null; appReqs = null; fbSeq++; appSeq++; fbMsg = ''; }
+function listsReset() { fbData = null; appReqs = null; fbSeq++; appSeq++; fbMsg = ''; shareStats = null; statsAt = 0; statsMsg = ''; statsSeq++; }
 const FRIEND_URL = 'https://crewbrief.pages.dev/friend/';
 const SHARE_API = 'https://crewbrief-share.bidpeek.workers.dev/', SHARE_MAX = 2;
 let shareData = null, shareMsg = '', shareKind = 'friend', shareCode = '';
@@ -2935,7 +3089,7 @@ function shareBox() {
   const keys = (shareData || {}).keys || [], full = keys.length >= SHARE_MAX;
   return `<div class="card box"><b>Share my schedule</b>
     <p class="sub" style="margin:4px 0 10px">Make a key for family or a friend (up to ${SHARE_MAX}). They open <b>${esc(FRIEND_URL.replace('https://', ''))}</b> and enter the key. They see your trips, flights, times and live status (on time · delayed · taxiing · en route · landed · at gate). Never crew names, releases, hotels or jet bridge codes.</p>
-    ${shareCode ? '' : '<input id="shMe" class="kin" placeholder="Your name (friends see it, e.g. Chris)" maxlength="30" autocomplete="off" style="margin-bottom:8px">'}
+    ${shareCode ? '' : '<input id="shMe" class="kin" placeholder="Your name (friends see it, e.g. Sam)" maxlength="30" autocomplete="off" style="margin-bottom:8px">'}
     ${full ? '' : `<input id="shName" class="kin" placeholder="Their name (e.g. Mom, Jane)" maxlength="30" autocomplete="off">
     <div class="seg sh-seg" style="margin-top:8px"><button data-shk="spouse"${shareKind === 'spouse' ? ' class="on"' : ''}>Family</button><button data-shk="friend"${shareKind === 'friend' ? ' class="on"' : ''}>Friend</button></div>`}
     <div class="setbtns">${full ? '' : '<button id="shNew" class="on">Make key</button>'}<span class="sub" id="shMsg">${esc(shareMsg || (full ? `You have ${SHARE_MAX} keys. Delete one to make another.` : ''))}</span></div></div>
@@ -2950,7 +3104,37 @@ function shareBox() {
   : `<div class="card box"><b>New phone?</b>
     <p class="sub" style="margin:4px 0 8px">Enter the share code from your old phone to keep your keys.</p>
     <input id="shOld" class="kin" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="24" autocomplete="off" autocapitalize="characters">
-    <div class="setbtns"><button id="shUse">Use code</button></div></div>`}`;
+    <div class="setbtns"><button id="shUse">Use code</button></div></div>`}
+  ${statsBox()}`;
+}
+let shareStats = null, statsAt = 0, statsMsg = '', statsSeq = 0;
+const STATS_FINAL = /^(no (door )?access|not set up)$/;
+function statsLoad(again) {
+  const seq = ++statsSeq;
+  statsAt = Date.now();
+  fetch(`${RELAY}?f=shareStats&dk=${encodeURIComponent(doorKey)}`).then(r => r.json()).then(r => {
+    if (seq !== statsSeq) return;
+    if (!r.ok) throw new Error(r.error);
+    shareStats = r; statsMsg = ''; statsPaint();
+  }).catch(err => {
+    if (seq !== statsSeq) return;
+    if (!again && !STATS_FINAL.test(err.message)) { setTimeout(() => { if (seq === statsSeq) statsLoad(true); }, 1500); return; }
+    shareStats = null; statsMsg = `Couldn't load stats: ${err.message}`; statsPaint();
+  });
+}
+function statsBody() {
+  if (!shareStats) return `<p class="sub" style="margin:6px 0 0">${esc(statsMsg || 'Loading…')}</p>`;
+  const v = x => x == null ? '—' : esc(String(x));
+  return `<div class="setlist">${[['People with a share code', v(shareStats.owners)], ['People who made a key', v(shareStats.keyOwners)], ['Keys', `${v(shareStats.keys)} <small>Family ${v(shareStats.spouse)} · Friend ${v(shareStats.friend)}</small>`],
+    ['People who uploaded a schedule', v(shareStats.uploaders)], ['Uploaded in the last 7 days', v(shareStats.uploaders7d)], ['Uploaded in the last 30 days', v(shareStats.uploaders30d)], ['Last upload', `${v(shareStats.lastUpload)} <small>UTC</small>`]]
+    .map(([k, x]) => `<div class="stat-row"><span class="k">${k}</span><span class="v">${x}</span></div>`).join('')}</div>
+    <p class="sub" style="margin:8px 0 0">Counts keys that exist now. Deleted keys aren't counted.</p>`;
+}
+const statsPaint = () => { const el = document.getElementById('shStats'); if (el) el.innerHTML = statsBody(); };
+function statsBox() {
+  if (!fbData || !fbData.admin || !doorKey) return '';
+  if (Date.now() - statsAt > 60e3) statsLoad();
+  return `<div class="card box" data-testid="share-stats"><b>Share stats</b><div id="shStats">${statsBody()}</div></div>`;
 }
 document.addEventListener('click', e => {
   const k = e.target.closest('[data-shk]');
@@ -3055,6 +3239,10 @@ function appReqLoad(again, retry) {
     appReqs = { list: [] };
     if (tab === 'set' && setTab === 'app') render();
   });
+}
+function demoCard() {
+  if (!(typeof DEMO_OK !== 'undefined' && !window.cbDemo && (!document.documentElement.dataset.cbApp || (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.cbdemo)))) return '';
+  return `<div class="card box"><b>Try demo</b><p class="sub" style="margin:4px 0 8px">Look around the app with sample data. Your own data stays as it is, and nothing is sent.</p><div class="setbtns"><button data-demo-go="1">Try demo</button></div></div>`;
 }
 function appBox() {
   appReqLoad();
@@ -3222,6 +3410,40 @@ document.addEventListener('click', e => {
   navigator.clipboard.writeText(watchUrl()).then(() => done('✓ Copied'), () => { prompt('Copy this', watchUrl()); });
 });
 
+document.addEventListener('click', e => {
+  if (!e.target.closest?.('[data-demo-go]')) return;
+  const h = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.cbdemo;
+  if (h) return h.postMessage({ cmd: 'enter' });
+  try { sessionStorage.setItem('cbDemoOn', '1'); } catch (er) {}
+  location.reload();
+});
+if (window.cbDemo) {
+  const bar = document.createElement('div');
+  bar.id = 'demoBar';
+  bar.innerHTML = '<span>DEMO — sample data</span><button id="demoExit">Exit demo</button>';
+  document.body.appendChild(bar);
+  const notSent = () => { document.querySelectorAll('.toast').forEach(x => x.remove()); const t = document.createElement('div'); t.className = 'toast'; t.style.top = '48px'; t.textContent = 'demo: not sent'; document.body.appendChild(t); setTimeout(() => t.remove(), 2500); };
+  document.addEventListener('click', e => {
+    const c = sel => e.target.closest?.(sel);
+    if (c('#demoExit')) return window.cbDemoExit();
+    const sheet = c('#demoSheet');
+    if (sheet) { if (e.target === sheet || e.target.dataset.demoClose) sheet.remove(); return; }
+    const stop = () => { e.preventDefault(); e.stopImmediatePropagation(); };
+    if (c('#home')) { stop(); tab = 'home'; render(); scrollTo(0, 0); return; }
+    const lt = c('a.logten');
+    if (lt) {
+      stop();
+      let body = '';
+      try { body = JSON.stringify(JSON.parse(decodeURIComponent(lt.getAttribute('href').split('package=')[1])).entities, null, 1); } catch (er) { body = ''; }
+      const s = document.createElement('div');
+      s.id = 'demoSheet';
+      s.innerHTML = `<div><b>LogTen preview</b> <span class="sub">demo: not sent</span><pre>${esc(body)}</pre><div class="setbtns"><button data-demo-close="1">Close</button></div></div>`;
+      document.body.appendChild(s);
+      return;
+    }
+    if (c('[data-inv],[data-shcopy],[data-shdel],[data-shmine],[data-arcopy],[data-ardone],.ckin,#shNew,#shUse') || (c('a[href]') && c('a[href]').getAttribute('href').charAt(0) !== '#')) { stop(); notSent(); }
+  }, true);
+}
 addEventListener('pagehide', () => { try { sessionStorage.setItem('cbScroll', String(scrollY)); sessionStorage.setItem('cbAtis', JSON.stringify(atisLast ? atisLast.ids : null)); } catch (e) {} });
 let restoreY = 0, restoreAtis = null;
 try {
@@ -3236,7 +3458,7 @@ if (restoreY) requestAnimationFrame(() => scrollTo(0, restoreY));
 </script>
 <script>
 { let n = 0, t = 0;
-  document.getElementById('secret').addEventListener('click', () => { const now = Date.now(); n = now - t < 2000 ? n + 1 : 1; t = now; if (n >= 5) { n = 0; tab = 'set'; setTab = 'key'; render(); scrollTo(0, 0); } }); }
+  document.getElementById('secret').addEventListener('click', () => { if (window.cbDemo) return; const now = Date.now(); n = now - t < 2000 ? n + 1 : 1; t = now; if (n >= 5) { n = 0; tab = 'set'; setTab = 'key'; render(); scrollTo(0, 0); } }); }
 document.getElementById('fab').addEventListener('click', e => { e.currentTarget.classList.add('spin'); location.reload(); });
 </script>
 </body>
