@@ -110,7 +110,7 @@
   .hx-mid small { position:absolute; left:0; right:0; bottom:-2px; text-align:center; font-size:12px; font-weight:600; opacity:.75; font-variant-numeric:tabular-nums; }
   .hx-facts { display:grid; grid-template-columns:1.3fr 1fr 1fr; gap:8px; margin-top:16px; }
   .hx-facts > div { background:rgba(255,255,255,.13); border-radius:14px; padding:9px 11px; display:grid; gap:2px; }
-  .hx-facts span, .duty span, .tl-gate span, .hc-h { font-size:11px; font-weight:700; letter-spacing:.08em; }
+  .hx-facts span, .tl-gate span, .hc-h { font-size:11px; font-weight:700; letter-spacing:.08em; }
   .hx-facts span { opacity:.7; }
   .hx-facts b { font-size:17px; font-weight:800; font-variant-numeric:tabular-nums; white-space:nowrap; }
   .hx-facts b.late { color:#ffd0d4; }
@@ -130,15 +130,11 @@
   .rp-mine .tz { margin-left:0; }
   .rp { display:inline-flex; align-items:center; }
   .rp .tz { vertical-align:0; }
-  .duty .rp-mine { display:block; font-size:12px; letter-spacing:0; color:inherit; }
   .ckin { display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; margin:12px 0 0; padding:14px 18px; border:0; border-radius:18px; background:#6b7684; color:#fff; font:inherit; text-align:left; cursor:pointer; }
   .ckin.on { background:#2fb344; }
   .ckin b { font-size:18px; } .ckin span { font-size:13px; opacity:.9; }
-  .duty { display:grid; grid-template-columns:repeat(3,1fr); background:var(--card); border:1px solid var(--line); border-radius:18px; }
-  .duty > div { display:grid; gap:2px; padding:12px 14px; }
-  .duty > div + div { border-left:1px solid var(--line); }
-  .duty span, .tl-gate span, .hc-h { color:var(--mute); }
-  .duty b { font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
+  .tl-gate span, .hc-h { color:var(--mute); }
+  .home > .ckin { margin-top:0; }
   .home > .card, .hcard { margin-top:0; } .hcard { padding:14px 16px 6px; border-radius:18px; }
   .hc-h { margin-bottom:4px; }
   .tl { position:relative; display:grid; grid-template-columns:18px auto 1fr auto; gap:10px; align-items:center; padding:10px 0; }
@@ -1686,10 +1682,9 @@ function homeView() {
     <div class="hero">
       <div class="hx-top"><span>${d.date === ymd(Date.now()) ? '오늘' : '근무'} · ${md(d.date)}</span><span class="pill">${esc(trip.pairing)} · Day ${trip.days.indexOf(d) + 1}/${trip.days.length}</span></div>
       ${hero}</div>
-    <div class="duty"><div><span>REPORT</span><b>${reportAt(d)}</b></div><div><span>RELEASE</span><b>${esc(d.release || '—')}</b></div><div><span>DUTY</span><b>${esc(d.duty || '—')}</b></div></div>
+    ${ckinBtns()}
     <div class="card hcard"><div class="hc-h">${legs.length} LEGS</div>${rows}</div>
     </div>
-    ${ckinBtns()}
     ${doors ? `<div class="card hcard"><div class="hc-h">JET BRIDGE CODE</div>${doors}</div>` : ''}`;
 }
 function incentiveCard() {
@@ -1796,7 +1791,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('click', e => {
   const h = e.target.closest?.('.home');
-  if (h) { tab = h.dataset.go; render(); scrollTo(0, 0); }
+  if (h && !e.target.closest('.ckin')) { tab = h.dataset.go; render(); scrollTo(0, 0); }
 });
 
 const CKIN_SEEN = 'cbCheckedIn';
@@ -2290,6 +2285,7 @@ function syncStep(t, run) {
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['11/09', 'Home: Check In button moved up where Report, Release and Duty were'],
   ['11/03', 'LogTen: Mexico and other airports outside the US and Canada now go to LogTen with the right code (for example Loreto MMLT, not KLTO)'],
   ['11/03', 'Today: after midnight your current duty stays on screen until 4 hours after it ends, or until your next report if that comes first'],
   ['11/03', 'Today: between flights, a countdown to the next departure (Flow ETD if there is one, otherwise STD) and when to be back at the plane (35 min before)'],
