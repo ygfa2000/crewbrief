@@ -2285,7 +2285,7 @@ function syncStep(t, run) {
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
-  ['11/09', 'Home: Check In button moved up where Report, Release and Duty were'],
+  ['11/09', 'Home: Check In button moved up where Report, Release and Duty were. Sync now spots more kinds of check-in marks, and ⚙ Update shows a Check In check box'],
   ['11/03', 'LogTen: Mexico and other airports outside the US and Canada now go to LogTen with the right code (for example Loreto MMLT, not KLTO)'],
   ['11/03', 'Today: after midnight your current duty stays on screen until 4 hours after it ends, or until your next report if that comes first'],
   ['11/03', 'Today: between flights, a countdown to the next departure (Flow ETD if there is one, otherwise STD) and when to be back at the plane (35 min before)'],
@@ -2424,8 +2424,20 @@ document.addEventListener('change', e => {
   if (v) v.textContent = e.target.checked ? 'On' : 'Off';
   fcmApp().postMessage({ cmd: 'wake', on: e.target.checked });
 });
+function ckinDiag() {
+  const ck = state.checkin || {};
+  const rows = (state.trips || []).filter(t => t.start <= today && t.end >= today).map(t => {
+    const c = ck[`${t.pairing}|${t.start}`];
+    const st = !c ? 'not read by the last sync'
+      : c.checked === true ? `checked in${c.hit ? ` (${c.hit})` : c.why === 'remembered' ? ' (remembered)' : ''}`
+      : c.checked === false ? 'no check mark found in your cell' : `could not read: ${c.why || 'unknown'}`;
+    return `<div class="sub" style="margin-top:6px"><b>${esc(t.pairing)}</b> · ${esc(st)}${c && c.shape ? `<br><code style="word-break:break-all">${esc(c.shape)}</code>` : ''}</div>`;
+  }).join('');
+  return rows ? `<div class="card box"><b>Check In check</b> <span class="sub">last sync ${state.syncedAt ? esc(mdhm(state.syncedAt)) : '—'}</span>${rows}
+    <div class="sub" style="margin-top:6px">Only tag and symbol shapes, no names or numbers. If you checked in and the button is still grey, send a screenshot of this box.</div></div>` : '';
+}
 function scriptBox() {
-  if (IN_APP) return `<div class="card box"><b>Update history</b> <span class="sub">App ${esc(IN_APP)}</span>
+  if (IN_APP) return `${ckinDiag()}<div class="card box"><b>Update history</b> <span class="sub">App ${esc(IN_APP)}</span>
     ${histGroups()}</div>`;
   const v = scriptCur();
   const cur = v === 'bookmark' ? '북마크 (CB 동기화)' : v || (state.syncedAt ? '알 수 없음 (예전 스크립트)' : '아직 동기화 전');
@@ -2437,7 +2449,7 @@ function scriptBox() {
     2. 같은 메뉴 › <b>Userscripts</b> › 이 웹사이트를 <b>항상 허용</b> (이 페이지와 스케줄 사이트 둘 다)<br>
     3. Userscripts 앱에서 <b>Crew Brief Auto Sync</b>가 하나만 켜져 있는지 확인<br>
     Android는 Tampermonkey가 켜져 있는지 확인하세요.</div></div>` : '';
-  return `${off}<div class="card box"><b>동기화 스크립트</b> ${st}
+  return `${off}${ckinDiag()}<div class="card box"><b>동기화 스크립트</b> ${st}
     <div class="ver"><span>현재</span><b>${esc(cur)}</b><span>최신</span><b>${esc(scriptLatest || '—')}</b></div>
     <div class="sub" style="margin-top:8px"><b>iPhone (Userscripts)</b><br>
     1. <a href="${installUrl()}" class="inst">업데이트 링크</a> 를 Safari에서 엽니다<br>

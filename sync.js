@@ -89,14 +89,101 @@ function parseFlowBoard(html) {
 }
 
 function parseCheckIn(html) {
+  html = html.replace(/<!--[\s\S]*?(?:-->|$)/g, '');   // HTML 주석 안의 ✓·그림은 화면에 없다
   const text = html.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ');
   const me = /(\d{6})\s+[A-Za-z' .-]+?\s+-\s+[A-Z]{3}\s+\S+\s+(?:CA|FO|FA)\b/.exec(text);
+  if (!me) return { checked: null, why: 'no-header' };
   const crew = html.search(/Crewmembers for Each Flight/i);
-  if (!me || crew < 0) return null;
+  if (crew < 0) return { checked: null, why: 'no-crew-table' };
   const at = html.indexOf(me[1], crew);
-  if (at < 0) return null;
-  const cell = html.slice(html.lastIndexOf('<td', at), at);   // 그 칸의 사번 앞부분 (체크 그림·* 표시만, 이름 없음)
-  return { checked: /<img|✓|&#10003;|check/i.test(cell), cell: cell.slice(-200) };
+  if (at < 0) return { checked: null, why: 'not-in-crew-table' };
+  const low = html.toLowerCase(), start = low.lastIndexOf('<td', at);
+  if (start < crew) return { checked: null, why: 'no-cell' };
+  const ends = [low.indexOf('</td', at), low.indexOf('<td', at)].filter(i => i > 0);
+  const cell = html.slice(start, ends.length ? Math.min(...ends) : at + 200);
+  const hit = checkMark(cell, at - start);
+  return { checked: !!hit, hit: hit || '', why: hit ? '' : 'no-mark', shape: ckinCellShape(cell) };
+}
+
+const CK_SYMBOL = /[✓✔√☑✅]/;
+const CK_ENTITY = /&#(?:0*(?:10003|10004|8730|9745|9989)|x0*(?:2713|2714|221a|2611|2705));|&(?:check|checkmark|radic);/i;
+const CK_SAYS = /(?:^|[^a-z])(?:checked(?:[\s_-]?in)?|check[\s_-]?mark|tick(?:ed)?|confirmed)(?:[^a-z]|$)|^\s*ok\s*$/i;
+const CK_ICON = /check(?![\s_-]?(?:in|box|out))|tick|glyphicon-ok|icon-ok/i;
+const CK_NOT = /(?:^|[^a-z])(?:not|no|non|never|un[\s_-]?(?:check|confirm|verif|tick)\w*|yet|pending|required|needed|missing|awaiting|cross|close|times|blank|spacer|empty|transparent)(?:[^a-z0-9]|$)|(?:^|[^a-z0-9])x(?:[^a-z0-9]|$)|checkbox(?!.*checked)/i;
+const CK_HIDDEN = /display\s*:\s*none|visibility\s*:\s*hidden/i;
+const CK_NEG_PART = /^(?:not|non|never|notchecked|unchecked|uncheck|unconfirmed|pending|required|needed|missing|awaiting|cross|close|times|x|spacer|blank|empty|transparent)$/i;
+function ckNegAttr(k, v) {
+  if (k === 'style') return CK_HIDDEN.test(v);
+  if (k === 'class' || k === 'src') {
+    const parts = v.split(/[\s_./-]+/).filter(Boolean);
+    return parts.some(x => CK_NEG_PART.test(x)) || /^no$/i.test(parts[parts.length - 1] || '') && parts.length > 1 || (/checkbox/i.test(v) && !/checked/i.test(v));
+  }
+  if (/^(?:title|alt|aria-label)$/.test(k)) return CK_NOT.test(v);
+  return false;
+}
+const CK_VOID = /^(?:img|input|br|hr|wbr|source|meta|link|area|col|embed|param|track)$/;
+function dropMuted(cell) {
+  let out = '', last = 0, skip = null, depth = 0, first = true;
+  for (const m of cell.matchAll(/<(\/?)([a-z][\w:-]*)\b([^>]*)>/gi)) {
+    const close = m[1] === '/', tag = m[2].toLowerCase();
+    if (skip) {
+      if (tag === skip && !CK_VOID.test(tag)) depth += close ? -1 : /\/\s*$/.test(m[3]) ? 0 : 1;
+      if (depth === 0) { skip = null; last = m.index + m[0].length; }
+      continue;
+    }
+    const own = first && tag === 'td' && !close;
+    first = false;
+    if (close || own) continue;
+    const attrs = tagAttrs(m[3]);
+    const muted = attrs.some(a => a[0] === 'hidden') || attrs.some(a => ckNegAttr(a[0], a[1]));
+    if (!muted) continue;
+    out += cell.slice(last, m.index);
+    last = m.index + m[0].length;
+    if (!CK_VOID.test(tag) && !/\/\s*$/.test(m[3])) { skip = tag; depth = 1; }
+  }
+  return skip ? out : out + cell.slice(last);
+}
+const CK_SHAPE_ATTRS = /^(?:class|src|style)$/i, CK_TEXT_ATTRS = /^(?:title|alt|aria-label|id|name|data-[\w-]+)$/i;
+function tagAttrs(rest) {
+  const out = [], re = /([\w:-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g;
+  let m;
+  while ((m = re.exec(rest))) out.push([m[1].toLowerCase(), m[2] ?? m[3] ?? m[4] ?? '']);
+  return out;
+}
+function checkMark(raw, cut = raw.length) {
+  const cell = dropMuted(`${raw.slice(0, cut)}\u0000${raw.slice(cut)}`.replace(/<!--[\s\S]*?(?:-->|$)/g, ''));
+  cut = cell.indexOf('\u0000');
+  const plain = cell.replace(/<[^>]*>/g, ' ');
+  if (CK_SYMBOL.test(plain)) return 'symbol';
+  if (CK_ENTITY.test(cell)) return 'entity';
+  let picture = '', wing = 0, first = true;
+  for (const m of cell.matchAll(/<([a-z][\w:-]*)\b([^>]*)>/gi)) {
+    const tag = m[1].toLowerCase(), attrs = tagAttrs(m[2]), val = k => (attrs.find(a => a[0] === k) || [])[1];
+    if (first && tag === 'td') { first = false; continue; }
+    first = false;
+    if (tag === 'input') {
+      if (/checkbox|radio/i.test(val('type') || '') && attrs.some(a => a[0] === 'checked')) return 'checkbox-checked';
+      continue;
+    }
+    const shapeVals = attrs.filter(a => CK_SHAPE_ATTRS.test(a[0])).map(a => a[1].replace(/font-family:[^;]*/gi, '')), textVals = attrs.filter(a => CK_TEXT_ATTRS.test(a[0])).map(a => a[1]);
+    const font = `${val('face') || ''} ${val('style') || ''}`;
+    if (/wingdings\s*2/i.test(font)) wing = 2; else if (/wingdings/i.test(font)) wing = wing || 1;
+    if (attrs.some(a => a[0] === 'hidden' || ckNegAttr(a[0], a[1]))) continue;
+    if (textVals.some(v => CK_SAYS.test(v))) return `${tag}-text`;
+    if (shapeVals.some(v => CK_ICON.test(v))) return `${tag}-icon`;
+    if ((tag === 'img' || tag === 'svg') && m.index < cut && cut >= 0 && !picture && ![...shapeVals, ...textVals].some(v => /check|tick/i.test(v))) picture = tag;
+  }
+  if (wing === 1 && /[üþ]|&#(?:252|254);|&uuml;|&thorn;/i.test(cell)) return 'wingdings';
+  if (wing === 2 && /<[^>]*>\s*[PR]\s*</.test(cell)) return 'wingdings';
+  return picture;
+}
+function ckinCellShape(cell) {
+  return cell.replace(/<(\/?)([a-z][\w:-]*)\b([^>]*)>|([^<]+)/gi, (all, close, tag, rest, txt) => {
+    if (txt != null) return txt.split(/(&#x?[0-9a-f]+;|&[a-z]+;)/i).map((part, i) => i % 2
+      ? (CK_ENTITY.test(part) ? part : /^&(?:nbsp|#0*160|#x0*a0);$/i.test(part) ? ' ' : 'a')
+      : part.replace(/\p{N}+/gu, '#').replace(/\p{L}+/gu, 'a')).join('').replace(/\s+/g, ' ');
+    return `<${close}${tag.toLowerCase()}${close ? '' : tagAttrs(rest).map(a => ' ' + a[0]).join('')}>`;
+  }).replace(/\s+/g, ' ').trim().slice(0, 300);
 }
 
 const unent = s => s.replace(/&nbsp;/g, ' ').replace(/&quot;/g, '"').replace(/&#0*39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
@@ -419,7 +506,7 @@ async function get(path) {
     if (res.ok) { await sleep(300); return res.text(); }
     if (res.status !== 403) throw new Error(`${path} → HTTP ${res.status}`);
   }
-  throw new Error('사이트 보안 확인에 막혔습니다 — 페이지를 새로 고친 뒤 다시 눌러 주세요');
+  throw Object.assign(new Error('사이트 보안 확인에 막혔습니다 — 페이지를 새로 고친 뒤 다시 눌러 주세요'), { blocked: true });
 }
 
 function formOf(html, button) {
@@ -525,13 +612,17 @@ async function run() {
     const tripPage = t => tripPages[t.pairing + t.start] || (tripPages[t.pairing + t.start] = get(`${atob('L1NLWVcvU2tlZFBsdXMvVHJpcERldGFpbC5hc3B4')}?PairingName=${encodeURIComponent(t.pairing)}&PairingDate=${t.start.replace(/-/g, '')}&OTPosition=&SBID=0`));
     for (const t of inTrip) {
       const k = `${t.pairing}|${t.start}`;
-      if (k in ckinSeen) { checkin[k] = { checked: true }; continue; }
+      if (k in ckinSeen) { checkin[k] = { checked: true, why: 'remembered' }; continue; }
+      say(`Check-in (${t.pairing})`);
+      let html;
+      try { html = await tripPage(t); } catch (e) { checkin[k] = { checked: null, why: e && e.blocked ? 'blocked' : 'fetch-error' }; continue; }
+      if (/<input[^>]*type=["']?password/i.test(html) || (!/Crewmembers for Each Flight/i.test(html) && /<form[^>]*log.?in/i.test(html))) { checkin[k] = { checked: null, why: 'login' }; continue; }
+      if (html.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').trim().length < 20) { checkin[k] = { checked: null, why: 'empty' }; continue; }
       try {
-        say(`Check-in (${t.pairing})`);
-        const r = parseCheckIn(await tripPage(t));
-        if (r) checkin[k] = r;
-        if (r && r.checked) ckinSeen[k] = t.end;
-      } catch (e) {}
+        const r = parseCheckIn(html);
+        checkin[k] = r;
+        if (r.checked) ckinSeen[k] = t.end;
+      } catch (e) { checkin[k] = { checked: null, why: 'parse-error' }; }
     }
     try { localStorage.setItem(CKIN_SEEN, JSON.stringify(ckinSeen)); } catch (e) {}
 
