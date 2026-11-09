@@ -1812,7 +1812,7 @@ function ckinLeave() {
 }
 const ckinBtns = () => (state.trips || []).filter(t => t.start <= today && t.end >= today).map(t => {
   const on = `${t.pairing}|${t.start}` in ckinSeen;
-  return `<button class="ckin${on ? ' on' : ''}" data-pairing="${esc(t.pairing)}" data-start="${esc(t.start)}"><b>${on ? 'Checked-in' : 'Check In'}</b><span>${esc(t.pairing)} · opens Trip Detail</span></button>`;
+  return `<button class="ckin${on ? ' on' : ''}" data-pairing="${esc(t.pairing)}" data-start="${esc(t.start)}"><b>${on ? 'Checked-in' : 'Check In'}</b><span>${esc(t.pairing)}</span></button>`;
 }).join('');
 
 let tab = 'home';
