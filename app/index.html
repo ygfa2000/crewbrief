@@ -1656,7 +1656,7 @@ function homeView() {
         <div><b>${esc(n.from)}</b><span>${tzOf(n.from, n.date)}${esc(n.dep)}</span></div>
         <div class="hx-mid"><i></i>${plane}<i></i><small>${esc(n.block || '')}</small></div>
         <div class="r"><b>${esc(n.to)}</b><span>${tzOf(n.to, n.date)}${esc(n.arr)}</span></div></div>
-      ${legCd(n, nf, lt[nextI], nextI > 0)}
+      ${n.dhd ? '' : legCd(n, nf, lt[nextI], nextI > 0)}
       <div class="hx-facts">
         <div><span>GATE</span><b>${esc(nf.depGate || '—')} → ${esc(nf.arrGate || '—')}</b></div>
         <div><span>TAIL</span><b>${esc(n.tail || '—')}</b></div>
@@ -2285,6 +2285,7 @@ function syncStep(t, run) {
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['11/10', 'Home: no Departs in or Back by on a deadhead (DH) flight'],
   ['11/09', 'Home: Check In button moved up where Report, Release and Duty were. Sync now spots more kinds of check-in marks, and ⚙ Update shows a Check In check box'],
   ['11/03', 'LogTen: Mexico and other airports outside the US and Canada now go to LogTen with the right code (for example Loreto MMLT, not KLTO)'],
   ['11/03', 'Today: after midnight your current duty stays on screen until 4 hours after it ends, or until your next report if that comes first'],
