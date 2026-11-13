@@ -499,14 +499,48 @@ async function pack(obj) {
   return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-async function get(path) {
+const LIMIT_MS = { flow: 10000, bgFlow: 5000, page: 20000 };
+const SAVE_RESERVE_MS = 1500, MIN_TRY_MS = 800;
+let DEADLINE = 0;
+const timeLeft = () => DEADLINE - SAVE_RESERVE_MS - Date.now();
+const outOfTime = path => Object.assign(new Error(`${path.split('?')[0]} → sync time limit`), { timeout: true, deadline: true });
+function within(ms, path, run) {
+  const ac = typeof AbortController === 'function' ? new AbortController() : null;
+  let timer = null;
+  const late = new Promise((_, no) => {
+    timer = setTimeout(() => {
+      if (ac) try { ac.abort(); } catch (e) {}
+      no(Object.assign(new Error(`${path.split('?')[0]} → no answer in ${ms / 1000} s`), { timeout: true }));
+    }, ms);
+  });
+  return Promise.race([run(ac ? ac.signal : undefined), late]).finally(() => { if (typeof clearTimeout === 'function') clearTimeout(timer); });
+}
+
+async function get(path, ms = LIMIT_MS.page, optional = false) {
   for (let attempt = 0; attempt < 4; attempt++) {
-    if (attempt) await sleep(1500 * attempt);
-    const res = await fetch(path, { credentials: 'include' });
-    if (res.ok) { await sleep(300); return res.text(); }
-    if (res.status !== 403) throw new Error(`${path} → HTTP ${res.status}`);
+    if (attempt) {
+      if (timeLeft() < 1500 * attempt + MIN_TRY_MS) throw outOfTime(path);
+      await sleep(1500 * attempt);
+    }
+    const lim = Math.min(ms, timeLeft());
+    if (lim < MIN_TRY_MS) throw outOfTime(path);
+    const r = await within(lim, path, signal => fetch(path, { credentials: 'include', ...(signal ? { signal } : {}) })
+      .then(async res => ({ ok: res.ok, status: res.status, text: res.ok ? await res.text() : '' })));
+    if (r.ok) { await sleep(300); return r.text; }
+    if (r.status !== 403) throw new Error(`${path} → HTTP ${r.status}`);
   }
   throw Object.assign(new Error('Blocked by the site security check — reload the page and tap again'), { blocked: true });
+}
+
+const hmMin = s => { const m = /^(\d{1,2}):(\d{2})$/.exec(String(s || '').trim()); return m ? +m[1] * 60 + +m[2] : null; };
+const AIRPORT_UTC_BEHIND_MAX_H = 10;
+function dutyOpenToday(d, now) {
+  const rep = hmMin(d.report), rel = hmMin(d.release), ymdOk = /^\d{4}-\d{2}-\d{2}$/.test(d.date || '');
+  if (rep == null || rel == null || !ymdOk) return true;
+  const overnight = rel < rep || (d.legs || []).some(l => { const a = hmMin(l.arr), b = hmMin(l.dep); return a != null && b != null && a < b; });
+  const [y, m, dd] = d.date.split('-').map(Number);
+  const latestRelease = Date.UTC(y, m - 1, dd + (overnight ? 1 : 0), 0, rel) + AIRPORT_UTC_BEHIND_MAX_H * 36e5;
+  return now.getTime() < latestRelease + 2 * 36e5;
 }
 
 function formOf(html, button) {
@@ -536,6 +570,8 @@ async function run() {
   const say = overlay();
   try {
     const now = new Date();
+    DEADLINE = typeof CB_DEADLINE === 'number' && CB_DEADLINE > Date.now() ? CB_DEADLINE : Date.now() + (typeof CB_BG !== 'undefined' && CB_BG === true ? 17000 : 90000);
+    const flowMs = typeof CB_BG !== 'undefined' && CB_BG === true ? LIMIT_MS.bgFlow : LIMIT_MS.flow;
     const months = [-1, 0, 1].map(k => new Date(now.getFullYear(), now.getMonth() + k, 1));
     const got = {};
     const readMonth = async k => {
@@ -574,16 +610,40 @@ async function run() {
 
     const from = new Date(now); from.setDate(from.getDate() - 1);
     const to = now;
-    const legs = scoped.flatMap(t => t.days.flatMap(d => d.legs)).filter(l => l.date >= ymd(from) && l.date <= ymd(to));
-    const releases = {}, raws = {};
-    let i = 0;
+    const yday = ymd(from);
+    const legsOf = until => scoped.flatMap(t => t.days.flatMap(d => d.legs.map(l => ({ l, open: l.date !== yday || dutyOpenToday(d, now) }))))
+      .filter(x => x.l.date >= yday && x.l.date <= ymd(until));
+    const REL_SEEN = 'cbRelSeen';
+    let relSeen = {};
+    try { relSeen = JSON.parse(localStorage.getItem(REL_SEEN)) || {}; } catch (e) {}
+    const rememberReleases = () => {
+      Object.keys(releases).forEach(k => { relSeen[k] = k.slice(0, 10); });
+      Object.keys(relSeen).forEach(k => { if (relSeen[k] < yday) delete relSeen[k]; });
+      try { localStorage.setItem(REL_SEEN, JSON.stringify(relSeen)); } catch (e) {}
+    };
+    const legs = legsOf(to).filter(x => x.open || !relSeen[`${x.l.date}-${x.l.flight}-${x.l.from}`]).map(x => x.l);
+    const releases = {}, raws = {}, skipped = { flow: [], release: [] };
+    const STOP_AFTER = 2;
+    const why = e => (e.deadline ? 'time limit' : 'timeout');
+    let i = 0, stuck = 0;
     for (const l of legs) {
-      say(`Release ${++i}/${legs.length} (${l.flight} ${l.from})`);
+      ++i;
+      const key = `${l.date}-${l.flight}-${l.from}`;
+      if (stuck >= STOP_AFTER || timeLeft() < MIN_TRY_MS) { skipped.release.push(key); continue; }
+      say(`Release ${i}/${legs.length} (${l.flight} ${l.from})`);
       const [y, mo, d] = l.date.split('-');
-      const html = await get(`${atob('L1NLWVcvQ3Jld01pc2MvRmxpZ2h0UmVsZWFzZS5hc3B4')}?flightnum=${encodeURIComponent(l.flight)}&origin=${l.from}&dtpFlightDate=${mo}%2f${d}%2f${y}`);
+      let html;
+      try {
+        html = await get(`${atob('L1NLWVcvQ3Jld01pc2MvRmxpZ2h0UmVsZWFzZS5hc3B4')}?flightnum=${encodeURIComponent(l.flight)}&origin=${l.from}&dtpFlightDate=${mo}%2f${d}%2f${y}`, LIMIT_MS.page, true);
+      } catch (e) {
+        if (!e.timeout) throw e;
+        if (!e.deadline) stuck++;
+        skipped.release.push(key);
+        say(`Release ${i}/${legs.length} (${l.flight} ${l.from}) skipped (${why(e)})`);
+        continue;
+      }
       const pre = new DOMParser().parseFromString(html, 'text/html').querySelector('pre');
       if (pre) {
-        const key = `${l.date}-${l.flight}-${l.from}`;
         releases[key] = parseRelease(releaseTextLines(pre.textContent), pre.textContent);
         raws[key] = pre.textContent.replace(/[ \t]+$/gm, '');
       }
@@ -591,16 +651,25 @@ async function run() {
 
     const flows = {};
     const flowTo = new Date(now); flowTo.setDate(flowTo.getDate() + 2);
-    const flowLegs = scoped.flatMap(t => t.days.flatMap(d => d.legs)).filter(l => l.date >= ymd(from) && l.date <= ymd(flowTo));
+    const flowLegs = legsOf(flowTo).filter(x => x.open).map(x => x.l);
     const tails = [...new Set(flowLegs.filter(l => l.tail).map(l => `${l.date}|${l.tail}`))];
-    i = 0;
+    i = 0; stuck = 0;
     for (const dt of tails) {
       const [date, tail] = dt.split('|');
-      say(`Flow ${++i}/${tails.length} (${tail})`);
+      ++i;
+      if (stuck >= STOP_AFTER || timeLeft() < MIN_TRY_MS) { skipped.flow.push(`${date}-${tail}`); continue; }
+      say(`Flow ${i}/${tails.length} (${tail})`);
       const [y, mo, d] = date.split('-');
       const q = `FlightDate=${encodeURIComponent(`${mo}/${d}/${y}`)}&Station=&AircraftTypes=&AircraftNumbers=${encodeURIComponent(tail + ',')}` +
         '&ShowTurnBacks=N&ShowCancelled=Y&TimeZone=UTC%20000&CodeShares=&ShowAllTails=N';
-      flows[`${date}-${tail}`] = { at: new Date().toISOString(), flights: parseFlowBoard(await get(`${atob('L1NLWVcvRmxpZ2h0U2NyZWVuL0Zsb3dCb2FyZC5hc3B4')}?${q}`)) };
+      try {
+        flows[`${date}-${tail}`] = { at: new Date().toISOString(), flights: parseFlowBoard(await get(`${atob('L1NLWVcvRmxpZ2h0U2NyZWVuL0Zsb3dCb2FyZC5hc3B4')}?${q}`, flowMs, true)) };
+      } catch (e) {
+        if (!e.timeout) throw e;
+        if (!e.deadline) stuck++;
+        skipped.flow.push(`${date}-${tail}`);
+        say(`Flow ${i}/${tails.length} (${tail}) skipped (${why(e)})`);
+      }
     }
 
     const checkin = {}, tripPages = {}, CKIN_SEEN = 'cbCheckedIn', day0 = ymd(now);
@@ -609,13 +678,13 @@ async function run() {
     try { saved = JSON.parse(localStorage.getItem(CKIN_SEEN)) || {}; } catch (e) {}
     const ckinSeen = {};
     inTrip.forEach(t => { const k = `${t.pairing}|${t.start}`; if (saved[k] === t.end) ckinSeen[k] = t.end; });
-    const tripPage = t => tripPages[t.pairing + t.start] || (tripPages[t.pairing + t.start] = get(`${atob('L1NLWVcvU2tlZFBsdXMvVHJpcERldGFpbC5hc3B4')}?PairingName=${encodeURIComponent(t.pairing)}&PairingDate=${t.start.replace(/-/g, '')}&OTPosition=&SBID=0`));
+    const tripPage = t => tripPages[t.pairing + t.start] || (tripPages[t.pairing + t.start] = get(`${atob('L1NLWVcvU2tlZFBsdXMvVHJpcERldGFpbC5hc3B4')}?PairingName=${encodeURIComponent(t.pairing)}&PairingDate=${t.start.replace(/-/g, '')}&OTPosition=&SBID=0`, LIMIT_MS.page, true));
     for (const t of inTrip) {
       const k = `${t.pairing}|${t.start}`;
       if (k in ckinSeen) { checkin[k] = { checked: true, why: 'remembered' }; continue; }
       say(`Check-in (${t.pairing})`);
       let html;
-      try { html = await tripPage(t); } catch (e) { checkin[k] = { checked: null, why: e && e.blocked ? 'blocked' : 'fetch-error' }; continue; }
+      try { html = await tripPage(t); } catch (e) { checkin[k] = { checked: null, why: e && e.blocked ? 'blocked' : e && e.deadline ? 'time-limit' : e && e.timeout ? 'timeout' : 'fetch-error' }; continue; }
       if (/<input[^>]*type=["']?password/i.test(html) || (!/Crewmembers for Each Flight/i.test(html) && /<form[^>]*log.?in/i.test(html))) { checkin[k] = { checked: null, why: 'login' }; continue; }
       if (html.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').trim().length < 20) { checkin[k] = { checked: null, why: 'empty' }; continue; }
       try {
@@ -627,14 +696,16 @@ async function run() {
     try { localStorage.setItem(CKIN_SEEN, JSON.stringify(ckinSeen)); } catch (e) {}
 
     let opentime = null;
-    if (!lite) try {
+    if (!lite && timeLeft() >= MIN_TRY_MS) try {
       say('Reading Open Time');
       const OT = atob('L1NLWVcvU2tlZFBsdXMvT3BlblRpbWUuYXNweA==');
-      let html = await get(OT), how = 'GET';
+      let html = await get(OT, LIMIT_MS.page, true), how = 'GET';
       if (!/chkPairing_/.test(html) && /name="btnSearch"/.test(html)) {
-        const res = await fetch(OT, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: formOf(html, 'btnSearch') });
-        html = res.ok ? await res.text() : '';
-        how = `POST ${res.status}`;
+        if (timeLeft() < MIN_TRY_MS) throw outOfTime(OT);
+        const r = await within(Math.min(LIMIT_MS.page, timeLeft()), OT, signal => fetch(OT, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: formOf(html, 'btnSearch'), ...(signal ? { signal } : {}) })
+          .then(async res => ({ status: res.status, text: res.ok ? await res.text() : '' })));
+        html = r.text;
+        how = `POST ${r.status}`;
       }
       opentime = /chkPairing_/.test(html) ? { at: new Date().toISOString(), trips: parseOpenTime(html) }
         : { at: new Date().toISOString(), trips: [], err: `${how} · ${html.length}B · no list` };
@@ -643,9 +714,12 @@ async function run() {
     if (typeof CB_DONE === 'function') CB_DONE();
     const payload = { syncedAt: now.toISOString(), trips, releases, flows, raws, opentime, checkin, script: typeof CB_SCRIPT_VER === 'string' ? CB_SCRIPT_VER : 'bookmark' };
     if (lite) payload.lite = { months: lite.months, why: lite.why, trips: lite.only.size };
+    if (skipped.flow.length || skipped.release.length) payload.skipped = skipped;
+    const skipNote = skipped.flow.length || skipped.release.length ? ` · skipped: ${[skipped.flow.length && `Flow ${skipped.flow.length}`, skipped.release.length && `Release ${skipped.release.length}`].filter(Boolean).join(', ')}` : '';
     if (!CB_EXEC) {
-      say(`Done — ${trips.length} trips, ${Object.keys(releases).length} releases, ${Object.keys(flows).length} flows · returning to the app…`);
+      say(`Done — ${trips.length} trips, ${Object.keys(releases).length} releases, ${Object.keys(flows).length} flows${skipNote} · returning to the app…`);
       const d = await pack(payload);
+      rememberReleases();
       setTimeout(() => { location.href = `${CB_RET}#d=${d}`; }, 1200);
       return;
     }
@@ -653,7 +727,8 @@ async function run() {
     const res = await fetch(CB_EXEC, { method: 'POST', body: JSON.stringify({ k: CB_KEY, payload }) });
     const out = await res.json();
     if (!out.ok) throw new Error(out.error || 'Save failed');
-    say(`Done — ${trips.length} trips, ${Object.keys(releases).length} releases, ${Object.keys(flows).length} flows · returning to the app…`);
+    rememberReleases();
+    say(`Done — ${trips.length} trips, ${Object.keys(releases).length} releases, ${Object.keys(flows).length} flows${skipNote} · returning to the app…`);
     setTimeout(() => { location.href = APP; }, 1200);
   } catch (e) {
     if (e.login && typeof CB_WAIT === 'function') return CB_WAIT(say);

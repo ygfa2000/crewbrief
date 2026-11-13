@@ -2279,6 +2279,7 @@ function syncStep(t, run) {
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['11/13', 'Sync: a slow or stuck Flow or Release no longer holds up the whole sync (each request has a time limit; the rest is saved), and a finished trip from yesterday is not re-read'],
   ['11/13', 'Release SE PROC and D-ATIS: when one airport ATIS (DEP or ARR) is old, the departure runway comes from the newer one, and the D-ATIS tab marks the old one'],
   ['11/11', 'Apple Watch: Release SE PROC shows the same runways and procedure lines as the iPhone Release page, one runway per line (with the next app update)'],
   ['11/10', 'Home: no Departs in or Back by on a deadhead (DH) flight'],
