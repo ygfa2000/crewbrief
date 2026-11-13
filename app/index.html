@@ -2199,16 +2199,10 @@ let atisLast = null;
 function atisRender() {
   if (!atisLast) return;
   const { ids, res } = atisLast, out = document.getElementById('aOut');
-  const issued = x => {
-    if (!/^\d{4}$/.test(x.time || '')) return null;
-    const ref = x.updatedAt ? new Date(x.updatedAt) : new Date();
-    const d = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate(), +x.time.slice(0, 2), +x.time.slice(2)));
-    if (d - ref > 10 * 6e4) d.setUTCDate(d.getUTCDate() - 1);
-    return d;
-  };
-  const ago = x => { const t = issued(x); if (!t) return ''; const m = Math.max(0, Math.round((Date.now() - t) / 6e4)); const s = m < 60 ? `${m}분 전` : m < 2880 ? `${Math.floor(m / 60)}시간 ${m % 60}분 전` : `${Math.round(m / 1440)}일 전`; return m > 90 ? `<b style="color:var(--warn)">${s} — 오래됨</b>` : s; };
   out.innerHTML = ids.map(id => {
-    const r = res[id] || [];
+    const all = res[id] || [], see = all.find(x => x.type !== 'metar' && atisFresh(x));
+    const r = see ? all.filter(x => !atisOld(x)).concat(all.filter(atisOld)) : all;
+    const ago = x => { const t = atisIssued(x); if (!t) return ''; const m = Math.max(0, Math.round((Date.now() - t) / 6e4)); const s = m < 60 ? `${m}분 전` : m < 2880 ? `${Math.floor(m / 60)}시간 ${m % 60}분 전` : `${Math.round(m / 1440)}일 전`; return atisOld(x) ? `<b style="color:var(--warn)">${see && see !== x ? `${s} — 오래됨 — ${atisKind(see)} ${esc(see.code)} 를 보세요` : `${s} — 오래됨`}</b>` : s; };
     const body = r.length ? r.map(x => `<div class="part"><h4>${x.type === 'metar' ? '' : `<span class="atis-code">${esc(x.code)}</span>`}${esc(x.type === 'metar' ? 'METAR' : x.type === 'combined' ? 'ATIS' : x.type === 'arr' ? 'ARRIVAL' : 'DEPARTURE')} · ${esc(x.time)}Z <span class="sub">(${ago(x)})</span>${x.type === 'metar' ? ' <span class="sub">D-ATIS 없음</span>' : ''}</h4>
       <div class="atis-msg">${atisHl(x.datis)}</div></div>`).join('') : '<span class="sub">D-ATIS 없음</span>';
     return `<div class="panel"><div class="apt"><b>${esc(id)}</b></div>${body}</div>`;
@@ -2285,6 +2279,8 @@ function syncStep(t, run) {
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['11/13', 'Release SE PROC and D-ATIS: when one airport ATIS (DEP or ARR) is old, the departure runway comes from the newer one, and the D-ATIS tab marks the old one'],
+  ['11/11', 'Apple Watch: Release SE PROC shows the same runways and procedure lines as the iPhone Release page, one runway per line (with the next app update)'],
   ['11/10', 'Home: no Departs in or Back by on a deadhead (DH) flight'],
   ['11/09', 'Home: Check In button moved up where Report, Release and Duty were. Sync now spots more kinds of check-in marks, and ⚙ Update shows a Check In check box'],
   ['11/03', 'LogTen: Mexico and other airports outside the US and Canada now go to LogTen with the right code (for example Loreto MMLT, not KLTO)'],
@@ -2617,9 +2613,10 @@ document.addEventListener('toggle', e => {
 }, true);
 
 const rwyPad = x => x.replace(/^(\d)(?=[LRC]?$)/, '0$1');
+const DEP_WORDS = 'DEPG|DEPTG|DEPART|DEPARTING|DEPARTURES?|DEPS?';
 function depRwys(text) {
   const out = [];
-  const re = /\b(?:DEPG|DEPTG|DEPART|DEPARTING|DEPARTURES?|DEPS?)\b([^.]*)/g;
+  const re = new RegExp(`\\b(?:${DEP_WORDS})\\b([^.]*)`, 'g');
   let m;
   while ((m = re.exec(text || ''))) {
     let s = m[1].replace(/\b(\d) (\d)(?= (?:RIGHT|LEFT|CENTER)\b)/g, '$1$2').replace(/\b(\d{1,2}) (RIGHT|LEFT|CENTER)\b/g, (x, n, w) => n + w[0]);
@@ -2637,11 +2634,29 @@ function depRwys(text) {
   return out;
 }
 const rwyHit = (rwy, d) => rwy === d || (!/[LRC]$/.test(d) && rwy.replace(/[LRC]$/, '') === d);
-function seProcHtml(rel, atis) {
+function atisIssued(x) {
+  if (!/^\d{4}$/.test(x.time || '')) return null;
+  const ref = x.updatedAt ? new Date(x.updatedAt) : new Date();
+  const d = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate(), +x.time.slice(0, 2), +x.time.slice(2)));
+  if (d - ref > 10 * 6e4) d.setUTCDate(d.getUTCDate() - 1);
+  return d;
+}
+const atisOld = x => { const t = atisIssued(x); return !!t && Date.now() - t > 90 * 6e4; };
+const atisFresh = x => !!x.updatedAt && !!atisIssued(x) && !atisOld(x);
+const atisKind = x => (x.type === 'arr' ? 'ARR' : x.type === 'dep' ? 'DEP' : 'ATIS');
+const ARR_DEP_RE = new RegExp(`\\b(?:${DEP_WORDS})\\s+(?:AND\\s+(?:LDG|LNDG|LANDING|ARVNG|ARRIVING|ARRIVALS?)\\s+)?(?:RWYS?|RYS?|RUNWAYS?)\\b[^.]*`, 'g');
+const atisRwys = x => (x.type === 'arr' ? depRwys((x.datis || '').match(ARR_DEP_RE)?.join('. ') || '') : depRwys(x.datis));
+function atisForDep(atis) {
+  const order = ['dep', 'combined', 'arr'];
+  const c = (atis || []).filter(x => order.includes(x.type) && (x.type !== 'arr' || atisRwys(x).length)).sort((x, y) => order.indexOf(x.type) - order.indexOf(y.type));
+  const a = c.find(atisFresh) || c.find(x => !atisOld(x)) || c.slice().sort((x, y) => (atisIssued(y) || 0) - (atisIssued(x) || 0))[0] || null;
+  return { a, skipped: a ? c.slice(0, c.indexOf(a)).filter(atisOld) : [] };
+}
+function seProcHtml(rel, atis, at) {
   const rows = rel.a.filter(x => !x.ix);
   if (!rows.length) return '<span class="sub">ACARS RUNWAYS 없음</span>';
-  const a = atis && (atis.find(x => x.type === 'dep') || atis.find(x => x.type === 'combined'));
-  const dep = a ? depRwys(a.datis) : [];
+  const { a, skipped } = atisForDep(atis);
+  const dep = a ? atisRwys(a) : [];
   const use = dep.length ? rows.filter(x => dep.some(d => rwyHit(x.rwy, d))) : rows;
   const what = x => {
     const e = x.efp.toUpperCase(), sp = rel.p[x.rwy] || '';
@@ -2649,7 +2664,10 @@ function seProcHtml(rel, atis) {
     if (/SPECIAL/.test(e)) return `SPECIAL — ${sp || '절차 줄 없음'}`;
     return x.efp;
   };
-  const head = a ? (dep.length ? `D-ATIS ${esc(a.code)} 출발 ${dep.map(esc).join(', ')}` : `D-ATIS ${esc(a.code)}에 출발 활주로 없음 — 전체`) : 'D-ATIS 없음 — 전체';
+  const which = a ? `${atisKind(a)} ${esc(a.code)}` : '';
+  const stale = (a && atisOld(a) ? ' — 오래됨' : '') + (skipped.length ? ` — ${skipped.map(x => `${atisKind(x)} ${esc(x.code)}`).join(', ')} 오래됨` : '');
+  const got = a && at ? ` · 받음 ${String(new Date(at).getHours()).padStart(2, '0')}:${String(new Date(at).getMinutes()).padStart(2, '0')}` : '';
+  const head = a ? (dep.length ? `D-ATIS ${which} 출발 ${dep.map(esc).join(', ')}` : `D-ATIS ${which}에 출발 활주로 없음 — 전체`) + stale + got : 'D-ATIS 없음 — 전체';
   const miss = dep.filter(d => !rows.some(x => rwyHit(x.rwy, d)));
   return `<div class="sub">${head}</div>` + use.map(x => `<div class="se"><b>${esc(x.rwy)}</b> ${esc(what(x))}</div>`).join('')
     + (miss.length ? `<div class="sub">ACARS RUNWAYS 에 없음: ${miss.map(esc).join(', ')}</div>` : '');
@@ -2659,13 +2677,31 @@ function seLoad(box) {
   if (box.dataset.loaded) return;
   box.dataset.loaded = '1';
   const apt = box.dataset.apt, rel = JSON.parse(box.dataset.rel), c = seAtis[apt];
-  const show = list => { box.innerHTML = seProcHtml(rel, list); };
-  if (c && Date.now() - c.at < 5 * 6e4) return show(c.list);
-  api('getAtis', [apt]).then(res => { seAtis[apt] = { at: Date.now(), list: res[apt] || [] }; show(res[apt] || []); }).catch(() => show(null));
+  const show = (list, at) => { box.innerHTML = seProcHtml(rel, list, at); };
+  if (c && Date.now() - c.at < 5 * 6e4) return show(c.list, c.at);
+  api('getAtis', [apt]).then(res => { seAtis[apt] = { at: Date.now(), list: res[apt] || [] }; show(res[apt] || [], seAtis[apt].at); }).catch(() => show(null));
 }
 document.addEventListener('toggle', e => {
   if (e.target.open && e.target.classList?.contains('leg')) e.target.querySelectorAll('.seproc').forEach(seLoad);
 }, true);
+const sePlain = html => html.split('</div>').map(s => { const b = document.createElement('textarea'); b.innerHTML = s.replace(/<[^>]+>/g, ''); return b.value.trim(); }).filter(Boolean).join('\n');
+window.cbSeProc = r => { const c = seAtis[r.from || ''], fresh = c && Date.now() - c.at < 5 * 6e4; return sePlain(seProcHtml({ a: r.acarsRwys || [], p: r.seProc || {} }, fresh ? c.list : null, fresh ? c.at : 0)); };
+let seAtisJob = null, seAtisSeq = 0;
+window.cbSeAtisPrefetch = () => {
+  if (typeof relShow === 'undefined' || !relShow.includes('seproc')) return Promise.resolve(0);
+  if (seAtisJob) return seAtisJob;
+  const t = Date.now(), p = n => String(n).padStart(2, '0'), ymd = x => `${x.getFullYear()}-${p(x.getMonth() + 1)}-${p(x.getDate())}`;
+  const from = ymd(new Date(t - 864e5)), to = ymd(new Date(t + 864e5));
+  const ids = [...new Set(Object.keys(state.releases || {}).filter(k => k.slice(0, 10) >= from && k.slice(0, 10) <= to).map(k => state.releases[k].from).filter(a => a && !(seAtis[a] && t - seAtis[a].at < 5 * 6e4)))];
+  if (!ids.length) return Promise.resolve(0);
+  const seq = ++seAtisSeq, asked = Date.now();
+  const job = Promise.race([
+    api('getAtis', ids).then(res => { ids.forEach(a => { const c = seAtis[a]; if (!(c && (c.seq != null ? c.seq > seq : c.at > asked))) seAtis[a] = { at: Date.now(), seq, list: res[a] || [] }; }); return ids.length; }).catch(() => 0),
+    new Promise(ok => setTimeout(() => ok(0), 8000)),
+  ]).finally(() => { if (seAtisJob === job) seAtisJob = null; });
+  seAtisJob = job;
+  return job;
+};
 
 let doorKey = '', doorData = null, doorEdit = null, doorQ = '', doorMsg = '', doorTried = false;
 const doorStore = () => doorKey ? 'cbDoors' : 'cbPubDoors';
