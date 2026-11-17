@@ -1526,18 +1526,33 @@ function hotelMap(d) {
   const url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(`${to} airport${city ? `, ${city}` : ''}`)}&destination=${encodeURIComponent(dest)}&travelmode=driving`;
   return ` <a class="hotel-map" href="${esc(url)}" target="_blank" rel="noopener" aria-label="Directions from the airport to the hotel"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="5.5" fill="#fff"/><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z" fill="#34a853"/><path d="M12 9 7.05 4.05A7 7 0 0 0 5 9c0 2.5 1.75 5.75 3.5 8.375z" fill="#fbbc04"/><path d="M12 9 7.05 4.05A7 7 0 0 1 12 2z" fill="#ea4335"/><path d="M12 9V2a7 7 0 0 1 7 7z" fill="#4285f4"/><circle cx="12" cy="9" r="2.6" fill="#fff"/></svg></a>`;
 }
+let keep = { legs: {}, days: {}, legTab: 'rel' };
+try { const k = JSON.parse(sessionStorage.getItem('cbOpen') || 'null'); if (k) keep = { legs: k.legs || {}, days: k.days || {}, legTab: k.legTab || 'rel' }; } catch (e) {}
+const keepSave = () => { try { sessionStorage.setItem('cbOpen', JSON.stringify(keep)); } catch (e) {} };
+document.getElementById('home').addEventListener('click', () => { keep = { legs: {}, days: {}, legTab: 'rel' }; try { sessionStorage.removeItem('cbOpen'); } catch (e) {} });
+document.addEventListener('toggle', e => {
+  const x = e.target, v = x.dataset || {};
+  if (x.classList?.contains('leg') && v.tk) {
+    if (x.open) keep.legs[v.tk] = v.lk;
+    else if (keep.legs[v.tk] === v.lk) delete keep.legs[v.tk];
+  } else if (x.classList?.contains('fold') && v.dk) {
+    if (x.open === (v.def === '1')) delete keep.days[v.dk]; else keep.days[v.dk] = x.open;
+  } else return;
+  keepSave();
+}, true);
 function dayBlock(trip, d, fold) {
-  const allLegs = trip.days.flatMap(x => x.legs);
+  const allLegs = trip.days.flatMap(x => x.legs), tk = `${trip.pairing}|${trip.start}`, dOpen = keep.days[d.date] ?? fold === 'open';
   const head = `<span>${fold ? `Day ${trip.days.indexOf(d) + 1} · ` : ''}${md(d.date)}</span><span class="sub">Report ${reportAt(d)} · Release ${esc(d.release)}${d.duty ? ` · Duty ${esc(d.duty)}` : ''}</span>`;
   return `
-    ${fold ? `<details class="day fold${fold === 'open' ? ' now" open' : '"'}><summary class="dayhead">${head}</summary>` : `<div class="day">
+    ${fold ? `<details class="day fold${fold === 'open' ? ' now' : ''}" data-dk="${esc(d.date)}" data-def="${fold === 'open' ? 1 : 0}"${dOpen ? ' open' : ''}><summary class="dayhead">${head}</summary>` : `<div class="day">
       <div class="dayhead">${head}</div>`}
       ${(u => u ? `<a class="logten" href="${u}">${LT_ICON}<span>LogTen</span></a>` : '')(logtenUrl(d))}
       ${d.legs.map(l => {
         const rel = state.releases[`${l.date}-${l.flight}-${l.from}`];
         const dh = l.dhd ? '<span class="tag">DH</span>' : '';
         const ot = legOt(l);
-        return `<details class="leg"><summary>
+        const lk = `${l.date}-${l.flight}-${l.from}`;
+        return `<details class="leg" data-tk="${esc(tk)}" data-lk="${esc(lk)}"${keep.legs[tk] === lk ? ' open' : ''}><summary>
             <span>${esc(l.flight)}${dh}${rel && !l.dhd ? '<span class="tag">R</span>' : ''}</span>
             <span>${esc(l.from)}→${esc(l.to)} <span class="sub">${tzOf(l.from, l.date)}${esc(l.dep)}–${tzOf(l.to, l.date)}${esc(l.arr)}</span></span>
             <span>${ot}</span>
@@ -1839,7 +1854,7 @@ function render() {
   ckinRemember();
   ckinLeave();
   (state.trips || []).forEach(t => t.days.forEach(d => d.legs.forEach(l => { if (l.dhd && (l.dhd === 'N' || !/\d/.test(l.flight || ''))) l.dhd = null; })));
-  try { sessionStorage.setItem('cbView', JSON.stringify({ tab, tripTab, setTab })); } catch (e) {}
+  try { sessionStorage.setItem('cbView', JSON.stringify({ tab, tripTab, setTab, tripFocus })); } catch (e) {}
   try { shareUp(); } catch (e) {}
   document.getElementById('synced').innerHTML = state.syncedAt
     ? mdhm(state.syncedAt).replace(/^(\S+) /, '<span class="sd">$1 </span>') : 'Not yet';
@@ -1864,8 +1879,14 @@ function render() {
     : tab === 'sked' ? skedView()
     : myTripView();
   if (tab === 'door') document.querySelectorAll('.door-card textarea').forEach(doorGrow);
+  legsOpened();
   skedSync();
   tripPinSync();
+}
+function legsOpened() {
+  const open = [...document.querySelectorAll('#view details.leg[open]')];
+  open.forEach(l => l.querySelectorAll('.seproc').forEach(seLoad));
+  return Promise.all(legTab === 'full' ? open.flatMap(l => [...l.querySelectorAll('.lt[data-lt="full"]')].map(fullLoad)) : []);
 }
 let tripTab = 'up';
 let tripFocus = '';
@@ -2605,7 +2626,7 @@ function fmapInit(box) {
 }
 setInterval(() => document.querySelectorAll('.fmap:not([data-init])').forEach(b => { if (b.querySelector('.fmap-m').offsetParent) fmapInit(b); }), 700);
 
-let legTab = 'rel';
+let legTab = ['rel', 'flow', 'full'].includes(keep.legTab) ? keep.legTab : 'rel';
 function legTabs(relHtml, flowHtml, key) {
   const has = (state.rawKeys || []).includes(key);
   const b = (id, label) => `<button data-lt="${id}"${legTab === id ? ' class="on"' : ''}>${label}</button>`;
@@ -2615,16 +2636,16 @@ function legTabs(relHtml, flowHtml, key) {
     ${pane('full', has ? '<span class="sub">Loading…</span>' : '<span class="sub">No full text — appears for releases synced with the new sync script</span>', has ? ` data-key="${esc(key)}"` : '')}`;
 }
 function fullLoad(pane) {
-  if (!pane.dataset.key || pane.dataset.loaded) return;
+  if (!pane.dataset.key || pane.dataset.loaded) return Promise.resolve();
   pane.dataset.loaded = '1';
-  rawGet(pane.dataset.key).catch(() => '').then(t => {
+  return rawGet(pane.dataset.key).catch(() => '').then(t => {
     pane.innerHTML = t ? `<pre class="raw">${esc(t)}</pre>` : '<span class="sub">No text</span>';
   });
 }
 document.addEventListener('click', e => {
   const id = e.target.dataset?.lt;
   if (!id || !e.target.closest('.leg-seg')) return;
-  legTab = id;
+  legTab = keep.legTab = id; keepSave();
   const body = e.target.closest('.leg-seg').parentElement;
   body.querySelectorAll(':scope > .leg-seg button').forEach(x => x.classList.toggle('on', x.dataset.lt === id));
   body.querySelectorAll(':scope > .lt').forEach(x => { x.hidden = x.dataset.lt !== id; if (!x.hidden && id === 'full') fullLoad(x); });
@@ -3355,13 +3376,13 @@ addEventListener('pagehide', () => { try { sessionStorage.setItem('cbScroll', St
 let restoreY = 0, restoreAtis = null;
 try {
   const v = JSON.parse(sessionStorage.getItem('cbView') || 'null');
-  if (v && v.tab) { tab = v.tab; tripTab = v.tripTab || tripTab; setTab = v.setTab || setTab; if (tab === 'door' && doorData) doorLoad(); }
+  if (v && v.tab) { tab = v.tab; tripTab = v.tripTab || tripTab; setTab = v.setTab || setTab; tripFocus = v.tripFocus || ''; if (tab === 'door' && doorData) doorLoad(); }
   restoreY = Number(sessionStorage.getItem('cbScroll')) || 0; restoreAtis = JSON.parse(sessionStorage.getItem('cbAtis') || 'null');
   sessionStorage.removeItem('cbScroll'); sessionStorage.removeItem('cbAtis');
 } catch (e) {}
 render();
 if (tab === 'atis' && Array.isArray(restoreAtis) && restoreAtis.length) { document.getElementById('aIn').value = restoreAtis.join(' '); atisLoad(restoreAtis, true); }
-if (restoreY) requestAnimationFrame(() => scrollTo(0, restoreY));
+if (restoreY) { requestAnimationFrame(() => scrollTo(0, restoreY)); if (legTab === 'full') legsOpened().then(() => requestAnimationFrame(() => scrollTo(0, restoreY))); }
 </script>
 <script>
 { let n = 0, t = 0;
