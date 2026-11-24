@@ -120,6 +120,13 @@
   .hero.off .hx-lbl { margin-top:0; }
   .hx-row { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:16px; } .hx-row .hx-lbl { margin-top:0; }
   .hero .ot { font-size:13px; padding:3px 9px; } .hero .ot b { display:inline; margin-left:4px; }
+  /* 끝냄·되돌리기: 상태 배지(.ot)와 달리 누르는 버튼 — 흰 바탕·아이콘·그림자, 누르면 눌린 느낌 */
+  .hero .ldone { position:relative; z-index:1; flex:none; display:inline-flex; align-items:center; gap:5px; height:32px; border:0; border-radius:999px; padding:0 14px 0 11px; background:#fff; color:#1747c9; font:inherit; font-size:14px; font-weight:800; cursor:pointer; box-shadow:0 2px 8px rgba(8,30,90,.35); -webkit-tap-highlight-color:transparent; transition:transform .08s, background .08s; }
+  .hero .ldone svg, .lundo svg { width:15px; height:15px; flex:none; }
+  .hero .ldone:active { transform:scale(.94); background:#dce7ff; box-shadow:0 1px 3px rgba(8,30,90,.35); }
+  .lundo { display:inline-flex; align-items:center; gap:3px; vertical-align:middle; height:22px; margin:-2px 0 -2px 4px; border:1px solid var(--acc); border-radius:999px; padding:0 9px 0 7px; background:transparent; color:var(--acc); font:inherit; font-size:12px; font-weight:800; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .08s, background .08s; }
+  .lundo svg { width:13px; height:13px; }
+  .lundo:active { transform:scale(.94); background:var(--accsoft, rgba(31,111,235,.12)); }
   .hero .ot.ok { background:#e7f8ef; color:#0b8a5f; } .hero .ot.done { background:rgba(255,255,255,.2); color:#fff; } .hero .ot.late { background:#ffe3e6; color:#d92d3a; }
   .cd { display:flex; align-items:baseline; gap:4px; margin-top:6px; font-variant-numeric:tabular-nums; }
   .cd b { font-size:56px; font-weight:800; letter-spacing:-.03em; line-height:1; }
@@ -1623,7 +1630,21 @@ function dutyTimes(d) {
   const release = dutyOn(wallMs(legs[legs.length - 1]?.to, d.date, d.release), t);
   return { times, start: start ?? times[0]?.dep, open, release, last: times.reduce((a, x) => x.arr != null && x.arr > a ? x.arr : a, -Infinity) };
 }
-const nextLegIdx = (legs, lt) => legs.findIndex((l, i) => { const f = flowOf(l); return !f.in && !(!f.std && lt[i].arr != null && Date.now() > lt[i].arr + 36e5); });
+const LEG_DONE = 'cbLegDone';
+let legDone = {};
+try { legDone = JSON.parse(localStorage.getItem(LEG_DONE)) || {}; } catch (e) {}
+const legKey = (l, day) => `${l.date || day}-${l.flight}-${l.from}`;
+function legDoneSet(k, on) {
+  const cut = ymd(Date.now() - 3 * 864e5), next = {};
+  Object.keys(legDone).forEach(x => { if (/^\d{4}-\d{2}-\d{2}-/.test(x) && x.slice(0, 10) >= cut) next[x] = 1; });   // 날짜 없는 옛 키도 지운다
+  if (k) { if (on) next[k] = 1; else delete next[k]; }
+  if (JSON.stringify(next) === JSON.stringify(legDone)) return;
+  legDone = next;
+  try { localStorage.setItem(LEG_DONE, JSON.stringify(next)); } catch (e) {}
+}
+legDoneSet();
+const legNoFlowEnd = (l, f, t, day) => f.std ? '' : t && t.arr != null && Date.now() > t.arr + 36e5 ? 'timed' : legDone[legKey(l, day)] ? 'hand' : '';
+const nextLegIdx = (legs, lt, day) => legs.findIndex((l, i) => { const f = flowOf(l); return !f.in && !legNoFlowEnd(l, f, lt[i], day); });
 function dutyEndMs(d) { const x = dutyTimes(d); return Math.max(x.last ?? -Infinity, x.release ?? -Infinity); }
 const dutyDays = () => state.trips.flatMap(t => t.days.map(d => ({ t, d }))).sort((a, b) => a.d.date.localeCompare(b.d.date));
 function curDuty(days = dutyDays()) {
@@ -1678,13 +1699,13 @@ function homeView() {
   const { t: trip, d } = cur;
   const fl = l => (((state.flows || {})[`${l.date}-${l.tail}`] || {}).flights || []).find(x => x.flight === l.flight && x.from === l.from) || {};
   const late = f => f.etd && f.std ? ((mins(f.etd) - mins(f.std) + 1440 + 720) % 1440) - 720 : 0;
-  const legs = d.legs.filter(l => l.from !== l.to), lt = dutyTimes(d).times;
-  const nextI = nextLegIdx(legs, lt);
+  const legs = d.legs.filter(l => l.from !== l.to), lt = dutyTimes(d).times, lt0 = lt;
+  const nextI = nextLegIdx(legs, lt, d.date);
   const plane = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15.5v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V8.5l-8 5v2l8-2.5V18l-2 1.5V21l3.5-1 3.5 1v-1.5L13 18v-5z" fill="currentColor" transform="rotate(90 12 12)"/></svg>';
   const n = legs[nextI], nf = n ? fl(n) : {}, nl = n ? late(nf) : 0;
   const st = f => f.in ? `IN ${f.in}` : f.on ? `ON ${f.on}` : f.off ? `OFF ${f.off}` : f.out ? `OUT ${f.out}` : '';
   const hero = n ? `
-      <div class="hx-row"><div class="hx-lbl">다음 비행 · ${esc(n.flight)}${n.dhd ? ' · DH' : ''}${st(nf) ? ` · ${esc(st(nf))}` : ''}</div>${legOt(n)}</div>
+      <div class="hx-row"><div class="hx-lbl">다음 비행 · ${esc(n.flight)}${n.dhd ? ' · DH' : ''}${st(nf) ? ` · ${esc(st(nf))}` : ''}</div>${legOt(n)}${nf.std ? '' : `<button class="ldone" data-ldone="${esc(legKey(n, d.date))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>${'끝냄'}</button>`}</div>
       <div class="hx-route">
         <div><b>${esc(n.from)}</b><span>${tzOf(n.from, n.date)}${esc(n.dep)}</span></div>
         <div class="hx-mid"><i></i>${plane}<i></i><small>${esc(n.block || '')}</small></div>
@@ -1700,7 +1721,7 @@ function homeView() {
     return `<div class="tl${i === nextI ? ' next' : ''}${f.in ? ' done' : ''}">
       <span class="dot"></span>
       <div class="tl-main"><div class="tl-top"><b>${esc(l.from)} → ${esc(l.to)}</b><span class="tl-fl">${esc(l.flight)}${!l.dhd && state.releases[`${l.date}-${l.flight}-${l.from}`] ? ' · R' : ''}</span></div>
-        <div class="tl-sub">${tzOf(l.from, l.date)}${esc(l.dep)}–${tzOf(l.to, l.date)}${esc(l.arr)}${lt >= 5 ? ` · <b class="late">ETD ${esc(f.etd)}</b>` : ''}${st(f) ? ` · ${esc(st(f))}` : ''}</div></div>
+        <div class="tl-sub">${tzOf(l.from, l.date)}${esc(l.dep)}–${tzOf(l.to, l.date)}${esc(l.arr)}${lt >= 5 ? ` · <b class="late">ETD ${esc(f.etd)}</b>` : ''}${st(f) ? ` · ${esc(st(f))}` : ''}${legNoFlowEnd(l, f, lt0[i], d.date) === 'hand' ? ` <button class="lundo" data-lundo="${esc(legKey(l, d.date))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>${'되돌리기'}</button>` : ''}</div></div>
       <span class="tl-dh">${l.dhd ? '<span class="tag">DH</span>' : ''}</span>
       <div class="tl-gate"><span>GATE</span>${esc(f.depGate || '—')}</div></div>`;
   }).join('');
@@ -1792,7 +1813,7 @@ function legCd(n, nf, t, between) {
 }
 window.cbSyncHint = () => {
   const cd = curDuty(); if (!cd) return null;
-  const legs = cd.d.legs.filter(l => l.from !== l.to), lt = dutyTimes(cd.d).times, i = nextLegIdx(legs, lt);
+  const legs = cd.d.legs.filter(l => l.from !== l.to), lt = dutyTimes(cd.d).times, i = nextLegIdx(legs, lt, cd.d.date);
   if (i < 0 || lt[i].dep == null) return null;
   return { dep: lt[i].dep, etd: !!flowEtd(flowOf(legs[i])) };
 };
@@ -1824,7 +1845,11 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('click', e => {
   const h = e.target.closest?.('.home');
-  if (h && !e.target.closest('.ckin')) { tab = h.dataset.go; render(); scrollTo(0, 0); }
+  if (h && !e.target.closest('.ckin, .ldone, .lundo')) { tab = h.dataset.go; render(); scrollTo(0, 0); }
+});
+document.addEventListener('click', e => {
+  const b = e.target.closest?.('.ldone, .lundo');
+  if (b) { legDoneSet(b.dataset.ldone || b.dataset.lundo, !!b.dataset.ldone); render(); }
 });
 
 const CKIN_SEEN = 'cbCheckedIn';
@@ -2319,6 +2344,7 @@ function syncStep(t, run) {
 const scriptOld = () => { const v = scriptCur(); return !!(!IN_APP && scriptLatest && (v || state.syncedAt) && v !== 'bookmark' && !(v >= scriptLatest)); };
 const installUrl = () => PAGES + 'install.html' + '?ret=' + encodeURIComponent(document.getElementById('home').href);
 const CHANGES = [
+  ['11/23', 'Home: a flight with no Flow times (a deadhead, for example) now has a Done button, so you can move on to your next flight right after you land instead of waiting an hour past the scheduled arrival (Undo is in the legs list)'],
   ['11/17', 'LogTen: a leg that leaves after midnight now goes to LogTen with the next day’s date (it used to go with the date the duty day started)'],
   ['11/13', 'Sync: a slow or stuck Flow or Release no longer holds up the whole sync (each request has a time limit; the rest is saved), and a finished trip from yesterday is not re-read'],
   ['11/13', 'Release SE PROC and D-ATIS: when one airport ATIS (DEP or ARR) is old, the departure runway comes from the newer one, and the D-ATIS tab marks the old one'],
